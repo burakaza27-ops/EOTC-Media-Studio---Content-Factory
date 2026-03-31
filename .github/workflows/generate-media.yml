@@ -1,0 +1,135 @@
+name: Daily Quote Generator
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_generate:
+        description: 'Force generate even if duplicate'
+        type: boolean
+        default: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      can_proceed: ${{ steps.check.outputs.can_proceed }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event.inputs.force_generate }}" == "true" ]; then
+            echo "can_proceed=true" >> $GITHUB_OUTPUT
+          else
+            echo "can_proceed=true" >> $GITHUB_OUTPUT
+          fi
+
+  generate:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: eotc-media-studio/package-lock.json
+
+      - name: Install Chrome dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgbm1 \
+            libasound2 \
+            libatk-bridge2.0-0 \
+            libcups2 \
+            libdrm2 \
+            libxkbcommon0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxfixes3 \
+            libxrandr2 \
+            libpango-1.0-0 \
+            libcairo2 \
+            libatspi2.0-0 \
+            libxshmfence1 \
+            fonts-noto-color-emoji
+
+      - name: Install project dependencies
+        run: |
+          cd eotc-media-studio
+          npm ci --prefer-offline
+
+      - name: Create environment file
+        shell: bash
+        run: |
+          cd eotc-media-studio
+          cat > .env << EOF
+          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
+          SUPABASE_TABLE=${{ vars.SUPABASE_TABLE || 'quotes' }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          PUPPETEER_EXEC_PATH=/usr/bin/google-chrome
+          LOG_LEVEL=INFO
+          AI_MODEL=${{ vars.AI_MODEL || 'google/gemini-2.0-flash-001' }}
+          EOF
+
+      - name: Verify environment
+        run: |
+          cd eotc-media-studio
+          node -e "
+            const required = ['OPENROUTER_API_KEY'];
+            const missing = required.filter(k => !process.env[k]);
+            if (missing.length) {
+              console.error('Missing required env vars:', missing);
+              process.exit(1);
+            }
+            console.log('✅ Environment validated');
+          "
+
+      - name: Run generator
+        id: generate
+        continue-on-error: true
+        run: |
+          cd eotc-media-studio
+          node src/index.js || echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: Verify output
+        if: success()
+        run: |
+          if [ -f "eotc-media-studio/output.png" ]; then
+            echo "✅ Output file created"
+            ls -lh eotc-media-studio/output.png
+          else
+            echo "❌ Output file not found"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quote-${{ github.run_id }}
+          path: eotc-media-studio/output.png
+          retention-days: 7
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.run_id }}
+          path: eotc-media-studio/*.log
+          retention-days: 3
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Run Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ steps.generate.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Timestamp: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
