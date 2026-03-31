@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { formatContextForPrompt } from '../utils/calendar.js';
 
 const getEnv = (key) => process.env[key];
 
@@ -146,44 +147,48 @@ function extractJSON(text) {
   }
 }
 
-export async function generateQuote() {
-  const theme = getRandomTheme();
-  console.log(`🧠 AI Theme selected: ${theme}`);
-  const content = await callAI(QUOTE_SYSTEM_PROMPT, `Theme: ${theme}`);
-  return { text: content, theme: theme.split(' ')[0] };
+export async function generateQuote(liturgicalContext = null) {
+  const theme = liturgicalContext ? liturgicalContext.event : getRandomTheme();
+  const contextPrompt = formatContextForPrompt(liturgicalContext);
+  console.log(`🧠 AI Theme selected: ${theme}${liturgicalContext ? ' (Liturgical)' : ''}`);
+  const content = await callAI(QUOTE_SYSTEM_PROMPT, `Theme: ${theme}${contextPrompt}`);
+  return { text: content, theme: theme.split(' ')[0], liturgicalEvent: liturgicalContext?.event || null };
 }
 
-export async function generateDailyVerse() {
-  const theme = getRandomTheme();
-  console.log(`🧠 AI Verse Theme: ${theme}`);
-  const content = await callAI(VERSE_SYSTEM_PROMPT, `Provide an uplifting verse about: ${theme}`, true);
+export async function generateDailyVerse(liturgicalContext = null) {
+  const theme = liturgicalContext ? liturgicalContext.event : getRandomTheme();
+  const contextPrompt = formatContextForPrompt(liturgicalContext);
+  console.log(`🧠 AI Verse Theme: ${theme}${liturgicalContext ? ' (Liturgical)' : ''}`);
+  const content = await callAI(VERSE_SYSTEM_PROMPT, `Provide an uplifting verse about: ${theme}${contextPrompt}`, true);
   const data = extractJSON(content);
   if (!data.verse || !data.reference) throw new Error('Missing verse or reference fields');
-  return data;
+  return { ...data, liturgicalEvent: liturgicalContext?.event || null };
 }
 
-export async function generateCarousel(topic = null) {
-  const theme = topic || getRandomTheme();
-  console.log(`🧠 AI Carousel Theme: ${theme}`);
-  const content = await callAI(CAROUSEL_SYSTEM_PROMPT, `Generate 5 slides about: ${theme}`, true);
+export async function generateCarousel(topic = null, liturgicalContext = null) {
+  const theme = liturgicalContext ? liturgicalContext.event : (topic || getRandomTheme());
+  const contextPrompt = formatContextForPrompt(liturgicalContext);
+  console.log(`🧠 AI Carousel Theme: ${theme}${liturgicalContext ? ' (Liturgical)' : ''}`);
+  const content = await callAI(CAROUSEL_SYSTEM_PROMPT, `Generate 5 slides about: ${theme}${contextPrompt}`, true);
   const slides = extractJSON(content);
   
   if (!Array.isArray(slides) || slides.length !== 5) {
     throw new Error(`Expected 5 slides in array, got ${slides.length || 0}`);
   }
-  return { slides, theme: theme.split(' ')[0] };
+  return { slides, theme: theme.split(' ')[0], liturgicalEvent: liturgicalContext?.event || null };
 }
 
-export async function generateWeeklyReflection() {
-  const theme = getRandomTheme();
-  console.log(`🧠 AI Reflection Theme: ${theme}`);
-  const content = await callAI(REFLECTION_SYSTEM_PROMPT, `Write a deep reflection on: ${theme}`, true);
+export async function generateWeeklyReflection(liturgicalContext = null) {
+  const theme = liturgicalContext ? liturgicalContext.event : getRandomTheme();
+  const contextPrompt = formatContextForPrompt(liturgicalContext);
+  console.log(`🧠 AI Reflection Theme: ${theme}${liturgicalContext ? ' (Liturgical)' : ''}`);
+  const content = await callAI(REFLECTION_SYSTEM_PROMPT, `Write a deep reflection on: ${theme}${contextPrompt}`, true);
   const data = extractJSON(content);
   
   if (!data.title || !data.reflection || !data.prayer) {
     throw new Error('Missing required reflection fields');
   }
-  return { ...data, theme: theme.split(' ')[0] };
+  return { ...data, theme: theme.split(' ')[0], liturgicalEvent: liturgicalContext?.event || null };
 }
 
 export function isConfigured() {

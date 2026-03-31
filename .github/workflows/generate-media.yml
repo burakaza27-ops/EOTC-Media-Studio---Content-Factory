@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       content_type:
-        description: 'Content type to generate manually'
+        description: 'Content type to generate'
         type: choice
         options:
           - quote
@@ -21,6 +21,10 @@ on:
           - carousel
           - reflection
         default: quote
+      use_liturgical:
+        description: 'Apply Liturgical Calendar Context (feast/fast/saint of the day)'
+        type: boolean
+        default: true
 
 concurrency:
   group: content-generation
@@ -74,12 +78,15 @@ jobs:
         run: |
           # Default manual input
           TYPE="${{ github.event.inputs.content_type }}"
+          LITURGICAL="${{ github.event.inputs.use_liturgical }}"
           
           # Compute schedule
           HOUR=$(date -u +"%H")
           DOW=$(date -u +"%u")
           
           if [ "${{ github.event_name }}" == "schedule" ]; then
+            # Scheduled runs ALWAYS use liturgical context
+            LITURGICAL="true"
             if [ "$DOW" == "7" ] && [ "$HOUR" == "05" ]; then
               TYPE="reflection"
             elif [ "$HOUR" == "02" ]; then
@@ -97,12 +104,22 @@ jobs:
             TYPE="quote"
           fi
           
-          echo "Determined type: $TYPE"
+          if [ -z "$LITURGICAL" ]; then
+            LITURGICAL="true"
+          fi
+          
+          echo "Determined type: $TYPE (liturgical: $LITURGICAL)"
           echo "target_type=$TYPE" >> $GITHUB_OUTPUT
+          echo "use_liturgical=$LITURGICAL" >> $GITHUB_OUTPUT
 
       - name: Run Pipeline
         id: pipeline
-        run: node src/index.js ${{ steps.compute-type.outputs.target_type }}
+        run: |
+          LITURGICAL_FLAG=""
+          if [ "${{ steps.compute-type.outputs.use_liturgical }}" == "true" ]; then
+            LITURGICAL_FLAG="--liturgical"
+          fi
+          node src/index.js ${{ steps.compute-type.outputs.target_type }} $LITURGICAL_FLAG
 
       - name: Upload Single Image Artifacts
         if: always() && steps.compute-type.outputs.target_type != 'carousel'
@@ -126,4 +143,5 @@ jobs:
           echo "## EOTC Media Studio Pipeline 🚀" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ steps.pipeline.outcome }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Content**: ${{ steps.compute-type.outputs.target_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Liturgical**: ${{ steps.compute-type.outputs.use_liturgical }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Timestamp**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY

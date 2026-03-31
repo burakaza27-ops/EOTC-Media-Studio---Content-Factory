@@ -39,6 +39,7 @@ import { generateQuote, generateDailyVerse, generateCarousel, generateWeeklyRefl
 import { checkDuplicate, saveQuote } from './db/supabase.js';
 import { sendToTelegram, sendMessage, sendCarousel } from './telegram/bot.js';
 import { renderQuote, renderDailyVerse, renderCarousel, renderWeeklyReflection } from './render/puppeteer.js';
+import { getLiturgicalContext } from './utils/calendar.js';
 
 const CONFIG = {
   tempDir: path.join(__dirname, '../temp'),
@@ -117,39 +118,48 @@ async function pipelineWrapper(paths, genFn, renderFn, getCaptionFn, dbTextFn, s
   });
 }
 
-async function runQuotePipeline(paths) {
+async function runQuotePipeline(paths, liturgicalContext = null) {
   await pipelineWrapper(paths,
-    generateQuote,
+    () => generateQuote(liturgicalContext),
     renderQuote,
-    (data) => `<b>✨ የእለቱ መንፈሳዊ ቃል</b>\n\n${data.text}\n\n#EOTCYouth #${data.theme} #OrthodoxQuote`,
+    (data) => {
+      const litTag = data.liturgicalEvent ? `\n🗓️ ${data.liturgicalEvent}` : '';
+      return `<b>✨ የእለቱ መንፈሳዊ ቃል</b>${litTag}\n\n${data.text}\n\n#EOTCYouth #${data.theme} #OrthodoxQuote`;
+    },
     (data) => data.text,
     'quote'
   );
 }
 
-async function runVersePipeline(paths) {
+async function runVersePipeline(paths, liturgicalContext = null) {
   await pipelineWrapper(paths,
-    generateDailyVerse,
+    () => generateDailyVerse(liturgicalContext),
     renderDailyVerse,
-    (data) => `<b>📖 የእግዚአብሔር ቃል</b>\n\nበእለቱ የምናነበው\n<i>${data.verse}</i>\n— <b>${data.reference}</b>\n\n#DailyVerse #EOTC #Scripture`,
+    (data) => {
+      const litTag = data.liturgicalEvent ? `\n🗓️ ${data.liturgicalEvent}` : '';
+      return `<b>📖 የእግዚአብሔር ቃል</b>${litTag}\n\nበእለቱ የምናነበው\n<i>${data.verse}</i>\n— <b>${data.reference}</b>\n\n#DailyVerse #EOTC #Scripture`;
+    },
     (data) => `${data.verse} - ${data.reference}`,
     'verse'
   );
 }
 
-async function runReflectionPipeline(paths) {
+async function runReflectionPipeline(paths, liturgicalContext = null) {
   await pipelineWrapper(paths,
-    generateWeeklyReflection,
+    () => generateWeeklyReflection(liturgicalContext),
     renderWeeklyReflection,
-    (data) => `<b>✝️ የሳምንቱ መንፈሳዊ ትምህርት</b>\n\n<b>የርዕስ ቃል:</b> ${data.title}\n\n<i>"${data.scripture}"</i> — ${data.reference}\n\n#WeeklyReflection #OrthodoxTeaching #${data.theme}`,
+    (data) => {
+      const litTag = data.liturgicalEvent ? `\n🗓️ ${data.liturgicalEvent}` : '';
+      return `<b>✝️ የሳምንቱ መንፈሳዊ ትምህርት</b>${litTag}\n\n<b>የርዕስ ቃል:</b> ${data.title}\n\n<i>"${data.scripture}"</i> — ${data.reference}\n\n#WeeklyReflection #OrthodoxTeaching #${data.theme}`;
+    },
     (data) => `Reflection: ${data.title} - ${data.reference}`,
     'reflection'
   );
 }
 
-async function runCarouselPipeline() {
+async function runCarouselPipeline(liturgicalContext = null) {
   const carouselData = await runStage('ai_carousel', async () => {
-    return await withTimeout(generateCarousel(), 70000, 'Carousel generation timeout');
+    return await withTimeout(generateCarousel(null, liturgicalContext), 70000, 'Carousel generation timeout');
   });
 
   const outputDir = getCarouselDir();
@@ -161,7 +171,8 @@ async function runCarouselPipeline() {
   await runStage('save', () => saveQuote(`Carousel: ${carouselData.theme} - ${carouselData.slides[0]?.title}`));
 
   await runStage('telegram_carousel', async () => {
-    const caption = `<b>🎠 መንፈሳዊ ትምህርት | ${carouselData.theme}</b>\n\nበእያንዳንዱ ገጽ ላይ ያለውን መልካም ዜና ተከተሉ. ሥዕሎቹን ወደ ጎን እያሳለፉ ያንብቡ።\n\n#EOTCYouth #OrthodoxTeaching #${carouselData.theme}`;
+    const litTag = carouselData.liturgicalEvent ? `\n🗓️ ${carouselData.liturgicalEvent}` : '';
+    const caption = `<b>🎠 መንፈሳዊ ትምህርት | ${carouselData.theme}</b>${litTag}\n\nበእያንዳንዱ ገጽ ላይ ያለውን መልካም ዜና ተከተሉ. ሥዕሎቹን ወደ ጎን እያሳለፉ ያንብቡ።\n\n#EOTCYouth #OrthodoxTeaching #${carouselData.theme}`;
     const result = await sendCarousel(carouselPaths, caption);
     if (result?.skipped) log('WARN', '📋 Carousel Telegram skipped');
     else if (!result?.success) throw new Error(result?.error || 'Carousel send failed');
@@ -170,24 +181,36 @@ async function runCarouselPipeline() {
 
 async function main() {
   const args = process.argv.slice(2);
-  const contentType = args[0] || 'quote';
+  const contentType = args.find(a => !a.startsWith('--')) || 'quote';
+  const useLiturgical = args.includes('--liturgical');
   const startTime = Date.now();
   
   log('INFO', '═══════════════════════════════════════════════════════');
-  log('INFO', `🎬 EOTC Media Studio v3.0 - Professional Release`);
-  log('INFO', `📋 Content Flow: [${contentType.toUpperCase()}]`);
+  log('INFO', `🎬 EOTC Media Studio v4.0 - Liturgical Intelligence`);
+  log('INFO', `📋 Content Flow: [${contentType.toUpperCase()}]${useLiturgical ? ' + 📅 LITURGICAL' : ''}`);
   log('INFO', '═══════════════════════════════════════════════════════');
   
   ensureDirectories();
   const paths = getOutputPath();
   
+  // Resolve liturgical context if the flag is active
+  let liturgicalContext = null;
+  if (useLiturgical) {
+    liturgicalContext = getLiturgicalContext();
+    if (liturgicalContext) {
+      log('INFO', `📅 Liturgical Context: ${liturgicalContext.event} (${liturgicalContext.mood})`);
+    } else {
+      log('INFO', '📅 No special liturgical event today. Using general theme.');
+    }
+  }
+  
   try {
     switch(contentType) {
-      case 'verse': await runVersePipeline(paths); break;
-      case 'reflection': await runReflectionPipeline(paths); break;
-      case 'carousel': await runCarouselPipeline(); break;
+      case 'verse': await runVersePipeline(paths, liturgicalContext); break;
+      case 'reflection': await runReflectionPipeline(paths, liturgicalContext); break;
+      case 'carousel': await runCarouselPipeline(liturgicalContext); break;
       case 'quote':
-      default: await runQuotePipeline(paths); break;
+      default: await runQuotePipeline(paths, liturgicalContext); break;
     }
     
     log('INFO', '═══════════════════════════════════════════════════════');
