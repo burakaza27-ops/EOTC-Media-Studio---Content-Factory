@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EOTC Daily Verse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1c2331;
+      --bg-secondary: #0f131a;
+      --accent-color: #e2c073;
+      --accent-glow: rgba(226, 192, 115, 0.2);
+      --text-main: #ffffff;
+      --text-sub: rgba(255, 255, 255, 0.7);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 1080px; height: 1080px;
+      font-family: 'Noto Sans Ethiopic', sans-serif;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+
+    .circle-glow {
+      position: absolute; width: 800px; height: 800px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      border-radius: 50%; pointer-events: none; z-index: 0;
+    }
+
+    .content {
+      position: relative; z-index: 10;
+      text-align: center; max-width: 850px; padding: 60px;
+    }
+
+    .top-icon {
+      font-size: 60px; color: var(--accent-color);
+      margin-bottom: 40px; text-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .verse-text {
+      font-size: 64px; font-weight: 700; line-height: 1.5;
+      color: var(--text-main); margin-bottom: 40px;
+    }
+
+    .verse-ref {
+      font-size: 28px; font-weight: 800; letter-spacing: 0.1em;
+      color: var(--accent-color); text-transform: uppercase;
+      display: inline-block; padding: 10px 30px;
+      border-top: 1px solid var(--accent-color);
+      border-bottom: 1px solid var(--accent-color);
+    }
+
+    .footer {
+      position: absolute; bottom: 60px; width: 100%; text-align: center;
+      font-size: 16px; letter-spacing: 0.4em; color: var(--text-sub);
+      text-transform: uppercase; font-weight: 600; z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div class="circle-glow"></div>
+  
+  <div class="content">
+    <div class="top-icon">📖</div>
+    <div class="verse-text" id="quote-text">የእግዚአብሔር ቃል ሕያው ነውና፥ የሚሠራም...</div>
+    <div class="verse-ref" id="scripture-ref">ዕብራውያን ፬፥፲፪</div>
+  </div>
+
+  <div class="footer">Daily Scripture • EOTC Youth</div>
+</body>
+</html>

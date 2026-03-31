@@ -13,7 +13,7 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function launchBrowser(width = 1080, height = 1080) {
+async function launchBrowser(width = 1080, height = 1080, retryCount = 0) {
   const browserArgs = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -21,91 +21,132 @@ async function launchBrowser(width = 1080, height = 1080) {
     '--disable-gpu',
     '--disable-web-security',
     '--disable-features=IsolateOrigins,site-per-process',
-    '--allow-file-access-from-files',
-    '--single-process'
+    '--allow-file-access-from-files'
   ];
 
-  return puppeteer.launch({
-    executablePath: PUPPETEER_EXEC_PATH || undefined,
-    headless: 'new',
-    args: browserArgs,
-    defaultViewport: { width, height }
-  });
-}
-
-export async function renderQuote(text, outputPath, retryCount = 0) {
-  const templatePath = path.join(__dirname, '../../templates/power_quote.html');
-  let browser = null;
-
   try {
-    console.log('🎨 Rendering quote (attempt ' + (retryCount + 1) + ')...');
-    browser = await launchBrowser();
-    
-    const page = await browser.newPage();
-    
-    await page.setCacheEnabled(false);
-    
-    const loadResult = await page.goto(`file://${templatePath}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 15000
+    return await puppeteer.launch({
+      executablePath: PUPPETEER_EXEC_PATH || undefined,
+      headless: true,
+      args: browserArgs,
+      defaultViewport: { width, height, deviceScaleFactor: 2 } // retina scale for crisp text
     });
-    
-    if (!loadResult) {
-      throw new Error('Failed to load template');
-    }
-
-    await page.waitForSelector('#quote-text', { timeout: 5000 });
-    
-    await page.evaluate((quoteText) => {
-      const el = document.getElementById('quote-text');
-      if (el) el.textContent = quoteText;
-    }, text);
-
-    try {
-      await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
-    } catch (fontError) {
-      console.log('⚠️ Font ready check timed out, continuing...');
-      await sleep(1000);
-    }
-
-    await sleep(500);
-
-    await page.screenshot({
-      path: outputPath,
-      type: 'png',
-      fullPage: false,
-      omitBackground: false
-    });
-
-    console.log(`✅ Rendered: ${outputPath}`);
-    return outputPath;
-
   } catch (error) {
-    if (retryCount < MAX_RETRIES && error.message.includes('Target closed')) {
-      console.log('⏳ Browser crashed, retrying...');
+    if (retryCount < MAX_RETRIES) {
+      console.log(`⏳ Browser launch failed, retrying (${retryCount + 1}/${MAX_RETRIES})...`);
       await sleep(1000);
-      return renderQuote(text, outputPath, retryCount + 1);
+      return launchBrowser(width, height, retryCount + 1);
     }
     throw error;
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (closeError) {
-        console.log('⚠️ Browser close warning:', closeError.message);
-      }
-    }
   }
 }
 
-export function isConfigured() {
-  return true;
+async function renderTemplate(page, htmlFile, variables, outputPath) {
+  const templatePath = path.join(__dirname, '../../templates', htmlFile);
+  
+  await page.setCacheEnabled(false);
+  const loadResult = await page.goto(`file://${templatePath}`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 15000
+  });
+  
+  if (!loadResult) throw new Error(`Failed to load template ${htmlFile}`);
+
+  // Inject variables
+  await page.evaluate((vars) => {
+    for (const [id, value] of Object.entries(vars)) {
+      const el = document.getElementById(id);
+      if (el) {
+        if (id === 'reflection-body') {
+          // Special handling for multi-paragraph HTML
+          el.innerHTML = value.split('\n\n').map(p => `<p>${p}</p>`).join('');
+        } else {
+          el.textContent = value;
+        }
+      }
+    }
+  }, variables);
+
+  try {
+    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
+  } catch (fontError) {
+    console.log('⚠️ Font ready check timed out, continuing...');
+  }
+
+  await sleep(1000); // Give CSS animations time to settle
+
+  await page.screenshot({
+    path: outputPath,
+    type: 'png',
+    fullPage: false
+  });
+
+  return outputPath;
 }
 
-export async function renderCarousel(slides, outputDir) {
+export async function renderQuote({ text, theme }, outputPath) {
+  let browser = null;
+  try {
+    console.log('🎨 Rendering quote...');
+    browser = await launchBrowser(1080, 1080);
+    const page = await browser.newPage();
+    
+    await renderTemplate(page, 'power_quote.html', {
+      'quote-text': text,
+      'theme-badge': theme
+    }, outputPath);
+    
+    console.log(`✅ Rendered: ${outputPath}`);
+    return outputPath;
+  } finally {
+    if (browser) try { await browser.close(); } catch {}
+  }
+}
+
+export async function renderDailyVerse(verseData, outputPath) {
+  let browser = null;
+  try {
+    console.log('🎨 Rendering daily verse...');
+    browser = await launchBrowser(1080, 1080);
+    const page = await browser.newPage();
+    
+    await renderTemplate(page, 'daily_verse.html', {
+      'quote-text': verseData.verse,
+      'scripture-ref': verseData.reference
+    }, outputPath);
+    
+    console.log(`✅ Rendered: ${outputPath}`);
+    return outputPath;
+  } finally {
+    if (browser) try { await browser.close(); } catch {}
+  }
+}
+
+export async function renderWeeklyReflection(reflectionData, outputPath) {
+  let browser = null;
+  try {
+    console.log('🎨 Rendering weekly reflection...');
+    browser = await launchBrowser(1080, 1920); // Story size
+    const page = await browser.newPage();
+    
+    await renderTemplate(page, 'weekly_reflection.html', {
+      'title': reflectionData.title,
+      'scripture-text': reflectionData.scripture,
+      'scripture-ref': reflectionData.reference,
+      'reflection-body': reflectionData.reflection, // Will be parsed as paragraphs inside evaluate
+      'prayer-text': reflectionData.prayer
+    }, outputPath);
+    
+    console.log(`✅ Rendered: ${outputPath}`);
+    return outputPath;
+  } finally {
+    if (browser) try { await browser.close(); } catch {}
+  }
+}
+
+export async function renderCarousel({ slides, theme }, outputDir) {
   const templatePath = path.join(__dirname, '../../templates/deep_dive.html');
   const outputPaths = [];
-  
   let browser = null;
   
   try {
@@ -117,53 +158,41 @@ export async function renderCarousel(slides, outputDir) {
       const outputPath = path.join(outputDir, `carousel_${i + 1}.png`);
       
       console.log(`  📊 Rendering slide ${i + 1}/5...`);
-      
       const page = await browser.newPage();
       await page.setCacheEnabled(false);
       
-      await page.goto(`file://${templatePath}`, {
-        waitUntil: 'domcontentloaded',
-        timeout: 15000
-      });
+      await page.goto(`file://${templatePath}`, { waitUntil: 'domcontentloaded' });
       
-      await page.waitForSelector('#slide-number', { timeout: 5000 });
-      
-      await page.evaluate((slideData, index, total) => {
-        document.getElementById('slide-number').textContent = index + 1;
-        document.getElementById('title').textContent = slideData.title || '';
-        document.getElementById('quote-text').textContent = slideData.content || '';
-        document.getElementById('scripture-ref').textContent = slideData.reference || '';
+      await page.evaluate((slideData, index, total, themeName) => {
+        const el = id => document.getElementById(id);
+        if (el('slide-number')) el('slide-number').textContent = index + 1;
+        if (el('slide-total')) el('slide-total').textContent = `${index + 1} OF ${total}`;
+        if (el('topic-badge')) el('topic-badge').textContent = themeName;
+        if (el('title')) el('title').textContent = slideData.title || '';
+        if (el('quote-text')) el('quote-text').textContent = slideData.content || '';
         
-        const slideTotal = document.getElementById('slide-total');
-        if (slideTotal) {
-          slideTotal.textContent = `${index + 1} / ${total}`;
+        const refObj = el('scripture-ref');
+        const refBox = el('reference-box');
+        if (slideData.reference && refObj && refBox) {
+          refObj.textContent = slideData.reference;
+          refBox.style.display = 'block';
+        } else if (refBox) {
+          refBox.style.display = 'none';
         }
         
-        const progressBar = document.getElementById('progress-bar');
-        if (progressBar) {
-          progressBar.style.width = ((index + 1) / total * 100) + '%';
-        }
+        const progressBar = el('progress-bar');
+        if (progressBar) progressBar.style.width = ((index + 1) / total * 100) + '%';
         
-        const progressDots = document.querySelectorAll('.progress-dot');
+        const progressDots = document.querySelectorAll('.dot');
         progressDots.forEach((dot, dotIndex) => {
-          dot.classList.toggle('active', dotIndex <= index);
+          dot.classList.toggle('active', dotIndex === index);
         });
-      }, slide, i, slides.length);
+      }, slide, i, slides.length, theme);
       
-      try {
-        await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
-      } catch {
-        await sleep(1000);
-      }
+      try { await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 }); } catch {}
+      await sleep(500);
       
-      await sleep(300);
-      
-      await page.screenshot({
-        path: outputPath,
-        type: 'png',
-        fullPage: false
-      });
-      
+      await page.screenshot({ path: outputPath, type: 'png', fullPage: false });
       outputPaths.push(outputPath);
       await page.close();
     }
@@ -172,8 +201,10 @@ export async function renderCarousel(slides, outputDir) {
     return outputPaths;
     
   } finally {
-    if (browser) {
-      try { await browser.close(); } catch {}
-    }
+    if (browser) try { await browser.close(); } catch {}
   }
+}
+
+export function isConfigured() {
+  return true;
 }

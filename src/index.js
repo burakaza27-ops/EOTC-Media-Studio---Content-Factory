@@ -19,11 +19,6 @@ const log = (level, ...args) => {
   }
 };
 
-const logError = (ctx, error) => {
-  log('ERROR', `❌ ${ctx}:`, error.message);
-  if (error.stack) log('DEBUG', error.stack);
-};
-
 class PipelineError extends Error {
   constructor(message, stage, isRetryable = false) {
     super(message);
@@ -36,74 +31,46 @@ class PipelineError extends Error {
 async function withTimeout(promise, ms, timeoutMsg) {
   return Promise.race([
     promise,
-    new Promise((_, reject) => 
-      setTimeout(() => reject(new Error(timeoutMsg)), ms)
-    )
+    new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutMsg)), ms))
   ]);
 }
 
-import { generateQuote, generateCarousel } from './ai/openrouter.js';
+import { generateQuote, generateDailyVerse, generateCarousel, generateWeeklyReflection } from './ai/openrouter.js';
 import { checkDuplicate, saveQuote } from './db/supabase.js';
 import { sendToTelegram, sendMessage, sendCarousel } from './telegram/bot.js';
-import { renderQuote, renderCarousel } from './render/puppeteer.js';
+import { renderQuote, renderDailyVerse, renderCarousel, renderWeeklyReflection } from './render/puppeteer.js';
 
 const CONFIG = {
   tempDir: path.join(__dirname, '../temp'),
   carouselDir: path.join(__dirname, '../temp/carousel'),
   outputDir: __dirname,
   outputFile: 'output.png',
-  maxRetries: 2,
   stages: {
     ai: 'AI Generation',
-    ai_carousel: 'Carousel Content Generation',
     duplicate: 'Duplicate Check',
     render: 'Image Rendering',
-    render_carousel: 'Carousel Rendering',
     save: 'Database Save',
-    telegram: 'Telegram Send',
-    telegram_carousel: 'Carousel Send'
+    telegram: 'Telegram Send'
   }
 };
 
 function ensureDirectories() {
-  try {
-    if (!fs.existsSync(CONFIG.tempDir)) {
-      fs.mkdirSync(CONFIG.tempDir, { recursive: true });
-    }
-    if (!fs.existsSync(CONFIG.carouselDir)) {
-      fs.mkdirSync(CONFIG.carouselDir, { recursive: true });
-    }
-    log('INFO', '📁 Directories ready');
-  } catch (error) {
-    throw new PipelineError('Failed to create directories', 'init', false);
-  }
+  if (!fs.existsSync(CONFIG.tempDir)) fs.mkdirSync(CONFIG.tempDir, { recursive: true });
+  if (!fs.existsSync(CONFIG.carouselDir)) fs.mkdirSync(CONFIG.carouselDir, { recursive: true });
 }
 
 function getCarouselDir() {
-  const timestamp = Date.now();
-  const carouselDir = path.join(CONFIG.carouselDir, `run_${timestamp}`);
-  if (!fs.existsSync(carouselDir)) {
-    fs.mkdirSync(carouselDir, { recursive: true });
-  }
-  return carouselDir;
+  const dir = path.join(CONFIG.carouselDir, `run_${Date.now()}`);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 function getOutputPath() {
   const timestamp = Date.now();
-  const tempOutput = path.join(CONFIG.tempDir, `quote_${timestamp}.png`);
-  const finalOutput = path.join(CONFIG.outputDir, CONFIG.outputFile);
-  return { temp: tempOutput, final: finalOutput };
-}
-
-async function cleanup(tempPath) {
-  try {
-    if (tempPath && fs.existsSync(tempPath) && tempPath !== path.join(CONFIG.outputDir, CONFIG.outputFile)) {
-      fs.unlinkSync(tempPath);
-      log('DEBUG', '🧹 Temp file cleaned up');
-    }
-  } catch (error) {
-    log('WARN', 'Cleanup warning:', error.message);
-  }
+  return {
+    temp: path.join(CONFIG.tempDir, `media_${timestamp}.png`),
+    final: path.join(CONFIG.outputDir, CONFIG.outputFile)
+  };
 }
 
 async function runStage(stageName, fn) {
@@ -111,174 +78,142 @@ async function runStage(stageName, fn) {
   const startTime = Date.now();
   try {
     const result = await fn();
-    const elapsed = Date.now() - startTime;
-    log('INFO', `✅ Completed: ${CONFIG.stages[stageName] || stageName} (${elapsed}ms)`);
+    log('INFO', `✅ Completed: ${CONFIG.stages[stageName] || stageName} (${Date.now() - startTime}ms)`);
     return result;
   } catch (error) {
-    const elapsed = Date.now() - startTime;
-    throw new PipelineError(
-      `${CONFIG.stages[stageName] || stageName} failed: ${error.message}`,
-      stageName,
-      error.message.includes('ETIMEDOUT') || error.message.includes('ENOTFOUND')
-    );
+    throw new PipelineError(`${CONFIG.stages[stageName] || stageName} failed: ${error.message}`, stageName);
   }
+}
+
+async function pipelineWrapper(paths, genFn, renderFn, getCaptionFn, dbTextFn, stageNameModifier) {
+  const aiData = await runStage(`ai_${stageNameModifier}`, async () => {
+    return await withTimeout(genFn(), 60000, 'AI generation timeout');
+  });
+
+  const dbText = dbTextFn(aiData);
+  const isDuplicate = await runStage('duplicate', () => checkDuplicate(dbText));
+  
+  if (isDuplicate) {
+    log('WARN', '⚠️ Duplicate detected - stopping pipeline');
+    await sendMessage(`⚠️ <b>EOTC Media Studio</b>\n\nDuplicate skipped.\n\n"${dbText}"`);
+    return;
+  }
+
+  const tempOutputPath = await runStage(`render_${stageNameModifier}`, async () => {
+    return await withTimeout(renderFn(aiData, paths.temp), 45000, 'Render timeout');
+  });
+
+  if (!fs.existsSync(tempOutputPath)) throw new PipelineError('Render output not found', 'render');
+  fs.copyFileSync(tempOutputPath, paths.final);
+  log('INFO', `📦 Output saved to: ${paths.final}`);
+
+  await runStage('save', () => saveQuote(dbText));
+
+  await runStage(`telegram_${stageNameModifier}`, async () => {
+    const caption = getCaptionFn(aiData);
+    const result = await sendToTelegram(paths.final, caption);
+    if (result?.skipped) log('WARN', '📋 Telegram skipped (not configured)');
+    else if (!result?.success) throw new Error(result?.error || 'Telegram send failed');
+  });
+}
+
+async function runQuotePipeline(paths) {
+  await pipelineWrapper(paths,
+    generateQuote,
+    renderQuote,
+    (data) => `<b>✨ የእለቱ መንፈሳዊ ቃል</b>\n\n${data.text}\n\n#EOTCYouth #${data.theme} #OrthodoxQuote`,
+    (data) => data.text,
+    'quote'
+  );
+}
+
+async function runVersePipeline(paths) {
+  await pipelineWrapper(paths,
+    generateDailyVerse,
+    renderDailyVerse,
+    (data) => `<b>📖 የእግዚአብሔር ቃል</b>\n\nበእለቱ የምናነበው\n<i>${data.verse}</i>\n— <b>${data.reference}</b>\n\n#DailyVerse #EOTC #Scripture`,
+    (data) => `${data.verse} - ${data.reference}`,
+    'verse'
+  );
+}
+
+async function runReflectionPipeline(paths) {
+  await pipelineWrapper(paths,
+    generateWeeklyReflection,
+    renderWeeklyReflection,
+    (data) => `<b>✝️ የሳምንቱ መንፈሳዊ ትምህርት</b>\n\n<b>የርዕስ ቃል:</b> ${data.title}\n\n<i>"${data.scripture}"</i> — ${data.reference}\n\n#WeeklyReflection #OrthodoxTeaching #${data.theme}`,
+    (data) => `Reflection: ${data.title} - ${data.reference}`,
+    'reflection'
+  );
+}
+
+async function runCarouselPipeline() {
+  const carouselData = await runStage('ai_carousel', async () => {
+    return await withTimeout(generateCarousel(), 70000, 'Carousel generation timeout');
+  });
+
+  const outputDir = getCarouselDir();
+  
+  const carouselPaths = await runStage('render_carousel', async () => {
+    return await withTimeout(renderCarousel(carouselData, outputDir), 90000, 'Carousel render timeout');
+  });
+
+  await runStage('save', () => saveQuote(`Carousel: ${carouselData.theme} - ${carouselData.slides[0]?.title}`));
+
+  await runStage('telegram_carousel', async () => {
+    const caption = `<b>🎠 መንፈሳዊ ትምህርት | ${carouselData.theme}</b>\n\nበእያንዳንዱ ገጽ ላይ ያለውን መልካም ዜና ተከተሉ. ሥዕሎቹን ወደ ጎን እያሳለፉ ያንብቡ።\n\n#EOTCYouth #OrthodoxTeaching #${carouselData.theme}`;
+    const result = await sendCarousel(carouselPaths, caption);
+    if (result?.skipped) log('WARN', '📋 Carousel Telegram skipped');
+    else if (!result?.success) throw new Error(result?.error || 'Carousel send failed');
+  });
 }
 
 async function main() {
   const args = process.argv.slice(2);
   const contentType = args[0] || 'quote';
-  
   const startTime = Date.now();
-  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   log('INFO', '═══════════════════════════════════════════════════════');
-  log('INFO', `🎬 EOTC Media Studio v2.0 - ${sessionId}`);
-  log('INFO', `📋 Content type: ${contentType}`);
+  log('INFO', `🎬 EOTC Media Studio v3.0 - Professional Release`);
+  log('INFO', `📋 Content Flow: [${contentType.toUpperCase()}]`);
   log('INFO', '═══════════════════════════════════════════════════════');
   
   ensureDirectories();
-  
   const paths = getOutputPath();
-  let currentQuote = null;
-  let tempOutputPath = null;
   
   try {
-    if (contentType === 'carousel') {
-      await runCarouselPipeline(startTime);
-    } else {
-      await runQuotePipeline(paths);
+    switch(contentType) {
+      case 'verse': await runVersePipeline(paths); break;
+      case 'reflection': await runReflectionPipeline(paths); break;
+      case 'carousel': await runCarouselPipeline(); break;
+      case 'quote':
+      default: await runQuotePipeline(paths); break;
     }
     
-    const totalTime = Date.now() - startTime;
     log('INFO', '═══════════════════════════════════════════════════════');
-    log('INFO', `✅ Pipeline complete in ${totalTime}ms`);
+    log('INFO', `✅ Pipeline [${contentType}] complete in ${Date.now() - startTime}ms`);
     log('INFO', '═══════════════════════════════════════════════════════');
     
   } catch (error) {
-    const errorMsg = error.stage 
-      ? `${CONFIG.stages[error.stage] || error.stage}: ${error.message}`
-      : error.message;
-    
-    log('ERROR', '═══════════════════════════════════════════════════════');
-    log('ERROR', `❌ Pipeline failed: ${errorMsg}`);
-    log('ERROR', '═══════════════════════════════════════════════════════');
-    
+    const errorMsg = error.stage ? `[${error.stage}] ${error.message}` : error.message;
+    log('ERROR', '❌ Pipeline failed:', errorMsg);
     if (error.stage !== 'init') {
       try {
-        await sendMessage(
-          `❌ <b>EOTC Media Studio Error</b>\n\nStage: ${error.stage || 'unknown'}\nError: ${error.message}\n\nTime: ${new Date().toISOString()}`,
-          'HTML'
-        );
-      } catch (notifyError) {
-        log('WARN', 'Failed to send error notification');
-      }
+        await sendMessage(`❌ <b>System Error (${contentType})</b>\n\n${errorMsg}`);
+      } catch (e) {}
     }
-    
     process.exit(1);
   } finally {
-    await cleanup(tempOutputPath);
-    
+    // Cleanup temporary output paths
     try {
-      const tempFiles = fs.readdirSync(CONFIG.tempDir).filter(f => f.startsWith('quote_'));
-      tempFiles.forEach(f => {
-        try {
-          fs.unlinkSync(path.join(CONFIG.tempDir, f));
-        } catch {}
-      });
+      if (fs.existsSync(paths.temp)) fs.unlinkSync(paths.temp);
+      const tempFiles = fs.readdirSync(CONFIG.tempDir).filter(f => f.startsWith('media_'));
+      tempFiles.forEach(f => fs.unlinkSync(path.join(CONFIG.tempDir, f)));
     } catch {}
   }
 }
 
-async function runQuotePipeline(paths) {
-  let tempOutputPath;
-  let currentQuote;
-  
-  currentQuote = await runStage('ai', async () => {
-    return await withTimeout(generateQuote(), 45000, 'AI generation timeout');
-  });
-  
-  log('INFO', `📝 Generated: "${currentQuote}"`);
-  
-  const isDuplicate = await runStage('duplicate', () => checkDuplicate(currentQuote));
-  
-  if (isDuplicate) {
-    log('WARN', '⚠️ Duplicate detected - stopping pipeline');
-    await sendMessage(`⚠️ <b>EOTC Media Studio</b>\n\nDuplicate quote skipped.\n\n"${currentQuote}"`, 'HTML');
-    return;
-  }
-  
-  tempOutputPath = await runStage('render', async () => {
-    return await withTimeout(renderQuote(currentQuote, paths.temp), 30000, 'Render timeout');
-  });
-  
-  if (!fs.existsSync(tempOutputPath)) {
-    throw new PipelineError('Render output not found', 'render');
-  }
-  
-  fs.copyFileSync(tempOutputPath, paths.final);
-  log('INFO', `📦 Output saved to: ${paths.final}`);
-  
-  await runStage('save', () => saveQuote(currentQuote));
-  
-  await runStage('telegram', async () => {
-    const result = await sendToTelegram(paths.final, currentQuote);
-    if (result?.skipped) {
-      log('WARN', '📋 Telegram skipped (not configured)');
-    } else if (!result?.success) {
-      throw new Error(result?.error || 'Telegram send failed');
-    }
-  });
-}
-
-async function runCarouselPipeline(startTime) {
-  const topics = [
-    'እምነት እና ፍቅር', 
-    'ጸሎት እና መልካም ሥራ',
-    'ተስፋ እና ትዕግስት',
-    'ሥነ ነገር ፣ ማህሌት ፣ ቅንነት',
-    'የእግዚአብሔር ኃይል'
-  ];
-  const topic = topics[Math.floor(Math.random() * topics.length)];
-  
-  log('INFO', `🎠 Topic: ${topic}`);
-  
-  const carouselSlides = await runStage('ai_carousel', async () => {
-    return await withTimeout(generateCarousel(topic), 60000, 'Carousel generation timeout');
-  });
-  
-  log('INFO', `📊 Generated ${carouselSlides.length} slides`);
-  carouselSlides.forEach((slide, i) => {
-    log('INFO', `  ${i + 1}. ${slide.title}`);
-  });
-  
-  const carouselOutputDir = getCarouselDir();
-  
-  const carouselPaths = await runStage('render_carousel', async () => {
-    return await withTimeout(renderCarousel(carouselSlides, carouselOutputDir), 60000, 'Carousel render timeout');
-  });
-  
-  log('INFO', `📦 Carousel saved: ${carouselPaths.length} slides`);
-  
-  const carouselCaption = `<b>✝️ EOTC Youth - ${topic}</b>\n\nበእያንዳንዱ ገጽ ላይ ያለውን መልካም ዜና ተከተሉ\n\n#EOTC #Youth #SpiritualGrowth`;
-  
-  await runStage('telegram_carousel', async () => {
-    const result = await sendCarousel(carouselPaths, carouselCaption);
-    if (result?.skipped) {
-      log('WARN', '📋 Carousel Telegram skipped');
-    } else if (!result?.success) {
-      throw new Error(result?.error || 'Carousel send failed');
-    }
-  });
-}
-
-process.on('SIGINT', () => {
-  log('WARN', '⚠️ Interrupted - cleaning up...');
-  process.exit(0);
-});
-
-process.on('unhandledRejection', (reason) => {
-  log('ERROR', 'Unhandled rejection:', reason);
-  process.exit(1);
-});
+process.on('SIGINT', () => process.exit(0));
+process.on('unhandledRejection', (r) => { log('ERROR', 'Unhandled rejection:', r); process.exit(1); });
 
 main();
