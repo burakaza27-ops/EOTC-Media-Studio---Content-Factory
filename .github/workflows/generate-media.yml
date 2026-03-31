@@ -30,9 +30,6 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: ./eotc-media-studio
     
     steps:
       - name: Checkout code
@@ -43,7 +40,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: ./eotc-media-studio/package-lock.json
+          cache-dependency-path: ./package-lock.json
 
       - name: Install System Dependencies
         run: |
@@ -112,7 +109,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.compute-type.outputs.target_type }}-${{ github.run_id }}
-          path: eotc-media-studio/output.png
+          path: ./output.png
           retention-days: 7
 
       - name: Upload Carousel Artifacts
@@ -120,7 +117,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: carousel-${{ github.run_id }}
-          path: eotc-media-studio/temp/carousel/run_*/*.png
+          path: ./temp/carousel/run_*/*.png
           retention-days: 7
 
       - name: Run Summary
