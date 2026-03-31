@@ -15,12 +15,12 @@
       --accent-gold: #d4af37;
       --accent-gold-light: #f3e5ab;
       --accent-gold-dim: #8a7322;
-      --accent-glow: rgba(212, 175, 55, 0.15);
+      --accent-glow: rgba(212, 175, 55, 0.2);
       --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.85);
+      --text-secondary: rgba(255, 255, 255, 0.9);
       --text-muted: rgba(255, 255, 255, 0.5);
-      --glass-bg: rgba(20, 22, 28, 0.6);
-      --glass-border: rgba(212, 175, 55, 0.15);
+      --glass-bg: rgba(20, 22, 28, 0.5);
+      --glass-border: rgba(212, 175, 55, 0.25);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -167,13 +167,17 @@
     }
 
     .quote-text {
-      font-size: 58px;
+      font-size: 64px;
       font-weight: 800;
-      line-height: 1.5;
-      color: var(--text-primary);
-      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      line-height: 1.4;
+      background: linear-gradient(135deg, #ffffff 40%, var(--accent-gold-light) 60%, #ffffff 80%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 4px 15px rgba(0,0,0,0.4);
       position: relative;
       z-index: 2;
+      letter-spacing: -0.02em;
     }
 
     .separator {
@@ -229,13 +233,15 @@
     }
 
     .daily-tag {
-      font-size: 12px;
-      letter-spacing: 0.3em;
-      color: var(--text-muted);
+      font-size: 13px;
+      letter-spacing: 0.4em;
+      color: var(--accent-gold);
       text-transform: uppercase;
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 6px 16px;
+      border: 1px solid var(--glass-border);
+      padding: 6px 20px;
       border-radius: 20px;
+      font-weight: 800;
+      background: rgba(212, 175, 55, 0.05);
     }
 
   </style>

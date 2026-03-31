@@ -4,7 +4,11 @@ import https from 'https';
 const getEnv = (key) => process.env[key];
 
 const TELEGRAM_BOT_TOKEN = () => getEnv('TELEGRAM_BOT_TOKEN');
-const TELEGRAM_CHAT_ID = () => getEnv('TELEGRAM_CHAT_ID');
+const TELEGRAM_CHAT_IDS = () => {
+  const ids = getEnv('TELEGRAM_CHAT_ID');
+  if (!ids) return [];
+  return ids.split(',').map(id => id.trim()).filter(id => id.length > 0);
+};
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_RETRIES = 3;
@@ -103,9 +107,9 @@ function httpsMultipartRequest(path, fields) {
 
 export async function sendToTelegram(imagePath, caption) {
   const token = TELEGRAM_BOT_TOKEN();
-  const chatId = TELEGRAM_CHAT_ID();
+  const chatIds = TELEGRAM_CHAT_IDS();
   
-  if (!token || !chatId) {
+  if (!token || chatIds.length === 0) {
     console.log('📋 Telegram not configured - skipping notification');
     return { skipped: true, reason: 'not_configured' };
   }
@@ -121,60 +125,80 @@ export async function sendToTelegram(imagePath, caption) {
 
   try {
     console.log('📤 Sending to Telegram, image size:', stats.size);
+    const results = [];
     
-    for (let i = 0; i < MAX_RETRIES; i++) {
-      try {
-        const response = await httpsMultipartRequest(
-          `/bot${token}/sendPhoto`,
-          {
-            chat_id: chatId,
-            photo: fs.readFileSync(imagePath),
-            caption: caption,
-            parse_mode: 'HTML'
+    for (const chatId of chatIds) {
+      console.log(`📤 Sending to group: ${chatId}`);
+      let sent = false;
+      for (let i = 0; i < MAX_RETRIES; i++) {
+        try {
+          const response = await httpsMultipartRequest(
+            `/bot${token}/sendPhoto`,
+            {
+              chat_id: chatId,
+              photo: fs.readFileSync(imagePath),
+              caption: caption,
+              parse_mode: 'HTML'
+            }
+          );
+          console.log(`✅ Image sent to ${chatId}, message_id:`, response.result.message_id);
+          results.push({ success: true, chatId, message_id: response.result.message_id });
+          sent = true;
+          break;
+        } catch (error) {
+          if (i === MAX_RETRIES - 1) {
+            console.error(`❌ Failed to send to ${chatId}:`, error.message);
+            results.push({ success: false, chatId, error: error.message });
+          } else {
+            const delay = 1000 * Math.pow(2, i);
+            console.log(`⏳ Telegram retry for ${chatId} in ${delay}ms... (${error.message})`);
+            await sleep(delay);
           }
-        );
-        console.log('✅ Image sent to Telegram, message_id:', response.result.message_id);
-        return { success: true, message_id: response.result.message_id };
-      } catch (error) {
-        if (i === MAX_RETRIES - 1) throw error;
-        const delay = 1000 * Math.pow(2, i);
-        console.log(`⏳ Telegram retry in ${delay}ms... (${error.message})`);
-        await sleep(delay);
+        }
       }
     }
+    return { success: results.some(r => r.success), results };
   } catch (error) {
-    console.error('❌ Telegram send failed:', error.message);
+    console.error('❌ Telegram broadcast failed:', error.message);
     return { success: false, error: error.message };
   }
 }
 
 export async function sendMessage(text, parseMode = 'HTML') {
   const token = TELEGRAM_BOT_TOKEN();
-  const chatId = TELEGRAM_CHAT_ID();
+  const chatIds = TELEGRAM_CHAT_IDS();
   
-  if (!token || !chatId) {
+  if (!token || chatIds.length === 0) {
     return { skipped: true };
   }
 
+  const results = [];
   try {
-    for (let i = 0; i < MAX_RETRIES; i++) {
-      try {
-        const response = await httpsRequest(
-          `/bot${token}/sendMessage`,
-          {
-            chat_id: chatId,
-            text: text,
-            parse_mode: parseMode
+    for (const chatId of chatIds) {
+      for (let i = 0; i < MAX_RETRIES; i++) {
+        try {
+          const response = await httpsRequest(
+            `/bot${token}/sendMessage`,
+            {
+              chat_id: chatId,
+              text: text,
+              parse_mode: parseMode
+            }
+          );
+          results.push({ success: true, chatId, message_id: response.result.message_id });
+          break;
+        } catch (error) {
+          if (i === MAX_RETRIES - 1) {
+            results.push({ success: false, chatId, error: error.message });
+          } else {
+            await sleep(1000 * Math.pow(2, i));
           }
-        );
-        return { success: true, message_id: response.result.message_id };
-      } catch (error) {
-        if (i === MAX_RETRIES - 1) throw error;
-        await sleep(1000 * Math.pow(2, i));
+        }
       }
     }
+    return { success: results.some(r => r.success), results };
   } catch (error) {
-    console.error('❌ Telegram message failed:', error.message);
+    console.error('❌ Telegram message broadcast failed:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -194,14 +218,14 @@ export async function testConnection() {
 }
 
 export function isConfigured() {
-  return !!(TELEGRAM_BOT_TOKEN() && TELEGRAM_CHAT_ID());
+  return !!(TELEGRAM_BOT_TOKEN() && TELEGRAM_CHAT_IDS().length > 0);
 }
 
 export async function sendCarousel(imagePaths, caption = '') {
   const token = TELEGRAM_BOT_TOKEN();
-  const chatId = TELEGRAM_CHAT_ID();
+  const chatIds = TELEGRAM_CHAT_IDS();
   
-  if (!token || !chatId) {
+  if (!token || chatIds.length === 0) {
     console.log('📋 Telegram not configured - skipping carousel');
     return { skipped: true };
   }
@@ -217,48 +241,62 @@ export async function sendCarousel(imagePaths, caption = '') {
   }
 
   try {
-    console.log(`📤 Sending carousel (${imagePaths.length} slides)...`);
-    
-    const messageIds = [];
-    
-    for (let i = 0; i < imagePaths.length; i++) {
-      const imageBuffer = fs.readFileSync(imagePaths[i]);
-      const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-      
-      const slideCaption = i === 0 ? caption : undefined;
-      const parseMode = i === 0 ? 'HTML' : undefined;
-      
-      const fields = {
-        chat_id: chatId,
-        photo: imageBuffer
-      };
-      if (slideCaption) fields.caption = slideCaption;
-      if (parseMode) fields.parse_mode = parseMode;
-      
-      const body = buildCarouselSlideFormData(fields, boundary);
-      
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-          const response = await sendMediaGroupRequest(`/bot${token}/sendPhoto`, body, boundary);
-          messageIds.push(response.result.message_id);
-          console.log(`✅ Slide ${i + 1}/${imagePaths.length} sent`);
-          break;
-        } catch (error) {
-          if (attempt === MAX_RETRIES - 1) throw error;
-          console.log(`⏳ Slide ${i + 1} retry in ${1000 * Math.pow(2, attempt)}ms...`);
-          await sleep(1000 * Math.pow(2, attempt));
+    console.log(`📤 Sending carousel (${imagePaths.length} slides) to ${chatIds.length} groups...`);
+    const results = [];
+
+    for (const chatId of chatIds) {
+      console.log(`📤 Sending to group: ${chatId}`);
+      const messageIds = [];
+      let groupSuccess = true;
+
+      for (let i = 0; i < imagePaths.length; i++) {
+        const imageBuffer = fs.readFileSync(imagePaths[i]);
+        const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
+        
+        const slideCaption = i === 0 ? caption : undefined;
+        const parseMode = i === 0 ? 'HTML' : undefined;
+        
+        const fields = {
+          chat_id: chatId,
+          photo: imageBuffer
+        };
+        if (slideCaption) fields.caption = slideCaption;
+        if (parseMode) fields.parse_mode = parseMode;
+        
+        const body = buildCarouselSlideFormData(fields, boundary);
+        
+        let slideSent = false;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          try {
+            const response = await sendMediaGroupRequest(`/bot${token}/sendPhoto`, body, boundary);
+            messageIds.push(response.result.message_id);
+            slideSent = true;
+            break;
+          } catch (error) {
+            if (attempt === MAX_RETRIES - 1) {
+              console.error(`❌ Slide ${i + 1} failed for ${chatId}:`, error.message);
+              groupSuccess = false;
+            } else {
+              await sleep(1000 * Math.pow(2, attempt));
+            }
+          }
         }
+        
+        if (!slideSent) break; // Stop this group if a slide fails after retries
+        if (i < imagePaths.length - 1) await sleep(500);
       }
-      
-      if (i < imagePaths.length - 1) {
-        await sleep(500);
+
+      if (groupSuccess) {
+        console.log(`✅ Carousel sent to ${chatId}: ${messageIds.length} slides`);
+        results.push({ success: true, chatId, message_ids: messageIds });
+      } else {
+        results.push({ success: false, chatId });
       }
     }
-    
-    console.log(`✅ Carousel sent: ${messageIds.length}/${imagePaths.length} slides`);
-    return { success: true, message_ids: messageIds };
+
+    return { success: results.some(r => r.success), results };
   } catch (error) {
-    console.error('❌ Carousel send failed:', error.message);
+    console.error('❌ Carousel broadcast failed:', error.message);
     return { success: false, error: error.message };
   }
 }
