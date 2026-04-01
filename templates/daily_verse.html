@@ -45,12 +45,13 @@
     }
 
     .verse-text {
-      font-size: 64px; font-weight: 700; line-height: 1.5;
+      font-size: clamp(36px, 5vw, 54px); font-weight: 700; line-height: 1.5;
       color: var(--text-main); margin-bottom: 40px;
+      display: -webkit-box; -webkit-line-clamp: 7; line-clamp: 7; -webkit-box-orient: vertical; overflow: hidden;
     }
 
     .verse-ref {
-      font-size: 28px; font-weight: 800; letter-spacing: 0.1em;
+      font-size: 24px; font-weight: 800; letter-spacing: 0.1em;
       color: var(--accent-color); text-transform: uppercase;
       display: inline-block; padding: 10px 30px;
       border-top: 1px solid var(--accent-color);

@@ -1,63 +1,46 @@
 /**
  * EOTC Liturgical Calendar Engine
  * ================================
- * Converts Gregorian dates to the Ethiopian calendar and determines
- * the current liturgical season, feast, or saint commemoration.
- *
- * This module is the "brain" behind context-aware content generation.
- * It provides rich thematic context to the AI so that generated quotes,
- * verses, and carousels are perfectly aligned with the Church calendar.
- *
- * Design Principles:
- *   - Zero external Ge'ez language in output (per user requirement)
- *   - Pure computation — no API calls, no network dependencies
- *   - Graceful fallback: if no special day is found, returns null
+ * Converts Gregorian dates to the Ethiopian calendar comprehensively determining
+ * the current liturgical season, feast, fasting week, or daily saint commemoration.
+ * Features: True Bahire Hasab (Computus) for moveable feasts, 30-day commemorations, and Zemene (Seasons).
  */
 
 // ─── Ethiopian Calendar Conversion ──────────────────────────────────────────
 
-/**
- * Converts a Gregorian date to the Ethiopian calendar.
- * The Ethiopian calendar is ~7-8 years behind the Gregorian calendar.
- * The Ethiopian New Year (Enkutatash) falls on September 11 (or 12 in leap years).
- */
 export function toEthiopianDate(gregorianDate = new Date()) {
   const gYear = gregorianDate.getFullYear();
   const gMonth = gregorianDate.getMonth() + 1; // 1-indexed
   const gDay = gregorianDate.getDate();
 
-  // Ethiopian New Year offset
-  // If before Sept 11, we're in the previous Ethiopian year
   const isBeforeNewYear = gMonth < 9 || (gMonth === 9 && gDay < 11);
-  const ethYear = isBeforeNewYear ? gYear - 8 : gYear - 7;
-
-  // Calculate Ethiopian month and day
-  // Ethiopian months: 13 months (12 x 30 days + Pagume 5/6 days)
-  // New Year = Meskerem 1 = September 11 (usually)
-
-  // Days from Sept 11 of the relevant Gregorian year
-  const newYearGregorian = new Date(isBeforeNewYear ? gYear - 1 : gYear, 8, 11); // Sept 11
+  const isLeapYear = (gYear % 4 === 3);
+  const newYearDay = (isLeapYear && gMonth === 9) ? 12 : 11;
+  const isBeforeNewYearExact = gMonth < 9 || (gMonth === 9 && gDay < newYearDay);
+  
+  const ethYear = isBeforeNewYearExact ? gYear - 8 : gYear - 7;
+  const newYearGregorian = new Date(isBeforeNewYearExact ? gYear - 1 : gYear, 8, isBeforeNewYearExact && ((gYear-1) % 4 === 3) ? 12 : 11);
+  
   const diffMs = gregorianDate.getTime() - newYearGregorian.getTime();
   const dayOfEthYear = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   let ethMonth, ethDay;
 
   if (dayOfEthYear < 0) {
-    // Edge case: handle dates very close to new year
-    ethMonth = 13; // Pagume
+    ethMonth = 13; 
     ethDay = 30 + dayOfEthYear + 1;
   } else if (dayOfEthYear < 360) {
     ethMonth = Math.floor(dayOfEthYear / 30) + 1;
     ethDay = (dayOfEthYear % 30) + 1;
   } else {
-    ethMonth = 13; // Pagume
+    ethMonth = 13; 
     ethDay = dayOfEthYear - 360 + 1;
   }
 
   return { year: ethYear, month: ethMonth, day: ethDay };
 }
 
-// ─── Ethiopian Month Names ──────────────────────────────────────────────────
+// ─── Constants & Reference Arrays ───────────────────────────────────────────
 
 const ETHIOPIAN_MONTHS = {
   1: 'Meskerem', 2: 'Tikimt', 3: 'Hidar', 4: 'Tahsas',
@@ -65,195 +48,240 @@ const ETHIOPIAN_MONTHS = {
   9: 'Ginbot', 10: 'Sene', 11: 'Hamle', 12: 'Nehase', 13: 'Pagume'
 };
 
-// ─── Monthly Saint Commemorations ───────────────────────────────────────────
-// These are fixed days in the Ethiopian calendar that honor specific saints.
-
-const MONTHLY_COMMEMORATIONS = {
-  1:  { saint: 'Lideta Mariam (Birth of the Virgin Mary)', theme: 'The Blessed Virgin Mary, her birth, and her role in salvation', type: 'saint' },
-  3:  { saint: 'Nahu (The Prophet Nahum)', theme: 'Prophetic wisdom and divine justice', type: 'saint' },
-  5:  { saint: 'Abune Gebre Menfes Kidus', theme: 'Monastic life, holiness, and spiritual discipline', type: 'saint' },
-  7:  { saint: 'Holy Trinity (Selassie)', theme: 'The mystery of the Holy Trinity — Father, Son, and Holy Spirit', type: 'feast' },
+const DAILY_COMMEMORATIONS = {
+  1:  { saint: 'Lideta Mariam & Elyas', theme: 'The birth of the Virgin Mary, and the zeal of Elijah the Prophet', type: 'saint' },
+  2:  { saint: 'Thaddeus the Apostle', theme: 'The apostolic mission and spreading the Gospel to the ends of the earth', type: 'saint' },
+  3:  { saint: 'Ba\'eta (Presentation of Mary)', theme: 'The presentation of Mary in the Temple, dedication to God, and prophetic wisdom', type: 'saint' },
+  4:  { saint: 'Yohannes Wolde Negedgwad', theme: 'John the Son of Thunder, deep theological revelation and divine love', type: 'saint' },
+  5:  { saint: 'Abune Gebre Menfes Kidus', theme: 'Extreme asceticism, holiness, and the pillars of the Church', type: 'saint' },
+  6:  { saint: 'Kusquam (Flight to Egypt)', theme: 'The hardship of the Holy Family in exile and God’s protection', type: 'saint' },
+  7:  { saint: 'Holy Trinity (Selassie)', theme: 'The Mystery of the Holy Trinity — Father, Son, and Holy Spirit', type: 'feast' },
+  8:  { saint: 'Abba Kiros & The Cherubim', theme: 'Monastic devotion and the heavenly hosts guarding the throne of God', type: 'saint' },
+  9:  { saint: 'Thomas the Apostle', theme: 'Faith overcoming doubt and witnessing the Resurrection', type: 'saint' },
+  10: { saint: 'Meskel (The Holy Cross)', theme: 'The power of the True Cross, salvation, and victory over darkness', type: 'feast' },
+  11: { saint: 'Hanna & Joachim', theme: 'The righteous parents of the Virgin Mary and patient, unwavering faith', type: 'saint' },
   12: { saint: 'St. Michael the Archangel', theme: 'The protection of the Archangel Michael, spiritual warfare, and divine guardianship', type: 'saint' },
-  16: { saint: 'Covenant of Mercy (Kidane Mihret)', theme: 'The mercy of the Virgin Mary and her covenant of intercession for humanity', type: 'feast' },
+  13: { saint: 'St. Rufael the Archangel', theme: 'Archangel Raphael, divine healing, and answered prayers', type: 'saint' },
+  14: { saint: 'Abune Aregawi & Gebre Kristos', theme: 'Monastic foundation, grace, and forsaking worldly riches for Christ', type: 'saint' },
+  15: { saint: 'Kirkos & Iyeluta', theme: 'The steadfast faith of the child martyr Kirkos and his mother in the face of fire', type: 'saint' },
+  16: { saint: 'Kidane Mihret (Covenant of Mercy)', theme: 'The infinite mercy of the Virgin Mary and her covenant of intercession for humanity', type: 'feast' },
+  17: { saint: 'Estifanos (St. Stephen)', theme: 'The courage of St. Stephen, the first martyr, and forgiving one\'s enemies', type: 'saint' },
+  18: { saint: 'Ewostatewos (Eustathius)', theme: 'Apostolic teaching, Sabbath observance, and monastic reform', type: 'saint' },
   19: { saint: 'St. Gabriel the Archangel', theme: 'The Archangel Gabriel, divine messages, and the Annunciation', type: 'saint' },
-  21: { saint: 'The Virgin Mary (Kidist Mariam)', theme: 'The purity, grace, and intercession of the Blessed Virgin Mary', type: 'saint' },
-  23: { saint: 'St. George (Giorgis)', theme: 'The courage and faith of St. George, martyrdom, and spiritual victory', type: 'saint' },
-  27: { saint: 'Medhane Alem (Savior of the World)', theme: 'Jesus Christ as the Savior of all humanity, redemption, and eternal life', type: 'feast' },
-  29: { saint: 'Bale Wold (Feast of God the Son)', theme: 'The incarnation of Christ, divine love, and the mystery of salvation', type: 'feast' },
+  20: { saint: 'Hnstata', theme: 'Building of the Church and congregational unity in Christ', type: 'saint' },
+  21: { saint: 'Kidist Mariam (The Virgin Mary)', theme: 'The purity, grace, and intercession of the Blessed Virgin Mary, Mother of God', type: 'saint' },
+  22: { saint: 'St. Urael the Archangel', theme: 'Archangel Uriel, the cup of salvation, and illumination of wisdom', type: 'saint' },
+  23: { saint: 'St. George (Giorgis)', theme: 'The courage and unyielding faith of St. George, martyrdom, and spiritual victory', type: 'saint' },
+  24: { saint: 'Tekle Haymanot', theme: 'The great Ethiopian saint, extreme prayer, spreading the Gospel, and spiritual fathers', type: 'saint' },
+  25: { saint: 'Merkorewos (Mercurius)', theme: 'The heroic martyr Mercurius and standing firm for Christ against the world', type: 'saint' },
+  26: { saint: 'Yosef (Joseph the Carpenter)', theme: 'The righteous Guardian, quiet obedience to God, and protecting the Holy Family', type: 'saint' },
+  27: { saint: 'Medhane Alem (Savior of the World)', theme: 'Jesus Christ as the Savior of all humanity, redemption on the Cross, and eternal life', type: 'feast' },
+  28: { saint: 'Amanuael (Emmanuel)', theme: 'God with us — the incarnation of Christ and His abiding presence with humanity', type: 'feast' },
+  29: { saint: 'Bale Wold (Feast of God the Son)', theme: 'The incarnation, divine love, and the mystery of salvation through the Son', type: 'feast' },
+  30: { saint: 'Markos (Mark the Evangelist)', theme: 'The roar of the Gospel, spreading the Good News, and the foundation of the Church', type: 'saint' }
 };
 
-// ─── Major Fixed Feasts (Ethiopian Calendar) ────────────────────────────────
-
-const MAJOR_FEASTS = [
-  // Meskerem (Month 1)
+const MAJOR_FIXED_FEASTS = [
   { month: 1, day: 1,  name: 'Enkutatash (Ethiopian New Year)', theme: 'New beginnings, gratitude, renewal of faith, and the beauty of creation', type: 'major_feast', mood: 'joyful' },
-  { month: 1, day: 17, name: 'Meskel (Finding of the True Cross)', theme: 'The discovery of the True Cross by Queen Helena, the light of Christ conquering darkness, and the triumph of faith', type: 'major_feast', mood: 'triumphant' },
-
-  // Tahsas (Month 4)
-  { month: 4, day: 29, name: 'Genna (Ethiopian Christmas)', theme: 'The birth of Jesus Christ in Bethlehem, divine humility, the light entering the world, and the joy of Emmanuel', type: 'major_feast', mood: 'joyful' },
-
-  // Tir (Month 5)
-  { month: 5, day: 11, name: 'Timkat (Epiphany / Baptism of Christ)', theme: 'The baptism of Jesus in the Jordan River, spiritual cleansing, the revelation of the Holy Trinity, and renewal through water', type: 'major_feast', mood: 'celebratory' },
-
-  // Megabit (Month 7) — approximate; Hosanna/Palm Sunday is moveable
-  { month: 7, day: 25, name: 'DebreZeit (Mount of Olives)', theme: 'Christ on the Mount of Olives, reflection on sacrifice, and the depth of divine love', type: 'feast', mood: 'contemplative' },
-
-  // Nehase (Month 12)
-  { month: 12, day: 1, name: 'Filseta (Assumption of Mary) begins', theme: 'The fasting period honoring the Assumption of the Virgin Mary, devotion, and spiritual surrender', type: 'feast', mood: 'contemplative' },
-  { month: 12, day: 16, name: 'Filseta (Assumption of Mary)', theme: 'The Assumption of the Blessed Virgin Mary into heaven, her eternal glory, and her intercession for all believers', type: 'major_feast', mood: 'celebratory' },
+  { month: 1, day: 17, name: 'Meskel (Finding of the True Cross)', theme: 'The discovery of the True Cross by Queen Helena, the light of Christ conquering darkness', type: 'major_feast', mood: 'triumphant' },
+  { month: 4, day: 29, name: 'Genna (Ethiopian Christmas)', theme: 'The birth of Jesus Christ in Bethlehem, divine humility, the light entering the world', type: 'major_feast', mood: 'joyful' },
+  { month: 5, day: 11, name: 'Timkat (Epiphany / Baptism of Christ)', theme: 'The baptism of Jesus in the Jordan River, spiritual cleansing, and the Holy Trinity', type: 'major_feast', mood: 'celebratory' },
+  { month: 12, day: 16, name: 'Filseta (Assumption of Mary)', theme: 'The Assumption of the Blessed Virgin Mary into heaven, her eternal glory and intercession', type: 'major_feast', mood: 'celebratory' },
 ];
 
-// ─── Fasting Seasons (Approximate Ethiopian Calendar Ranges) ────────────────
-// Note: Some fasts (like Abiy Tsom / Great Lent) are moveable based on Easter.
-// We use approximate ranges and the system will refine over time.
-
-const FASTING_SEASONS = [
-  {
-    name: 'Tsome Nebiyat (Advent / Prophets Fast)',
-    startMonth: 3, startDay: 15, endMonth: 4, endDay: 28,
-    theme: 'Preparation for the coming of Christ, the prophecies of the Messiah, repentance, and patient anticipation',
-    mood: 'contemplative'
-  },
-  {
-    name: 'Abiy Tsom (Great Lent)',
-    startMonth: 6, startDay: 25, endMonth: 8, endDay: 9,
-    theme: 'The 55 days of Great Lent — deep repentance, fasting, prayer, spiritual warfare, and preparation for the Resurrection',
-    mood: 'penitential'
-  },
-  {
-    name: 'Tsome Hawariat (Apostles Fast)',
-    startMonth: 9, startDay: 15, endMonth: 10, endDay: 12,
-    theme: 'Honoring the apostles, their mission to spread the Gospel, and the call to discipleship',
-    mood: 'contemplative'
-  },
-  {
-    name: 'Tsome Filseta (Fast of the Assumption)',
-    startMonth: 12, startDay: 1, endMonth: 12, endDay: 15,
-    theme: 'Devotion to the Virgin Mary, her earthly journey, and spiritual surrender before her Assumption',
-    mood: 'contemplative'
-  },
+const FIXED_FASTS = [
+  { name: 'Tsome Nebiyat (Prophets Fast)', startMonth: 3, startDay: 15, endMonth: 4, endDay: 28, theme: 'Preparation for the coming of Christ, prophetic anticipation, and repentance', mood: 'contemplative' },
+  { name: 'Tsome Filseta (Fast of the Assumption)', startMonth: 12, startDay: 1, endMonth: 12, endDay: 15, theme: 'Devotion to the Virgin Mary, spiritual surrender, and imitating her purity', mood: 'contemplative' },
+  { name: 'Gahad (Vigil of Christmas)', startMonth: 4, startDay: 28, endMonth: 4, endDay: 28, theme: 'Strict preparation, intense fasting, and waiting for the morning light of Christ', mood: 'penitential' },
+  { name: 'Gahad (Vigil of Epiphany)', startMonth: 5, startDay: 10, endMonth: 5, endDay: 10, theme: 'Intense purification before the waters of Epiphany and spiritual renewal', mood: 'penitential' }
 ];
 
-// ─── Weekly Fasting ─────────────────────────────────────────────────────────
+// ─── Bahire Hasab (Computus) ────────────────────────────────────────────────
 
-function getWeeklyFastContext(gregorianDate) {
-  const dayOfWeek = gregorianDate.getDay(); // 0=Sunday ... 6=Saturday
-  if (dayOfWeek === 3) { // Wednesday
-    return {
-      name: 'Wednesday Fast',
-      theme: 'Remembering the betrayal of Judas — the cost of unfaithfulness, and the call to loyalty and integrity in our walk with God',
-      type: 'weekly_fast',
-      mood: 'contemplative'
-    };
+function offsetEthDate(eDate, days) {
+  let newDay = eDate.day + days;
+  let newMonth = eDate.month;
+  let newYear = eDate.year;
+  
+  while(newDay > 30) {
+    if (newMonth === 13) {
+       newDay -= (newYear % 4 === 3 ? 6 : 5);
+       newMonth = 1;
+       newYear++;
+    } else {
+       newDay -= 30;
+       newMonth++;
+    }
   }
-  if (dayOfWeek === 5) { // Friday
-    return {
-      name: 'Friday Fast',
-      theme: 'Remembering the Crucifixion of Christ — the depth of divine sacrifice, the power of the Cross, and the promise of redemption',
-      type: 'weekly_fast',
-      mood: 'penitential'
-    };
+  while(newDay < 1) {
+     if (newMonth === 1) {
+        newMonth = 13;
+        newYear--;
+        newDay += (newYear % 4 === 3 ? 6 : 5);
+     } else {
+        newMonth--;
+        newDay += 30;
+     }
   }
-  return null;
+  return { year: newYear, month: newMonth, day: newDay };
 }
+
+function calculateMoveableFeasts(ethYear) {
+  const gYear = ethYear + 8; // Safely approximate the Gregorian year for Easter
+  
+  // Julian Easter (Meeus/Jones/Butcher algorithm)
+  const a = gYear % 4;
+  const b = gYear % 7;
+  const c = gYear % 19;
+  const d = (19 * c + 15) % 30;
+  const e = (2 * a + 4 * b - d + 34) % 7;
+  const month = Math.floor((d + e + 114) / 31);
+  const day = ((d + e + 114) % 31) + 1;
+  
+  // Convert Julian date to Gregorian (+13 days valid until 2100)
+  const gregorianEasterDate = new Date(gYear, month - 1, day + 13);
+  const ethEaster = toEthiopianDate(gregorianEasterDate);
+  const fasika = ethEaster;
+
+  return {
+    nenewe: offsetEthDate(fasika, -69),
+    abiyTsomStart: offsetEthDate(fasika, -55),
+    debreZeit: offsetEthDate(fasika, -28),
+    hosanna: offsetEthDate(fasika, -7),
+    hqmuss: offsetEthDate(fasika, -3), // Tselote Hamus (Maundy Thursday)
+    siklet: offsetEthDate(fasika, -2), // Siklet (Good Friday)
+    fasika: fasika,
+    erget: offsetEthDate(fasika, +39),
+    perakletos: offsetEthDate(fasika, +49),
+    tsomeHawariatStart: offsetEthDate(fasika, +50)
+  };
+}
+
+function isSameEthDate(d1, d2) {
+  return d1.month === d2.month && d1.day === d2.day;
+}
+
+function isEthDateInRange(date, start, end) {
+  const c = date.month * 100 + date.day;
+  const s = start.month * 100 + start.day;
+  const e = end.month * 100 + end.day;
+  if (s <= e) return c >= s && c <= e;
+  return c >= s || c <= e; // Handles year wrap
+}
+
+// ─── Lenten Weeks (8 Sundays of Abiy Tsom) ──────────────────────────────────
+const LENTEN_WEEKS = [
+  { name: 'Zewerede (He Who Descended)', theme: 'The incarnation of Christ who came down from Heaven for our salvation' },
+  { name: 'Kidist (Holy)', theme: 'The holiness of God and our calling to live sanctified lives' },
+  { name: 'Mikurab (The Temple)', theme: 'Christ teaching in the Temple and cleansing our bodies as the temple of the Holy Spirit' },
+  { name: 'Metsagu (The Infirm)', theme: 'Christ healing the paralytic, representing spiritual healing and liberation from sin' },
+  { name: 'Debre Zeit (Mount of Olives)', theme: 'The Second Coming of Christ, preparedness, and eternal judgment' },
+  { name: 'Gebir Her (Faithful Servant)', theme: 'Using our God-given talents and remaining faithful servants to the Lord' },
+  { name: 'Nicodimos (Nicodemus)', theme: 'Being born again in spirit, seeking Christ in the darkness, and true conversion' },
+  { name: 'Hosanna (Palm Sunday)', theme: 'The triumphal entry of Jesus into Jerusalem, declaring Him as the true King of Peace' }
+];
 
 // ─── Main Liturgical Context Engine ─────────────────────────────────────────
 
-/**
- * Returns the liturgical context for today (or a given date).
- * Priority: Major Feast > Fasting Season > Monthly Saint > Weekly Fast > null
- *
- * @param {Date} [date] - Optional date to check. Defaults to today.
- * @returns {object|null} - Liturgical context object, or null if it's a "normal" day.
- */
 export function getLiturgicalContext(date = new Date()) {
   const ethDate = toEthiopianDate(date);
   const ethMonthName = ETHIOPIAN_MONTHS[ethDate.month] || 'Unknown';
+  const gDayOfWeek = date.getDay(); // 0: Sun, 3: Wed, 5: Fri
 
-  console.log(`📅 Ethiopian Date: ${ethMonthName} ${ethDate.day}, ${ethDate.year} (Eth. month ${ethDate.month})`);
+  console.log(`📅 Ethiopian Date: ${ethMonthName} ${ethDate.day}, ${ethDate.year}`);
 
-  // 1. Check Major Fixed Feasts (highest priority)
-  for (const feast of MAJOR_FEASTS) {
+  // Calculate Moveable Feasts using Bahire Hasab
+  const moveables = calculateMoveableFeasts(ethDate.year);
+
+  // 1. Check Moveable Major Feasts (Highest Priority)
+  if (isSameEthDate(ethDate, moveables.fasika)) return createFeast('Fasika (Easter Resurrection)', 'The glorious Resurrection of Jesus Christ conquering death, the greatest feast of the Church', 'major_feast', 'triumphant', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.erget)) return createFeast('Erget (Ascension)', 'The Ascension of Christ into heaven in glory, seated at the right hand of the Father', 'major_feast', 'celebratory', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.perakletos)) return createFeast('Perakletos (Pentecost)', 'The descent of the Holy Spirit upon the Apostles, empowering the Church', 'major_feast', 'joyful', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.hosanna)) return createFeast('Hosanna (Palm Sunday)', 'The triumphal entry into Jerusalem, declaring Jesus as King of Peace', 'major_feast', 'joyful', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.siklet)) return createFeast('Siklet (Good Friday)', 'The profound sacrifice of Christ on the cross, His pure love and our redemption', 'feast', 'penitential', ethDate, ethMonthName);
+
+  // 2. Check Fixed Major Feasts
+  for (const feast of MAJOR_FIXED_FEASTS) {
     if (ethDate.month === feast.month && ethDate.day === feast.day) {
-      console.log(`🎉 Major Feast detected: ${feast.name}`);
-      return {
-        event: feast.name,
-        theme: feast.theme,
-        type: feast.type,
-        mood: feast.mood,
-        ethiopianDate: `${ethMonthName} ${ethDate.day}`,
-        priority: 'high'
-      };
+      return createFeast(feast.name, feast.theme, feast.type, feast.mood, ethDate, ethMonthName);
     }
   }
 
-  // 2. Check Fasting Seasons
-  for (const fast of FASTING_SEASONS) {
-    const inRange = isDateInRange(ethDate, fast.startMonth, fast.startDay, fast.endMonth, fast.endDay);
-    if (inRange) {
-      console.log(`🕊️ Fasting Season detected: ${fast.name}`);
-      return {
-        event: fast.name,
-        theme: fast.theme,
-        type: 'fasting_season',
-        mood: fast.mood,
-        ethiopianDate: `${ethMonthName} ${ethDate.day}`,
-        priority: 'medium'
-      };
+  // 3. Check Moveable Fasts (Bahire Hasab Ranges)
+  // Abiy Tsom (Great Lent) -> 55 Days before Easter
+  if (isEthDateInRange(ethDate, moveables.abiyTsomStart, offsetEthDate(moveables.fasika, -1))) {
+    // Determine the specific Lenten Week if it's a Sunday
+    if (gDayOfWeek === 0) { // Sunday
+      const daysSinceStart = (ethDate.month * 30 + ethDate.day) - (moveables.abiyTsomStart.month * 30 + moveables.abiyTsomStart.day);
+      let weekIndex = Math.floor(daysSinceStart / 7);
+      if (weekIndex >= 0 && weekIndex < LENTEN_WEEKS.length) {
+         return createFast(LENTEN_WEEKS[weekIndex].name, LENTEN_WEEKS[weekIndex].theme, 'abiy_tsom_sunday', 'contemplative', ethDate, ethMonthName);
+      }
+    }
+    // Generic Great Lent Day
+    return createFast('Abiy Tsom (Great Lent)', 'Deep repentance, intense fasting, spiritual warfare, and preparation for the Resurrection', 'fasting_season', 'penitential', ethDate, ethMonthName);
+  }
+
+  // Tsome Nenewe (Fast of Nineveh) -> 3 days
+  if (isEthDateInRange(ethDate, moveables.nenewe, offsetEthDate(moveables.nenewe, 2))) {
+    return createFast('Tsome Nenewe (Fast of Nineveh)', 'The repentance of Nineveh: turning away from sin and trusting in God\'s ultimate mercy and forgiveness', 'fasting_season', 'penitential', ethDate, ethMonthName);
+  }
+
+  // Tsome Hawariat (Apostles Fast) -> From Pentecost to Hamle 5
+  if (isEthDateInRange(ethDate, moveables.tsomeHawariatStart, { year: ethDate.year, month: 11, day: 5 })) {
+    return createFast('Tsome Hawariat (Apostles Fast)', 'Honoring the apostles, their mission to spread the Gospel, and the call to discipleship', 'fasting_season', 'contemplative', ethDate, ethMonthName);
+  }
+
+  // 4. Check Fixed Fasts
+  for (const fast of FIXED_FASTS) {
+    if (isEthDateInRange(ethDate, { year: ethDate.year, month: fast.startMonth, day: fast.startDay }, { year: ethDate.year, month: fast.endMonth, day: fast.endDay })) {
+      return createFast(fast.name, fast.theme, 'fasting_season', fast.mood, ethDate, ethMonthName);
     }
   }
 
-  // 3. Check Monthly Saint Commemorations
-  const monthlySaint = MONTHLY_COMMEMORATIONS[ethDate.day];
-  if (monthlySaint) {
-    console.log(`⛪ Monthly Commemoration: ${monthlySaint.saint}`);
-    return {
-      event: monthlySaint.saint,
-      theme: monthlySaint.theme,
-      type: monthlySaint.type,
-      mood: 'devotional',
-      ethiopianDate: `${ethMonthName} ${ethDate.day}`,
-      priority: 'medium'
-    };
+  // 5. Check Zemene (Ecological/Liturgical Seasons)
+  const zemene = getZemene(ethDate);
+
+  // 6. Apply Daily Saint (Medium priority - forms the baseline of every day)
+  const dailySaint = DAILY_COMMEMORATIONS[ethDate.day];
+
+  // 7. Check Weekly Fasts (Wednesday Friday)
+  if (gDayOfWeek === 3 || gDayOfWeek === 5) {
+    const wName = gDayOfWeek === 3 ? 'Wednesday Fast' : 'Friday Fast';
+    const wTheme = gDayOfWeek === 3 ? 'Remembering the betrayal of Judas — the cost of unfaithfulness' : 'Remembering the Crucifixion of Christ — the depth of divine sacrifice';
+    
+    // Combine Weekly fast with Daily Saint and Season
+    const compositeTheme = `${wTheme}. Also remembering ${dailySaint.saint}: ${dailySaint.theme}. We are in ${zemene.name} (${zemene.theme}).`;
+    return createFast(wName, compositeTheme, 'weekly_fast', 'contemplative', ethDate, ethMonthName);
   }
 
-  // 4. Check Weekly Fast (Wednesday/Friday)
-  const weeklyFast = getWeeklyFastContext(date);
-  if (weeklyFast) {
-    console.log(`🍞 Weekly Fast: ${weeklyFast.name}`);
-    return {
-      event: weeklyFast.name,
-      theme: weeklyFast.theme,
-      type: weeklyFast.type,
-      mood: weeklyFast.mood,
-      ethiopianDate: `${ethMonthName} ${ethDate.day}`,
-      priority: 'low'
-    };
-  }
-
-  // 5. No special liturgical event today
-  console.log(`📅 No special liturgical event. Regular day: ${ethMonthName} ${ethDate.day}`);
-  return null;
+  // If no major fast or feast, return the daily saint with the seasonal context
+  const baselineTheme = `Commemorating ${dailySaint.saint}: ${dailySaint.theme}. We are currently in ${zemene.name} (${zemene.theme}).`;
+  return createFeast(`Daily Commemoration: ${dailySaint.saint}`, baselineTheme, 'devotional', 'devotional', ethDate, ethMonthName);
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function isDateInRange(ethDate, startMonth, startDay, endMonth, endDay) {
-  const current = ethDate.month * 100 + ethDate.day;
-  const start = startMonth * 100 + startDay;
-  const end = endMonth * 100 + endDay;
-
-  if (start <= end) {
-    return current >= start && current <= end;
-  }
-  // Wraps around year boundary
-  return current >= start || current <= end;
+function createFeast(name, theme, type, mood, ethDate, ethMonthName) {
+  return { event: name, theme: theme, type: type, mood: mood, ethiopianDate: `${ethMonthName} ${ethDate.day}`, priority: 'high' };
 }
 
-/**
- * Formats the liturgical context into a human-readable string
- * suitable for injecting into an AI prompt.
- */
+function createFast(name, theme, type, mood, ethDate, ethMonthName) {
+  return { event: name, theme: theme, type: type, mood: mood, ethiopianDate: `${ethMonthName} ${ethDate.day}`, priority: 'medium' };
+}
+
+function getZemene(ethDate) {
+  // Zemene Tsige (Season of Flowers) - approx Meskerem 26 to Hidar 6
+  if (isEthDateInRange(ethDate, { year: ethDate.year, month: 1, day: 26 }, { year: ethDate.year, month: 3, day: 6 })) {
+    return { name: 'Zemene Tsige (Season of Flowers)', theme: 'The flight of the Holy Family to Egypt, divine protection in exile, and the blossoming of true faith' };
+  }
+  // Keremt (Rainy Season / Winter) - Sene 26 to Meskerem 25
+  if (isEthDateInRange(ethDate, { year: ethDate.year, month: 10, day: 26 }, { year: ethDate.year + 1, month: 1, day: 25 })) {
+    return { name: 'Keremt (Rainy Season)', theme: 'God granting rain from heaven, fruitfulness, and the waters of life' };
+  }
+  return { name: 'Zemene Sebket (Season of Preaching)', theme: 'The ongoing mission to preach the Kingdom of God and walk in His light' };
+}
+
 export function formatContextForPrompt(context) {
   if (!context) return '';
 
@@ -274,7 +302,7 @@ export function formatContextForPrompt(context) {
     `Ethiopian Calendar Date: ${context.ethiopianDate}.`,
     `Theme: ${context.theme}.`,
     moodInstruction,
-    `Your generated content MUST reflect this specific occasion. Do NOT generate generic content.`,
+    `Your generated content MUST deeply reflect this specific occasion and theme. Do NOT generate generic or unrelated content.`,
     `--- END LITURGICAL CONTEXT ---\n`
   ].join('\n');
 }
