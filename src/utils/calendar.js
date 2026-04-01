@@ -218,23 +218,38 @@ export function getLiturgicalContext(date = new Date()) {
          return createFast(LENTEN_WEEKS[weekIndex].name, LENTEN_WEEKS[weekIndex].theme, 'abiy_tsom_sunday', 'contemplative', ethDate, ethMonthName);
       }
     }
+    
+    // Check if it's the precise first day
+    if (isSameEthDate(ethDate, moveables.abiyTsomStart)) {
+      return createFast('Start of Abiy Tsom (Great Lent)', 'The beginning of Great Lent: deep repentance, intense fasting, spiritual warfare, and preparation for the Resurrection', 'fasting_start', 'penitential', ethDate, ethMonthName);
+    }
+
     // Generic Great Lent Day
     return createFast('Abiy Tsom (Great Lent)', 'Deep repentance, intense fasting, spiritual warfare, and preparation for the Resurrection', 'fasting_season', 'penitential', ethDate, ethMonthName);
   }
 
   // Tsome Nenewe (Fast of Nineveh) -> 3 days
   if (isEthDateInRange(ethDate, moveables.nenewe, offsetEthDate(moveables.nenewe, 2))) {
+    if (isSameEthDate(ethDate, moveables.nenewe)) {
+      return createFast('Start of Tsome Nenewe (Fast of Nineveh)', 'The beginning of the Fast of Nineveh: turning away from sin and trusting in God\'s ultimate mercy and forgiveness', 'fasting_start', 'penitential', ethDate, ethMonthName);
+    }
     return createFast('Tsome Nenewe (Fast of Nineveh)', 'The repentance of Nineveh: turning away from sin and trusting in God\'s ultimate mercy and forgiveness', 'fasting_season', 'penitential', ethDate, ethMonthName);
   }
 
   // Tsome Hawariat (Apostles Fast) -> From Pentecost to Hamle 5
   if (isEthDateInRange(ethDate, moveables.tsomeHawariatStart, { year: ethDate.year, month: 11, day: 5 })) {
+    if (isSameEthDate(ethDate, moveables.tsomeHawariatStart)) {
+      return createFast('Start of Tsome Hawariat (Apostles Fast)', 'The beginning of the Apostles Fast: honoring their mission and the call to discipleship', 'fasting_start', 'contemplative', ethDate, ethMonthName);
+    }
     return createFast('Tsome Hawariat (Apostles Fast)', 'Honoring the apostles, their mission to spread the Gospel, and the call to discipleship', 'fasting_season', 'contemplative', ethDate, ethMonthName);
   }
 
   // 4. Check Fixed Fasts
   for (const fast of FIXED_FASTS) {
     if (isEthDateInRange(ethDate, { year: ethDate.year, month: fast.startMonth, day: fast.startDay }, { year: ethDate.year, month: fast.endMonth, day: fast.endDay })) {
+      if (ethDate.month === fast.startMonth && ethDate.day === fast.startDay) {
+        return createFast(`Start of ${fast.name}`, fast.theme, 'fasting_start', fast.mood, ethDate, ethMonthName);
+      }
       return createFast(fast.name, fast.theme, 'fasting_season', fast.mood, ethDate, ethMonthName);
     }
   }
@@ -296,13 +311,27 @@ export function formatContextForPrompt(context) {
 
   const moodInstruction = moodInstructions[context.mood] || '';
 
+  let contextStatement = `Today is a special day in the Ethiopian Orthodox Church calendar: "${context.event}".`;
+  let timeInstruction = `Your generated content MUST deeply reflect this specific occasion and theme. Do NOT generate generic or unrelated content.`;
+  
+  if (context.type === 'fasting_season' || context.type === 'weekly_fast') {
+      contextStatement = `The Ethiopian Orthodox Church is currently observing an ongoing season/fast: "${context.event}".`;
+      timeInstruction = `IMPORTANT: This is an ONGOING season, NOT the first day. Do NOT say "starts today" or "begins today" or indicate it is a new event. Keep the continuing nature of the season in mind.`;
+  } else if (context.type === 'fasting_start') {
+      contextStatement = `Today marks the BEGINNING of a special period in the Ethiopian Orthodox Church: "${context.event}".`;
+      timeInstruction = `IMPORTANT: This is the very first day. You should mention and celebrate the start or beginning of this season.`;
+  } else if (context.type === 'abiy_tsom_sunday') {
+      contextStatement = `Today is a specific Sunday during Great Lent: "${context.event}".`;
+      timeInstruction = `IMPORTANT: Focus intensely on the specific theme of this Lenten Sunday.`;
+  }
+
   return [
     `\n\n--- LITURGICAL CONTEXT (IMPORTANT) ---`,
-    `Today is a special day in the Ethiopian Orthodox Church calendar: "${context.event}".`,
+    contextStatement,
     `Ethiopian Calendar Date: ${context.ethiopianDate}.`,
     `Theme: ${context.theme}.`,
     moodInstruction,
-    `Your generated content MUST deeply reflect this specific occasion and theme. Do NOT generate generic or unrelated content.`,
+    timeInstruction,
     `--- END LITURGICAL CONTEXT ---\n`
   ].join('\n');
 }
