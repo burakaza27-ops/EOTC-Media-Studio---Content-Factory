@@ -9,71 +9,193 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #1c2331;
-      --bg-secondary: #0f131a;
+      --bg-primary: #0f1420;
+      --bg-secondary: #080b12;
+      --bg-deep: #050710;
       --accent-color: #e2c073;
-      --accent-glow: rgba(226, 192, 115, 0.2);
+      --accent-bright: #f0d590;
+      --accent-dim: #b89a4a;
+      --accent-glow: rgba(226, 192, 115, 0.22);
+      --accent-glow-soft: rgba(226, 192, 115, 0.08);
       --text-main: #ffffff;
-      --text-sub: rgba(255, 255, 255, 0.7);
+      --text-sub: rgba(255, 255, 255, 0.72);
+      --text-muted: rgba(255, 255, 255, 0.4);
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: "kern" 1, "liga" 1;
+    }
 
     body {
       width: 1080px; height: 1080px;
       font-family: 'Noto Sans Ethiopic', sans-serif;
-      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      background: var(--bg-deep);
       display: flex; align-items: center; justify-content: center;
       position: relative; overflow: hidden;
     }
 
-    .circle-glow {
-      position: absolute; width: 800px; height: 800px;
-      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-      top: 50%; left: 50%; transform: translate(-50%, -50%);
-      border-radius: 50%; pointer-events: none; z-index: 0;
+    /* === Multi-layer background === */
+    .bg-gradient {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background:
+        linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 40%, var(--bg-deep) 100%);
+      z-index: 0;
     }
 
+    .circle-glow {
+      position: absolute; width: 850px; height: 850px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, rgba(226, 192, 115, 0.06) 40%, transparent 70%);
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      border-radius: 50%; pointer-events: none; z-index: 1;
+    }
+
+    .circle-glow-inner {
+      position: absolute; width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(226, 192, 115, 0.08) 0%, transparent 70%);
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      border-radius: 50%; pointer-events: none; z-index: 1;
+    }
+
+    /* Noise grain */
+    .noise {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      z-index: 2; pointer-events: none;
+    }
+
+    /* Vignette */
+    .vignette {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.45) 100%);
+      z-index: 2; pointer-events: none;
+    }
+
+    /* Decorative ring */
+    .deco-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 700px;
+      border-radius: 50%;
+      border: 1px solid rgba(226, 192, 115, 0.08);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .deco-ring-inner {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 680px; height: 680px;
+      border-radius: 50%;
+      border: 1px solid rgba(226, 192, 115, 0.04);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* === Content === */
     .content {
       position: relative; z-index: 10;
       text-align: center; max-width: 850px; padding: 60px;
     }
 
     .top-icon {
-      font-size: 60px; color: var(--accent-color);
-      margin-bottom: 40px; text-shadow: 0 0 20px var(--accent-glow);
+      font-size: 56px;
+      color: var(--accent-color);
+      margin-bottom: 45px;
+      filter: drop-shadow(0 0 20px var(--accent-glow));
+      line-height: 1;
     }
 
     .verse-text {
-      font-size: clamp(36px, 5vw, 54px); font-weight: 700; line-height: 1.5;
-      color: var(--text-main); margin-bottom: 40px;
-      display: -webkit-box; -webkit-line-clamp: 7; line-clamp: 7; -webkit-box-orient: vertical; overflow: hidden;
+      font-size: clamp(36px, 5vw, 52px);
+      font-weight: 700;
+      line-height: 1.55;
+      color: var(--text-main);
+      margin-bottom: 45px;
+      display: -webkit-box;
+      -webkit-line-clamp: 7;
+      line-clamp: 7;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      letter-spacing: 0.01em;
     }
 
     .verse-ref {
-      font-size: 24px; font-weight: 800; letter-spacing: 0.1em;
-      color: var(--accent-color); text-transform: uppercase;
-      display: inline-block; padding: 10px 30px;
-      border-top: 1px solid var(--accent-color);
-      border-bottom: 1px solid var(--accent-color);
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--accent-bright);
+      text-transform: uppercase;
+      display: inline-block;
+      padding: 12px 36px;
+      border-top: 1.5px solid var(--accent-dim);
+      border-bottom: 1.5px solid var(--accent-dim);
+      text-shadow: 0 0 20px var(--accent-glow);
+      position: relative;
     }
 
+    /* Small ornament dots beside the reference */
+    .verse-ref::before, .verse-ref::after {
+      content: '✦';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 8px;
+      color: var(--accent-dim);
+    }
+    .verse-ref::before { left: 10px; }
+    .verse-ref::after { right: 10px; }
+
+    /* === Footer === */
     .footer {
-      position: absolute; bottom: 60px; width: 100%; text-align: center;
-      font-size: 16px; letter-spacing: 0.4em; color: var(--text-sub);
-      text-transform: uppercase; font-weight: 600; z-index: 10;
+      position: absolute; bottom: 58px; width: 100%; text-align: center;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .footer-line {
+      width: 50px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+    }
+
+    .footer-text {
+      font-size: 15px;
+      letter-spacing: 0.4em;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
+  <div class="bg-gradient"></div>
   <div class="circle-glow"></div>
-  
+  <div class="circle-glow-inner"></div>
+  <div class="noise"></div>
+  <div class="vignette"></div>
+  <div class="deco-ring"></div>
+  <div class="deco-ring-inner"></div>
+
   <div class="content">
     <div class="top-icon">📖</div>
     <div class="verse-text" id="quote-text">የእግዚአብሔር ቃል ሕያው ነውና፥ የሚሠራም...</div>
     <div class="verse-ref" id="scripture-ref">ዕብራውያን ፬፥፲፪</div>
   </div>
 
-  <div class="footer">Daily Scripture • EOTC Youth</div>
+  <div class="footer">
+    <div class="footer-line"></div>
+    <div class="footer-text">Daily Scripture • EOTC Youth</div>
+    <div class="footer-line"></div>
+  </div>
 </body>
 </html>

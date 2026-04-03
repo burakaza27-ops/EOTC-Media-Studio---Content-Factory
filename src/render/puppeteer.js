@@ -29,7 +29,7 @@ async function launchBrowser(width = 1080, height = 1080, retryCount = 0) {
       executablePath: PUPPETEER_EXEC_PATH || undefined,
       headless: true,
       args: browserArgs,
-      defaultViewport: { width, height, deviceScaleFactor: 2 } // retina scale for crisp text
+      defaultViewport: { width, height, deviceScaleFactor: 3 } // 3x retina for ultra-crisp output
     });
   } catch (error) {
     if (retryCount < MAX_RETRIES) {
@@ -46,8 +46,8 @@ async function renderTemplate(page, htmlFile, variables, outputPath) {
   
   await page.setCacheEnabled(false);
   const loadResult = await page.goto(`file://${templatePath}`, {
-    waitUntil: 'domcontentloaded',
-    timeout: 15000
+    waitUntil: 'networkidle2',
+    timeout: 30000
   });
   
   if (!loadResult) throw new Error(`Failed to load template ${htmlFile}`);
@@ -68,17 +68,27 @@ async function renderTemplate(page, htmlFile, variables, outputPath) {
   }, variables);
 
   try {
-    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
+    await page.waitForFunction(() => document.fonts.ready, { timeout: 15000 });
   } catch (fontError) {
     console.log('⚠️ Font ready check timed out, continuing...');
   }
 
-  await sleep(1000); // Give CSS animations time to settle
+  // Inject rendering quality CSS at runtime
+  await page.addStyleTag({ content: `
+    * { -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }
+    html { text-rendering: optimizeLegibility !important; }
+  `});
 
+  await sleep(2000); // Extra settle time for fonts, gradients, and animations
+
+  // Get exact viewport dimensions to clip precisely
+  const viewport = page.viewport();
   await page.screenshot({
     path: outputPath,
     type: 'png',
-    fullPage: false
+    fullPage: false,
+    clip: { x: 0, y: 0, width: viewport.width, height: viewport.height },
+    captureBeyondViewport: false
   });
 
   return outputPath;
@@ -161,7 +171,7 @@ export async function renderCarousel({ slides, theme }, outputDir) {
       const page = await browser.newPage();
       await page.setCacheEnabled(false);
       
-      await page.goto(`file://${templatePath}`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`file://${templatePath}`, { waitUntil: 'networkidle2', timeout: 30000 });
       
       await page.evaluate((slideData, index, total, themeName) => {
         const el = id => document.getElementById(id);
@@ -189,10 +199,24 @@ export async function renderCarousel({ slides, theme }, outputDir) {
         });
       }, slide, i, slides.length, theme);
       
-      try { await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 }); } catch {}
-      await sleep(500);
+      try { await page.waitForFunction(() => document.fonts.ready, { timeout: 15000 }); } catch {}
+
+      // Inject rendering quality CSS
+      await page.addStyleTag({ content: `
+        * { -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }
+        html { text-rendering: optimizeLegibility !important; }
+      `});
+
+      await sleep(1500);
       
-      await page.screenshot({ path: outputPath, type: 'png', fullPage: false });
+      const vp = page.viewport();
+      await page.screenshot({
+        path: outputPath,
+        type: 'png',
+        fullPage: false,
+        clip: { x: 0, y: 0, width: vp.width, height: vp.height },
+        captureBeyondViewport: false
+      });
       outputPaths.push(outputPath);
       await page.close();
     }

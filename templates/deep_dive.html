@@ -9,19 +9,27 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #050608;
-      --bg-secondary: #0a0b10;
+      --bg-primary: #040507;
+      --bg-secondary: #090a0f;
       --accent-gold: #d4af37;
       --accent-gold-light: #f3e5ab;
+      --accent-gold-bright: #ffd700;
       --accent-gold-dim: #8a7322;
-      --accent-highlight: #1e3a8a; /* Deep royal blue for contrast */
+      --accent-highlight: #1e3a8a;
       --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.85);
-      --text-muted: rgba(255, 255, 255, 0.5);
+      --text-secondary: rgba(255, 255, 255, 0.88);
+      --text-muted: rgba(255, 255, 255, 0.48);
       --glass-border: rgba(212, 175, 55, 0.2);
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: "kern" 1, "liga" 1;
+    }
 
     body {
       width: 1080px;
@@ -32,25 +40,35 @@
       background: var(--bg-primary);
     }
 
+    /* === Multi-layer background === */
     .bg-gradient {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.15) 0%, transparent 60%),
-                  radial-gradient(circle at 50% 100%, rgba(212, 175, 55, 0.08) 0%, transparent 60%);
+      background:
+        radial-gradient(ellipse at 50% -5%, rgba(30, 58, 138, 0.18) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 105%, rgba(212, 175, 55, 0.10) 0%, transparent 55%),
+        radial-gradient(circle at 20% 50%, rgba(212, 175, 55, 0.04) 0%, transparent 40%);
       z-index: 0;
     }
 
     .noise {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+      z-index: 1; pointer-events: none;
+    }
+
+    .vignette {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.35) 100%);
       z-index: 1; pointer-events: none;
     }
 
     .frame {
       position: absolute; top: 50px; left: 50px; right: 50px; bottom: 50px;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.04);
       z-index: 2; border-radius: 8px;
     }
 
+    /* === Main Content === */
     .main-content {
       position: relative; z-index: 10;
       width: 100%; height: 100%;
@@ -70,24 +88,24 @@
     .slide-number-box {
       width: 80px; height: 80px;
       border: 2px solid var(--accent-gold);
-      border-radius: 12px;
+      border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       font-size: 32px; font-weight: 800; color: var(--accent-gold-light);
       background: rgba(212, 175, 55, 0.05);
-      box-shadow: 0 0 30px rgba(212, 175, 55, 0.1);
+      box-shadow: 0 0 30px rgba(212, 175, 55, 0.1), inset 0 0 15px rgba(212, 175, 55, 0.03);
     }
 
     .slide-total {
-      font-size: 16px; letter-spacing: 0.3em;
+      font-size: 15px; letter-spacing: 0.35em;
       color: var(--text-muted); text-transform: uppercase; font-weight: 700;
       margin-left: 10px;
     }
 
     .topic-tag {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 12px 24px; border-radius: 30px;
-      font-size: 14px; letter-spacing: 0.2em; color: var(--text-secondary);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 26px; border-radius: 30px;
+      font-size: 14px; letter-spacing: 0.22em; color: var(--text-secondary);
       text-transform: uppercase; font-weight: 600;
     }
 
@@ -96,19 +114,19 @@
     }
 
     .title {
-      font-size: 72px; font-weight: 900; line-height: 1.2;
-      background: linear-gradient(to right, #ffffff, var(--accent-gold-light), #ffffff);
+      font-size: 70px; font-weight: 900; line-height: 1.2;
+      background: linear-gradient(to right, #ffffff 20%, var(--accent-gold-light) 50%, #ffffff 80%);
       background-clip: text;
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
     }
 
     .title-accent-line {
       width: 120px; height: 4px;
-      background: var(--accent-gold);
+      background: linear-gradient(90deg, var(--accent-gold), var(--accent-gold-dim));
       margin-top: 30px;
       border-radius: 2px;
-      box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+      box-shadow: 0 0 18px rgba(212, 175, 55, 0.45);
     }
 
     .content-box {
@@ -116,22 +134,24 @@
     }
 
     .quote-text {
-      font-size: 52px; font-weight: 600; line-height: 1.5;
+      font-size: 50px; font-weight: 600; line-height: 1.55;
       color: var(--text-secondary);
       position: relative; padding-left: 60px;
-      border-left: 2px solid var(--accent-gold);
+      border-left: 2.5px solid var(--accent-gold);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.2);
     }
 
     .quote-text::before {
-      content: '❝'; position: absolute; left: -25px; top: -30px;
-      font-size: 80px; color: rgba(212, 175, 55, 0.3); font-family: serif;
+      content: '❝'; position: absolute; left: -28px; top: -30px;
+      font-size: 80px; color: rgba(212, 175, 55, 0.25); font-family: Georgia, serif;
     }
 
     .reference-box {
       margin-top: 80px; align-self: flex-start;
-      background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), transparent);
-      padding: 15px 40px 15px 20px;
+      background: linear-gradient(90deg, rgba(212, 175, 55, 0.10), rgba(212, 175, 55, 0.02), transparent);
+      padding: 16px 40px 16px 22px;
       border-left: 4px solid var(--accent-gold);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
 
     .reference-text {
@@ -139,6 +159,7 @@
       letter-spacing: 0.1em; font-weight: 700;
     }
 
+    /* === Footer === */
     .footer {
       display: flex; justify-content: space-between; align-items: center;
       margin-top: auto; padding-top: 40px;
@@ -148,7 +169,7 @@
       display: flex; align-items: center; gap: 15px;
     }
 
-    .brand-logo { color: var(--accent-gold); font-size: 24px; }
+    .brand-logo { color: var(--accent-gold); font-size: 24px; filter: drop-shadow(0 0 8px rgba(212,175,55,0.2)); }
     .brand-name {
       font-size: 15px; letter-spacing: 0.3em; font-weight: 700;
       color: var(--text-muted); text-transform: uppercase;
@@ -160,30 +181,33 @@
 
     .dot {
       width: 12px; height: 12px; border-radius: 50%;
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.08);
       transition: all 0.3s ease;
     }
 
     .dot.active {
       background: var(--accent-gold);
-      box-shadow: 0 0 15px var(--accent-gold);
+      box-shadow: 0 0 18px rgba(212, 175, 55, 0.6);
       transform: scale(1.3);
     }
 
     .progress-bar-container {
-      position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 6px;
       background: rgba(255,255,255,0.02); z-index: 20;
     }
 
     .progress-bar {
-      height: 100%; background: linear-gradient(90deg, var(--accent-gold-dim), var(--accent-gold));
-      box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-gold-dim), var(--accent-gold), var(--accent-gold-bright));
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+      border-radius: 0 3px 3px 0;
     }
   </style>
 </head>
 <body>
   <div class="bg-gradient"></div>
   <div class="noise"></div>
+  <div class="vignette"></div>
   <div class="frame"></div>
 
   <div class="main-content">
@@ -229,11 +253,7 @@
   </div>
 
   <script>
-    // Example hook for the puppeteer evaluate logic
-    // Added reference-box display toggle logic
     document.addEventListener("DOMContentLoaded", () => {
-      // In puppeteer, window.slideData will be injected or DOM will be modified directly.
-      // Small polyfill to handle ref box display
       const ref = document.getElementById('scripture-ref');
       const refBox = document.getElementById('reference-box');
       if(ref && ref.textContent.trim().length > 0) {
