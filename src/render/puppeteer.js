@@ -13,7 +13,7 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function launchBrowser(width = 1080, height = 1080, retryCount = 0) {
+async function launchBrowser(width = 1080, height = 1080, deviceScaleFactor = 3, retryCount = 0) {
   const browserArgs = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -29,13 +29,13 @@ async function launchBrowser(width = 1080, height = 1080, retryCount = 0) {
       executablePath: PUPPETEER_EXEC_PATH || undefined,
       headless: true,
       args: browserArgs,
-      defaultViewport: { width, height, deviceScaleFactor: 3 } // 3x retina for ultra-crisp output
+      defaultViewport: { width, height, deviceScaleFactor } // configurable retina scale factor
     });
   } catch (error) {
     if (retryCount < MAX_RETRIES) {
       console.log(`⏳ Browser launch failed, retrying (${retryCount + 1}/${MAX_RETRIES})...`);
       await sleep(1000);
-      return launchBrowser(width, height, retryCount + 1);
+      return launchBrowser(width, height, deviceScaleFactor, retryCount + 1);
     }
     throw error;
   }
@@ -98,7 +98,7 @@ export async function renderQuote({ text, theme }, outputPath) {
   let browser = null;
   try {
     console.log('🎨 Rendering quote...');
-    browser = await launchBrowser(1080, 1080);
+    browser = await launchBrowser(1080, 1080, 3);
     const page = await browser.newPage();
     
     await renderTemplate(page, 'power_quote.html', {
@@ -117,7 +117,7 @@ export async function renderDailyVerse(verseData, outputPath) {
   let browser = null;
   try {
     console.log('🎨 Rendering daily verse...');
-    browser = await launchBrowser(1080, 1080);
+    browser = await launchBrowser(1080, 1080, 3);
     const page = await browser.newPage();
     
     await renderTemplate(page, 'daily_verse.html', {
@@ -136,7 +136,7 @@ export async function renderWeeklyReflection(reflectionData, outputPath) {
   let browser = null;
   try {
     console.log('🎨 Rendering weekly reflection...');
-    browser = await launchBrowser(1080, 1920); // Story size
+    browser = await launchBrowser(1080, 1920, 2); // 2x scale for reflections to stay under 10MB
     const page = await browser.newPage();
     
     await renderTemplate(page, 'weekly_reflection.html', {
@@ -161,7 +161,7 @@ export async function renderCarousel({ slides, theme }, outputDir) {
   
   try {
     console.log(`🎨 Rendering ${slides.length} carousel slides...`);
-    browser = await launchBrowser(1080, 1350);
+    browser = await launchBrowser(1080, 1350, 3);
     
     for (let i = 0; i < slides.length; i++) {
       const slide = slides[i];
