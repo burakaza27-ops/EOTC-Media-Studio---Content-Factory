@@ -1,15 +1,6 @@
 name: Daily Content Generator
 
 on:
-  schedule:
-    # 5 AM EAT (UTC 2:00) - Morning Daily Verse
-    - cron: '0 2 * * *'
-    # 12 PM EAT (UTC 9:00) - Midday Power Quote
-    - cron: '0 9 * * *'
-    # 6 PM EAT (UTC 15:00) - Evening Carousel
-    - cron: '0 15 * * *'
-    # SUNDAY 8 AM EAT (UTC 5:00) - Weekly Reflection
-    - cron: '0 5 * * 0'
   workflow_dispatch:
     inputs:
       content_type:
@@ -79,26 +70,6 @@ jobs:
           # Default manual input
           TYPE="${{ github.event.inputs.content_type }}"
           LITURGICAL="${{ github.event.inputs.use_liturgical }}"
-          
-          # Compute schedule
-          HOUR=$(date -u +"%H")
-          DOW=$(date -u +"%u")
-          
-          if [ "${{ github.event_name }}" == "schedule" ]; then
-            # Scheduled runs ALWAYS use liturgical context
-            LITURGICAL="true"
-            if [ "$DOW" == "7" ] && [ "$HOUR" == "05" ]; then
-              TYPE="reflection"
-            elif [ "$HOUR" == "02" ]; then
-              TYPE="verse"
-            elif [ "$HOUR" == "09" ]; then
-              TYPE="quote"
-            elif [ "$HOUR" == "15" ]; then
-              TYPE="carousel"
-            else
-              TYPE="quote"
-            fi
-          fi
           
           if [ -z "$TYPE" ]; then
             TYPE="quote"
