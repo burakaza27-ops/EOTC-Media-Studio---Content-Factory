@@ -101,7 +101,7 @@ async function callAI(systemPrompt, userPrompt, jsonMode = false) {
     const response = await axios.post(
       `${GOOGLE_BASE_URL}/chat/completions`,
       {
-        model: process.env.AI_MODEL || 'gemini-1.5-pro',
+        model: process.env.AI_MODEL || 'gemini-3-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
