@@ -3,8 +3,8 @@ import { formatContextForPrompt } from '../utils/calendar.js';
 
 const getEnv = (key) => process.env[key];
 
-const OPENROUTER_API_KEY = () => getEnv('OPENROUTER_API_KEY');
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+const GOOGLE_API_KEY = () => getEnv('GOOGLE_AI_STUDIO_API') || getEnv('OPENROUTER_API_KEY');
+const GOOGLE_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
 
 const QUOTE_SYSTEM_PROMPT = `You are a master poet and theologian specializing in Amharic (Ge'ez script) spiritual content for Ethiopian Orthodox Christians.
 
@@ -94,14 +94,14 @@ async function retryWithBackoff(fn, retries = MAX_RETRIES) {
 }
 
 async function callAI(systemPrompt, userPrompt, jsonMode = false) {
-  const apiKey = OPENROUTER_API_KEY();
-  if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
+  const apiKey = GOOGLE_API_KEY();
+  if (!apiKey) throw new Error('GOOGLE_AI_STUDIO_API not configured');
 
   return retryWithBackoff(async () => {
     const response = await axios.post(
-      `${OPENROUTER_BASE_URL}/chat/completions`,
+      `${GOOGLE_BASE_URL}/chat/completions`,
       {
-        model: process.env.AI_MODEL || 'google/gemini-2.0-flash-001',
+        model: process.env.AI_MODEL || 'gemini-2.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -198,5 +198,5 @@ export async function generateWeeklyReflection(liturgicalContext = null) {
 }
 
 export function isConfigured() {
-  return !!OPENROUTER_API_KEY();
+  return !!GOOGLE_API_KEY();
 }
