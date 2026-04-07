@@ -93,61 +93,84 @@ async function retryWithBackoff(fn, retries = MAX_RETRIES) {
   }
 }
 
+const PRIMARY_MODEL = 'anthropic/claude-3.5-sonnet';
+const FALLBACK_MODEL = 'google/gemini-2.0-flash-001';
+
+async function callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode) {
+  const response = await axios.post(
+    `${OPENROUTER_BASE_URL}/chat/completions`,
+    {
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      max_tokens: jsonMode ? 1500 : 300,
+      temperature: 0.7,
+      top_p: 0.9,
+      response_format: jsonMode ? { type: "json_object" } : undefined
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://eotc-media-studio.local',
+        'X-Title': 'EOTC Media Studio'
+      },
+      timeout: 60000
+    }
+  );
+
+  const content = response.data?.choices?.[0]?.message?.content?.trim();
+  if (!content) throw new Error('Empty response from AI API');
+  
+  if (jsonMode) {
+    let cleanContent = content;
+    if (cleanContent.startsWith('```json')) {
+      cleanContent = cleanContent.substring(7);
+    } else if (cleanContent.startsWith('```')) {
+      cleanContent = cleanContent.substring(3);
+    }
+    if (cleanContent.endsWith('```')) {
+      cleanContent = cleanContent.substring(0, cleanContent.length - 3);
+    }
+    return cleanContent.trim();
+  }
+  return content;
+}
+
 async function callAI(systemPrompt, userPrompt, jsonMode = false) {
   const apiKey = OPENROUTER_API_KEY();
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
 
-  const modelId = process.env.AI_MODEL || 'anthropic/claude-3.5-sonnet';
-  console.log(`🔗 OpenRouter | Model: ${modelId}`);
+  const modelId = process.env.AI_MODEL || PRIMARY_MODEL;
+  console.log(`🔗 OpenRouter | Primary: ${modelId} | Fallback: ${FALLBACK_MODEL}`);
 
   return retryWithBackoff(async () => {
+    // Try primary model first
     try {
-      const response = await axios.post(
-        `${OPENROUTER_BASE_URL}/chat/completions`,
-        {
-          model: modelId,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          max_tokens: jsonMode ? 1500 : 300,
-          temperature: 0.7,
-          top_p: 0.9,
-          response_format: jsonMode ? { type: "json_object" } : undefined
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://eotc-media-studio.local',
-            'X-Title': 'EOTC Media Studio'
-          },
-          timeout: 60000
-        }
-      );
+      console.log(`🧪 Trying primary model: ${modelId}`);
+      return await callOpenRouter(apiKey, modelId, systemPrompt, userPrompt, jsonMode);
+    } catch (primaryError) {
+      if (primaryError.response) {
+        console.error(`❌ Primary model error ${primaryError.response.status}: ${JSON.stringify(primaryError.response.data)}`);
+      } else {
+        console.error(`❌ Primary model error: ${primaryError.message}`);
+      }
 
-      const content = response.data?.choices?.[0]?.message?.content?.trim();
-      if (!content) throw new Error('Empty response from AI API');
-      
-      // Clean up potential markdown formatting wrapping the JSON
-      if (jsonMode) {
-        let cleanContent = content;
-        if (cleanContent.startsWith('```json')) {
-          cleanContent = cleanContent.substring(7);
-        } else if (cleanContent.startsWith('```')) {
-          cleanContent = cleanContent.substring(3);
+      // Fallback to proven model
+      if (modelId !== FALLBACK_MODEL) {
+        console.log(`🔄 Falling back to: ${FALLBACK_MODEL}`);
+        try {
+          return await callOpenRouter(apiKey, FALLBACK_MODEL, systemPrompt, userPrompt, jsonMode);
+        } catch (fallbackError) {
+          if (fallbackError.response) {
+            console.error(`❌ Fallback model error ${fallbackError.response.status}: ${JSON.stringify(fallbackError.response.data)}`);
+          }
+          throw fallbackError;
         }
-        if (cleanContent.endsWith('```')) {
-          cleanContent = cleanContent.substring(0, cleanContent.length - 3);
-        }
-        return cleanContent.trim();
       }
-      return content;
-    } catch (error) {
-      if (error.response) {
-        console.error(`❌ API Error ${error.response.status}: ${JSON.stringify(error.response.data)}`);
-      }
-      throw error;
+      throw primaryError;
     }
   });
 }
