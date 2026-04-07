@@ -97,48 +97,58 @@ async function callAI(systemPrompt, userPrompt, jsonMode = false) {
   const apiKey = GOOGLE_API_KEY();
   if (!apiKey) throw new Error('GOOGLE_AI_STUDIO_API not configured');
 
-  return retryWithBackoff(async () => {
-    const response = await axios.post(
-      `${GOOGLE_BASE_URL}/chat/completions`,
-      {
-        model: process.env.AI_MODEL || 'gemini-3-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: jsonMode ? 1500 : 300,
-        temperature: 0.7,
-        top_p: 0.9,
-        response_format: jsonMode ? { type: "json_object" } : undefined
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://eotc-media-studio.local',
-          'X-Title': 'EOTC Media Studio'
-        },
-        timeout: 60000
-      }
-    );
+  const modelId = process.env.AI_MODEL || 'gemini-2.5-flash';
+  const apiUrl = `${GOOGLE_BASE_URL}/chat/completions`;
+  console.log(`🔗 AI API: ${apiUrl} | Model: ${modelId} | Key prefix: ${apiKey.substring(0, 8)}...`);
 
-    const content = response.data?.choices?.[0]?.message?.content?.trim();
-    if (!content) throw new Error('Empty response from AI API');
-    
-    // Clean up potential markdown formatting wrapping the JSON
-    if (jsonMode) {
-      let cleanContent = content;
-      if (cleanContent.startsWith('```json')) {
-        cleanContent = cleanContent.substring(7);
-      } else if (cleanContent.startsWith('```')) {
-        cleanContent = cleanContent.substring(3);
+  return retryWithBackoff(async () => {
+    try {
+      const response = await axios.post(
+        apiUrl,
+        {
+          model: modelId,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: jsonMode ? 1500 : 300,
+          temperature: 0.7,
+          top_p: 0.9,
+          response_format: jsonMode ? { type: "json_object" } : undefined
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 60000
+        }
+      );
+
+      const content = response.data?.choices?.[0]?.message?.content?.trim();
+      if (!content) throw new Error('Empty response from AI API');
+      
+      // Clean up potential markdown formatting wrapping the JSON
+      if (jsonMode) {
+        let cleanContent = content;
+        if (cleanContent.startsWith('```json')) {
+          cleanContent = cleanContent.substring(7);
+        } else if (cleanContent.startsWith('```')) {
+          cleanContent = cleanContent.substring(3);
+        }
+        if (cleanContent.endsWith('```')) {
+          cleanContent = cleanContent.substring(0, cleanContent.length - 3);
+        }
+        return cleanContent.trim();
       }
-      if (cleanContent.endsWith('```')) {
-        cleanContent = cleanContent.substring(0, cleanContent.length - 3);
+      return content;
+    } catch (error) {
+      // Log the full error response from the API for debugging
+      if (error.response) {
+        console.error(`❌ API Error ${error.response.status}: ${JSON.stringify(error.response.data)}`);
       }
-      return cleanContent.trim();
+      throw error;
     }
-    return content;
   });
 }
 
