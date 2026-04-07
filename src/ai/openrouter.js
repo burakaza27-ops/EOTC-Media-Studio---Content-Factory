@@ -175,10 +175,34 @@ function extractJSON(text) {
       cleanText = jsonMatch[1];
     }
 
-    // 2. Try to find the first { or [ and last } or ]
-    const startIdx = cleanText.indexOf('{');
-    const endIdx = cleanText.lastIndexOf('}');
-    if (startIdx !== -1 && endIdx !== -1) {
+    // 2. Try to find the outermost JSON structure (either { ... } or [ ... ])
+    const firstBrace = cleanText.indexOf('{');
+    const firstBracket = cleanText.indexOf('[');
+    
+    // Choose whichever comes first
+    let startIdx = -1;
+    if (firstBrace !== -1 && firstBracket !== -1) {
+      startIdx = Math.min(firstBrace, firstBracket);
+    } else if (firstBrace !== -1) {
+      startIdx = firstBrace;
+    } else if (firstBracket !== -1) {
+      startIdx = firstBracket;
+    }
+
+    const lastBrace = cleanText.lastIndexOf('}');
+    const lastBracket = cleanText.lastIndexOf(']');
+    
+    // Choose whichever comes last
+    let endIdx = -1;
+    if (lastBrace !== -1 && lastBracket !== -1) {
+      endIdx = Math.max(lastBrace, lastBracket);
+    } else if (lastBrace !== -1) {
+      endIdx = lastBrace;
+    } else if (lastBracket !== -1) {
+      endIdx = lastBracket;
+    }
+
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
       cleanText = cleanText.substring(startIdx, endIdx + 1);
     }
 
