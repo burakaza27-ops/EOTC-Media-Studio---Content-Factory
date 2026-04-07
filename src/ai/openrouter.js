@@ -3,8 +3,8 @@ import { formatContextForPrompt } from '../utils/calendar.js';
 
 const getEnv = (key) => process.env[key];
 
-const GOOGLE_API_KEY = () => getEnv('GOOGLE_AI_STUDIO_API') || getEnv('OPENROUTER_API_KEY');
-const GOOGLE_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
+const OPENROUTER_API_KEY = () => getEnv('OPENROUTER_API_KEY');
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 const QUOTE_SYSTEM_PROMPT = `You are a master poet and theologian specializing in Amharic (Ge'ez script) spiritual content for Ethiopian Orthodox Christians.
 
@@ -94,17 +94,16 @@ async function retryWithBackoff(fn, retries = MAX_RETRIES) {
 }
 
 async function callAI(systemPrompt, userPrompt, jsonMode = false) {
-  const apiKey = GOOGLE_API_KEY();
-  if (!apiKey) throw new Error('GOOGLE_AI_STUDIO_API not configured');
+  const apiKey = OPENROUTER_API_KEY();
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
 
-  const modelId = process.env.AI_MODEL || 'gemini-2.5-flash';
-  const apiUrl = `${GOOGLE_BASE_URL}/chat/completions`;
-  console.log(`🔗 AI API: ${apiUrl} | Model: ${modelId} | Key prefix: ${apiKey.substring(0, 8)}...`);
+  const modelId = process.env.AI_MODEL || 'anthropic/claude-3.5-sonnet';
+  console.log(`🔗 OpenRouter | Model: ${modelId}`);
 
   return retryWithBackoff(async () => {
     try {
       const response = await axios.post(
-        apiUrl,
+        `${OPENROUTER_BASE_URL}/chat/completions`,
         {
           model: modelId,
           messages: [
@@ -119,7 +118,9 @@ async function callAI(systemPrompt, userPrompt, jsonMode = false) {
         {
           headers: {
             'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://eotc-media-studio.local',
+            'X-Title': 'EOTC Media Studio'
           },
           timeout: 60000
         }
@@ -143,7 +144,6 @@ async function callAI(systemPrompt, userPrompt, jsonMode = false) {
       }
       return content;
     } catch (error) {
-      // Log the full error response from the API for debugging
       if (error.response) {
         console.error(`❌ API Error ${error.response.status}: ${JSON.stringify(error.response.data)}`);
       }
@@ -208,5 +208,5 @@ export async function generateWeeklyReflection(liturgicalContext = null) {
 }
 
 export function isConfigured() {
-  return !!GOOGLE_API_KEY();
+  return !!OPENROUTER_API_KEY();
 }
