@@ -42,6 +42,7 @@ Provide ONLY a JSON object with:
 - "verse": The literal, error-free Amharic text.
 - "reference": The book name and ref in Ge'ez numerals (e.g., ማቴዎስ ፭፥፰).
 
+CRITICAL: You MUST include BOTH "verse" and "reference" keys. Failure to do so is unacceptable.
 Return ONLY JSON, no markdown.`;
 
 const REFLECTION_SYSTEM_PROMPT = `You are a respected Ethiopian Orthodox priest writing a weekly spiritual reflection.
@@ -93,8 +94,8 @@ async function retryWithBackoff(fn, retries = MAX_RETRIES) {
   }
 }
 
-const PRIMARY_MODEL = 'anthropic/claude-3.5-sonnet';
-const FALLBACK_MODEL = 'google/gemini-2.0-flash-001';
+const PRIMARY_MODEL = 'openai/gpt-4o';
+const FALLBACK_MODELS = ['anthropic/claude-3.5-sonnet', 'google/gemini-2.0-flash-001'];
 
 async function callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode) {
   const response = await axios.post(
@@ -124,18 +125,6 @@ async function callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode)
   const content = response.data?.choices?.[0]?.message?.content?.trim();
   if (!content) throw new Error('Empty response from AI API');
   
-  if (jsonMode) {
-    let cleanContent = content;
-    if (cleanContent.startsWith('```json')) {
-      cleanContent = cleanContent.substring(7);
-    } else if (cleanContent.startsWith('```')) {
-      cleanContent = cleanContent.substring(3);
-    }
-    if (cleanContent.endsWith('```')) {
-      cleanContent = cleanContent.substring(0, cleanContent.length - 3);
-    }
-    return cleanContent.trim();
-  }
   return content;
 }
 
@@ -144,44 +133,58 @@ async function callAI(systemPrompt, userPrompt, jsonMode = false) {
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
 
   const modelId = process.env.AI_MODEL || PRIMARY_MODEL;
-  console.log(`🔗 OpenRouter | Primary: ${modelId} | Fallback: ${FALLBACK_MODEL}`);
+  const modelsToTry = [modelId, ...FALLBACK_MODELS.filter(m => m !== modelId)];
 
   return retryWithBackoff(async () => {
-    // Try primary model first
-    try {
-      console.log(`🧪 Trying primary model: ${modelId}`);
-      return await callOpenRouter(apiKey, modelId, systemPrompt, userPrompt, jsonMode);
-    } catch (primaryError) {
-      if (primaryError.response) {
-        console.error(`❌ Primary model error ${primaryError.response.status}: ${JSON.stringify(primaryError.response.data)}`);
-      } else {
-        console.error(`❌ Primary model error: ${primaryError.message}`);
-      }
-
-      // Fallback to proven model
-      if (modelId !== FALLBACK_MODEL) {
-        console.log(`🔄 Falling back to: ${FALLBACK_MODEL}`);
-        try {
-          return await callOpenRouter(apiKey, FALLBACK_MODEL, systemPrompt, userPrompt, jsonMode);
-        } catch (fallbackError) {
-          if (fallbackError.response) {
-            console.error(`❌ Fallback model error ${fallbackError.response.status}: ${JSON.stringify(fallbackError.response.data)}`);
+    let lastError = null;
+    for (const model of modelsToTry) {
+      try {
+        console.log(`🧪 Trying model: ${model}`);
+        const content = await callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode);
+        
+        // If it's JSON mode, verify it's valid JSON before returning
+        if (jsonMode) {
+          try {
+            extractJSON(content); // Just to verify it's parseable
+            return content;
+          } catch (e) {
+            console.warn(`⚠️ Model ${model} returned invalid JSON, trying next...`);
+            lastError = new Error(`Invalid JSON from ${model}`);
+            continue;
           }
-          throw fallbackError;
         }
+        return content;
+      } catch (err) {
+        lastError = err;
+        const status = err.response?.status;
+        const msg = err.response?.data?.error?.message || err.message;
+        console.error(`❌ Model ${model} failed (${status || 'Err'}): ${msg}`);
+        continue;
       }
-      throw primaryError;
     }
+    throw lastError || new Error('All models failed');
   });
 }
 
 function extractJSON(text) {
   try {
-    const match = text.match(/[\{\[][\s\S]*[\}\]]/);
-    if (match) return JSON.parse(match[0]);
-    return JSON.parse(text);
+    // 1. Try to find JSON block in markdown
+    let cleanText = text;
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/```\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      cleanText = jsonMatch[1];
+    }
+
+    // 2. Try to find the first { or [ and last } or ]
+    const startIdx = cleanText.indexOf('{');
+    const endIdx = cleanText.lastIndexOf('}');
+    if (startIdx !== -1 && endIdx !== -1) {
+      cleanText = cleanText.substring(startIdx, endIdx + 1);
+    }
+
+    return JSON.parse(cleanText.trim());
   } catch (e) {
-    console.error('JSON Extraction failed on:', text);
+    console.error('JSON Extraction failed. Text received:', text);
     throw new Error('Invalid JSON format from AI');
   }
 }
