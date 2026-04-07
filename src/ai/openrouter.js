@@ -94,8 +94,8 @@ async function retryWithBackoff(fn, retries = MAX_RETRIES) {
   }
 }
 
-const PRIMARY_MODEL = 'openai/gpt-4o';
-const FALLBACK_MODELS = ['anthropic/claude-3.5-sonnet', 'google/gemini-2.0-flash-001'];
+const PRIMARY_MODEL = 'anthropic/claude-3.5-sonnet';
+const FALLBACK_MODELS = ['google/gemini-2.0-flash-001'];
 
 async function callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode) {
   const response = await axios.post(
