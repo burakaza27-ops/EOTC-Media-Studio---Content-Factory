@@ -41,7 +41,7 @@ async function launchBrowser(width = 1080, height = 1080, deviceScaleFactor = 3,
   }
 }
 
-async function renderTemplate(page, htmlFile, variables, outputPath) {
+async function renderTemplate(page, htmlFile, variables, outputPath, options = {}) {
   const templatePath = path.join(__dirname, '../../templates', htmlFile);
   
   await page.setCacheEnabled(false);
@@ -81,13 +81,26 @@ async function renderTemplate(page, htmlFile, variables, outputPath) {
 
   await sleep(2000); // Extra settle time for fonts, gradients, and animations
 
-  // Get exact viewport dimensions to clip precisely
-  const viewport = page.viewport();
+  // Handle dynamic height for long content
+  if (options.dynamicHeight) {
+    const fullHeight = await page.evaluate(() => {
+      return Math.max(document.body.scrollHeight, document.body.offsetHeight, 1920);
+    });
+    
+    const viewport = page.viewport();
+    await page.setViewport({
+      width: viewport.width,
+      height: fullHeight,
+      deviceScaleFactor: viewport.deviceScaleFactor
+    });
+  }
+
+  const vp = page.viewport();
   await page.screenshot({
     path: outputPath,
     type: 'png',
     fullPage: false,
-    clip: { x: 0, y: 0, width: viewport.width, height: viewport.height },
+    clip: { x: 0, y: 0, width: vp.width, height: vp.height },
     captureBeyondViewport: false
   });
 
@@ -145,7 +158,7 @@ export async function renderWeeklyReflection(reflectionData, outputPath) {
       'scripture-ref': reflectionData.reference,
       'reflection-body': reflectionData.reflection, // Will be parsed as paragraphs inside evaluate
       'prayer-text': reflectionData.prayer
-    }, outputPath);
+    }, outputPath, { dynamicHeight: true });
     
     console.log(`✅ Rendered: ${outputPath}`);
     return outputPath;
