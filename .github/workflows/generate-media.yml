@@ -60,7 +60,7 @@ jobs:
           SUPABASE_TABLE=${{ vars.SUPABASE_TABLE || 'quotes' }}
           TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
-          AI_MODEL=anthropic/claude-sonnet-4.6
+          AI_MODEL=google/gemini-2.5-flash
           PUPPETEER_EXEC_PATH=/usr/bin/google-chrome
           LOG_LEVEL=INFO
           EOF
