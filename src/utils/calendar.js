@@ -13,15 +13,21 @@ export function toEthiopianDate(gregorianDate = new Date()) {
   const gMonth = gregorianDate.getMonth() + 1; // 1-indexed
   const gDay = gregorianDate.getDate();
 
-  const isBeforeNewYear = gMonth < 9 || (gMonth === 9 && gDay < 11);
-  const isLeapYear = (gYear % 4 === 3);
-  const newYearDay = (isLeapYear && gMonth === 9) ? 12 : 11;
+  const isEthLeapYearThisGYear = (gYear % 4 === 3);
+  const newYearDay = (isEthLeapYearThisGYear && gMonth === 9) ? 12 : 11;
   const isBeforeNewYearExact = gMonth < 9 || (gMonth === 9 && gDay < newYearDay);
   
   const ethYear = isBeforeNewYearExact ? gYear - 8 : gYear - 7;
-  const newYearGregorian = new Date(isBeforeNewYearExact ? gYear - 1 : gYear, 8, isBeforeNewYearExact && ((gYear-1) % 4 === 3) ? 12 : 11);
   
-  const diffMs = gregorianDate.getTime() - newYearGregorian.getTime();
+  // Use UTC to avoid any Daylight Saving Time Math.floor() skipping bugs
+  const targetUTC = Date.UTC(gYear, gMonth - 1, gDay);
+  const newYearGregorianUTC = Date.UTC(
+    isBeforeNewYearExact ? gYear - 1 : gYear,
+    8,
+    isBeforeNewYearExact && ((gYear - 1) % 4 === 3) ? 12 : 11
+  );
+  
+  const diffMs = targetUTC - newYearGregorianUTC;
   const dayOfEthYear = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   let ethMonth, ethDay;
