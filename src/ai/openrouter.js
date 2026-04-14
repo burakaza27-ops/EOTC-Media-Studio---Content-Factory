@@ -63,7 +63,8 @@ Strict Guidelines:
 1. Fix any typos or grammatical mistakes. Ensure the text is perfectly written in the modern AMHARIC language. If the previous AI hallucinated ancient Ge'ez language or strange grammar, rewrite it into beautiful, grammatically correct Amharic.
 2. Verify all scriptural references against the literal 1962 EOTC Amharic Bible. If it's paraphrased or slightly wrong, correct it to the exact literal text.
 3. ALL NUMBERS in titles, text, and references MUST be converted to strictly Ge'ez numerals (e.g., 1 -> ፩, 2 -> ፪, 10 -> ፲). Look very closely for Arabic numerals (1, 2, 3) and convert them.
-4. Keep the output strictly in the exact same format as the input. NEVER add markdown (like \`\`\`json) or extra conversational text. Return ONLY the validated content.`;
+4. CRITICAL SPELLING: Ensure all proper nouns and EOTC terms are spelled perfectly in Amharic (e.g., 'Qusquam' or 'Kusquam' MUST always be exactly 'ቁስቋም' NOT 'ቅስቋም' or 'ቅፍቃም').
+5. Keep the output strictly in the exact same format as the input. NEVER add markdown (like \`\`\`json) or extra conversational text. Return ONLY the validated content.`;
 
 const THEMES = [
   'እምነት (Faith)',

@@ -60,7 +60,7 @@ const DAILY_COMMEMORATIONS = {
   3:  { saint: 'Ba\'eta (Presentation of Mary)', theme: 'The presentation of Mary in the Temple, dedication to God, and prophetic wisdom', type: 'saint' },
   4:  { saint: 'Yohannes Wolde Negedgwad', theme: 'John the Son of Thunder, deep theological revelation and divine love', type: 'saint' },
   5:  { saint: 'Abune Gebre Menfes Kidus', theme: 'Extreme asceticism, holiness, and the pillars of the Church', type: 'saint' },
-  6:  { saint: 'Iyesus & Qusquam', theme: 'Monthly commemoration of Jesus, the Holy Family, and Mount Qusquam', type: 'saint' },
+  6:  { saint: 'Iyesus & Qusquam (ቁስቋም)', theme: 'Monthly commemoration of Jesus, the Holy Family, and Mount Qusquam', type: 'saint' },
   7:  { saint: 'Holy Trinity (Selassie)', theme: 'The Mystery of the Holy Trinity — Father, Son, and Holy Spirit', type: 'feast' },
   8:  { saint: 'Abba Kiros & The Cherubim', theme: 'Monastic devotion and the heavenly hosts guarding the throne of God', type: 'saint' },
   9:  { saint: 'Thomas the Apostle', theme: 'Faith overcoming doubt and witnessing the Resurrection', type: 'saint' },
@@ -90,7 +90,7 @@ const DAILY_COMMEMORATIONS = {
 const MAJOR_FIXED_FEASTS = [
   { month: 1, day: 1,  name: 'Enkutatash (Ethiopian New Year)', theme: 'New beginnings, gratitude, renewal of faith, and the beauty of creation', type: 'major_feast', mood: 'joyful' },
   { month: 1, day: 17, name: 'Meskel (Finding of the True Cross)', theme: 'The discovery of the True Cross by Queen Helena, the light of Christ conquering darkness', type: 'major_feast', mood: 'triumphant' },
-  { month: 3, day: 6,  name: 'Qusquam (Flight to Egypt)', theme: 'The annual culmination of the season of flowers, celebrating the Holy Family\'s protection in Mount Qusquam', type: 'major_feast', mood: 'joyful' },
+  { month: 3, day: 6,  name: 'Qusquam (ቁስቋም - Flight to Egypt)', theme: 'The annual culmination of the season of flowers, celebrating the Holy Family\'s protection in Mount Qusquam', type: 'major_feast', mood: 'joyful' },
   { month: 3, day: 12, name: 'Hidar Michael', theme: 'The great annual feast of the Archangel Michael, delivering out of tribulation', type: 'major_feast', mood: 'celebratory' },
   { month: 3, day: 21, name: 'Hidar Tsion (St. Mary of Zion)', theme: 'Celebrating the resting of the Ark of the Covenant in Axum and devotion to the Virgin Mary', type: 'major_feast', mood: 'joyful' },
   { month: 4, day: 29, name: 'Genna (Ethiopian Christmas)', theme: 'The birth of Jesus Christ in Bethlehem, divine humility, the light entering the world', type: 'major_feast', mood: 'joyful' },
