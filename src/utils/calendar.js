@@ -55,55 +55,84 @@ const ETHIOPIAN_MONTHS = {
 };
 
 const DAILY_COMMEMORATIONS = {
-  1:  { saint: 'Lideta Mariam & Elyas', theme: 'The birth of the Virgin Mary, and the zeal of Elijah the Prophet', type: 'saint' },
-  2:  { saint: 'Thaddeus the Apostle', theme: 'The apostolic mission and spreading the Gospel to the ends of the earth', type: 'saint' },
-  3:  { saint: 'Ba\'eta (Presentation of Mary)', theme: 'The presentation of Mary in the Temple, dedication to God, and prophetic wisdom', type: 'saint' },
-  4:  { saint: 'Yohannes Wolde Negedgwad', theme: 'John the Son of Thunder, deep theological revelation and divine love', type: 'saint' },
-  5:  { saint: 'Abune Gebre Menfes Kidus', theme: 'Extreme asceticism, holiness, and the pillars of the Church', type: 'saint' },
-  6:  { saint: 'Iyesus & Qusquam (ቁስቋም)', theme: 'Monthly commemoration of Jesus, the Holy Family, and Mount Qusquam', type: 'saint' },
-  7:  { saint: 'Holy Trinity (Selassie)', theme: 'The Mystery of the Holy Trinity — Father, Son, and Holy Spirit', type: 'feast' },
-  8:  { saint: 'Abba Kiros & The Cherubim', theme: 'Monastic devotion and the heavenly hosts guarding the throne of God', type: 'saint' },
-  9:  { saint: 'Thomas the Apostle', theme: 'Faith overcoming doubt and witnessing the Resurrection', type: 'saint' },
-  10: { saint: 'Meskel (The Holy Cross)', theme: 'The power of the True Cross, salvation, and victory over darkness', type: 'feast' },
-  11: { saint: 'Hanna & Joachim', theme: 'The righteous parents of the Virgin Mary and patient, unwavering faith', type: 'saint' },
-  12: { saint: 'St. Michael the Archangel', theme: 'The protection of the Archangel Michael, spiritual warfare, and divine guardianship', type: 'saint' },
-  13: { saint: 'St. Rufael the Archangel', theme: 'Archangel Raphael, divine healing, and answered prayers', type: 'saint' },
-  14: { saint: 'Abune Aregawi & Gebre Kristos', theme: 'Monastic foundation, grace, and forsaking worldly riches for Christ', type: 'saint' },
-  15: { saint: 'Kirkos & Iyeluta', theme: 'The steadfast faith of the child martyr Kirkos and his mother in the face of fire', type: 'saint' },
-  16: { saint: 'Kidane Mihret (Covenant of Mercy)', theme: 'The infinite mercy of the Virgin Mary and her covenant of intercession for humanity', type: 'feast' },
-  17: { saint: 'Estifanos (St. Stephen)', theme: 'The courage of St. Stephen, the first martyr, and forgiving one\'s enemies', type: 'saint' },
-  18: { saint: 'Ewostatewos (Eustathius)', theme: 'Apostolic teaching, Sabbath observance, and monastic reform', type: 'saint' },
-  19: { saint: 'St. Gabriel the Archangel', theme: 'The Archangel Gabriel, divine messages, and the Annunciation', type: 'saint' },
-  20: { saint: 'Hnstata', theme: 'Building of the Church and congregational unity in Christ', type: 'saint' },
-  21: { saint: 'Kidist Mariam (The Virgin Mary)', theme: 'The purity, grace, and intercession of the Blessed Virgin Mary, Mother of God', type: 'saint' },
-  22: { saint: 'St. Urael the Archangel', theme: 'Archangel Uriel, the cup of salvation, and illumination of wisdom', type: 'saint' },
-  23: { saint: 'St. George (Giorgis)', theme: 'The courage and unyielding faith of St. George, martyrdom, and spiritual victory', type: 'saint' },
-  24: { saint: 'Tekle Haymanot', theme: 'The great Ethiopian saint, extreme prayer, spreading the Gospel, and spiritual fathers', type: 'saint' },
-  25: { saint: 'Merkorewos (Mercurius)', theme: 'The heroic martyr Mercurius and standing firm for Christ against the world', type: 'saint' },
-  26: { saint: 'Yosef (Joseph the Carpenter)', theme: 'The righteous Guardian, quiet obedience to God, and protecting the Holy Family', type: 'saint' },
-  27: { saint: 'Medhane Alem (Savior of the World)', theme: 'Jesus Christ as the Savior of all humanity, redemption on the Cross, and eternal life', type: 'feast' },
-  28: { saint: 'Amanuael (Emmanuel)', theme: 'God with us — the incarnation of Christ and His abiding presence with humanity', type: 'feast' },
-  29: { saint: 'Bale Wold (Feast of God the Son)', theme: 'The incarnation, divine love, and the mystery of salvation through the Son', type: 'feast' },
-  30: { saint: 'Markos (Mark the Evangelist)', theme: 'The roar of the Gospel, spreading the Good News, and the foundation of the Church', type: 'saint' }
+  1:  { saint: 'ልደታ ለማርያም እና ነቢዩ ኤልያስ (Lideta Mariam & Elyas)', theme: 'The birth of the Most Holy Virgin Mary — chosen before time to be the Theotokos (God-bearer). She was born holy from the womb of Hanna and Joachim who prayed for her for years. Also commemorating Elijah the Prophet, who by prayer shut and opened the heavens, and was taken to heaven in a chariot of fire without tasting death.', type: 'saint' },
+  2:  { saint: 'ሐዋርያው ታዴዎስ (Thaddeus the Apostle)', theme: 'The apostle Thaddeus — one of the twelve — who took the Gospel to Persia and Armenia and was martyred by an arrow. He is the patron of desperate causes and hopeless situations. His life teaches that God uses the overlooked to change the world.', type: 'saint' },
+  3:  { saint: "በዓታ ለማርያም (Ba'eta Mariam - Presentation)", theme: "At age three, the Virgin Mary was presented in the Temple by her parents and dedicated entirely to God — living in the Holy of Holies, fed by angels. This is a model of total consecration: giving our most precious possession back to God who gave it.", type: 'saint' },
+  4:  { saint: 'ዮሐንስ ወልደ ነጎድጓድ (Yohannes Wolde Negedgwad)', theme: 'John the Beloved Apostle — the one who leaned on Christ\'s chest at the Last Supper, who stood at the foot of the Cross, who received the Book of Revelation on Patmos. His life reveals the supreme privilege of intimacy with God and the transforming power of divine love.', type: 'saint' },
+  5:  { saint: 'አቡነ ገብረ መንፈስ ቅዱስ (Abune Gebre Menfes Kidus)', theme: 'The great Ethiopian ascetic who lived over 360 years in the wilderness, clothed only in his hair, fed by wild animals who became his companions. He represents the ultimate victory of the spirit over the body and the possibility of total union with God through radical self-denial.', type: 'saint' },
+  6:  { saint: 'ኢየሱስ እና ቁስቋም ማርያም (Iyesus & Qusquam)', theme: 'Monthly commemoration of Jesus Christ himself and the sacred mountain of Qusquam in Egypt where the Holy Family sought refuge. It was here that idols fell silent before the infant King and the soil was sanctified by His footsteps. God himself became a refugee — no exile is beneath His presence.', type: 'saint' },
+  7:  { saint: 'ቅድስት ሥላሴ (Kidist Selassie — The Holy Trinity)', theme: 'Monthly feast of the Most Holy Trinity — Father, Son, and Holy Spirit: three Persons, one undivided God. The EOTC holds this mystery at the center of all theology. The Trinity is not a philosophical puzzle but a living communion of love into which believers are invited through baptism and prayer.', type: 'feast' },
+  8:  { saint: 'አባ ኪሮስ እና ኪሩቤል (Abba Kiros & The Cherubim)', theme: 'Abba Kiros, monk and martyr, and the Cherubim — the four living creatures of fire who guard the Throne of God and cry "Holy, holy, holy" without ceasing. They remind us that the proper response to encountering God is awe, surrender, and unending praise.', type: 'saint' },
+  9:  { saint: 'ሐዋርያው ቶማስ (Thomas the Apostle)', theme: 'Thomas who said "Unless I see the nail marks..." and then cried "My Lord and my God!" when he did. He is the patron of honest seekers — those who need evidence for their faith. Christ did not rebuke his doubt but met him in it. Thomas later took the Gospel to India and was martyred.', type: 'saint' },
+  10: { saint: 'በዓለ መስቀል (Meskel — The Holy Cross)', theme: 'Monthly commemoration of the True Cross of Christ — the instrument of our salvation transformed into the throne of glory. The Cross is not merely a symbol of suffering but of the love that transforms suffering into life. "By the Cross, joy has come into all the world."', type: 'feast' },
+  11: { saint: 'ቅድስት ሐና እና ቅዱስ ኢያቄም (Hanna & Joachim)', theme: 'The righteous and elderly parents of the Virgin Mary who prayed with tears for a child for decades. Their patient, unwavering faith was rewarded beyond imagination — their daughter became the Mother of God. This feast honors all who pray and wait in hope for what seems impossible.', type: 'saint' },
+  12: { saint: 'ቅዱስ ሚካኤል (St. Michael the Archangel)', theme: 'Michael the Archangel — whose name means "Who is like God?" Commander of the heavenly armies, he cast Satan from heaven, guards the gates of paradise, accompanies souls at death, and intervenes for the people of God. He is Ethiopia\'s most beloved protector, with 44+ shrines in his name.', type: 'saint' },
+  13: { saint: 'ቅዱስ ሩፋኤል (St. Raphael the Archangel)', theme: 'Raphael the Archangel — whose name means "God heals." He guided Tobias, healed Tobit\'s blindness, bound the demon Asmodeus, and declared: "I am one of the seven angels who stand before the throne." He is the heavenly physician, ever-present when God\'s people cry for healing.', type: 'saint' },
+  14: { saint: 'አቡነ አረጋዊ እና ገብረ ክርስቶስ (Abune Aregawi & Gebre Kristos)', theme: 'Abune Aregawi — one of the Nine Saints who came from Rome to Ethiopia in the 5th century and established Debre Damo monastery on a cliff accessible only by rope. And Gebre Kristos — a wealthy king who gave away his kingdom and became a beggar for Christ\'s sake. Both show: nothing is too precious to give up for God.', type: 'saint' },
+  15: { saint: 'ቅዱስ ቂርቆስ እና ኢየሉጣ (Kirkos & Iyalutha)', theme: 'The child martyr Kirkos (Cyricus), barely 3 years old, who confessed Christ before the Roman governor and was thrown to the ground — yet the governor was miraculously struck down. His mother Iyalutha was beheaded alongside him. Their story: the faith of children can shame the powerful, and a mother\'s courage is a holy thing.', type: 'saint' },
+  16: { saint: 'ኪዳነ ምሕረት (Kidane Mihret — Covenant of Mercy)', theme: 'Monthly feast of the Covenant of Mercy (ኪዳነ ምሕረት) — when the risen Christ appeared to the Virgin Mary 40 days after the Resurrection and gave her a covenant: "Whoever calls upon your name for mercy shall receive it." This is the foundation of EOTC Marian intercession — not worship of Mary, but confidence in her maternal advocacy.', type: 'feast' },
+  17: { saint: 'ቅዱስ እስጢፋኖስ (St. Stephen the Protomartyr)', theme: 'Stephen — the first Christian martyr — full of the Holy Spirit and wisdom, his face shining like an angel\'s as he was stoned. He cried: "Lord, do not hold this sin against them." His death scattered the early church and spread the Gospel to all nations. Stephen shows: what the world means as defeat, God uses as seed.', type: 'saint' },
+  18: { saint: 'አቡነ ኤዎስጣቴዎስ (Abune Ewostatewos)', theme: 'Eustathius — the 14th-century Ethiopian monk and reformer who insisted on observing the Sabbath (Saturday) as well as Sunday, for which he was exiled from Ethiopia. He traveled to Egypt, Cyprus, and Armenia, gathering disciples. His persistence was vindicated at the Council of Debre Mitmaq in 1450. He teaches: stand for truth even when the institution opposes you.', type: 'saint' },
+  19: { saint: 'ቅዱስ ገብርኤል (St. Gabriel the Archangel)', theme: 'Gabriel — whose name means "God is my strength" — the divine messenger. He announced to Zechariah the birth of John the Baptist, to the Virgin Mary the Incarnation of Christ, and in Daniel he explained visions of the end times. He is the archangel of revelation, of divine announcements that change everything.', type: 'saint' },
+  20: { saint: "ሕንፀተ ቤተ ክርስቲያን (Hnstata Mariam)", theme: "Commemorating the rest and refuge of the Virgin Mary — the places she sanctified by her presence. The EOTC venerates the locations of her exile, her prayer, and her dormition as holy ground. Where Mary rested, the ground became a sanctuary. Where we welcome God's presence into our lives, our very bodies become temples.", type: 'saint' },
+  21: { saint: 'ቅድስት ማርያም (Kidist Mariam — The Virgin Mary)', theme: 'Monthly feast of the Most Holy Virgin Mary — Theotokos, Ever-Virgin, Queen of Heaven and Mother of all the faithful. The EOTC honors her with unique depth: she is the Second Ark of the Covenant, the Burning Bush, the Heavenly Ladder. Her intercession is constant, her love maternal and fierce. "She is the joy of all generations."', type: 'saint' },
+  22: { saint: 'ቅዱስ ዑራኤል (St. Uriel the Archangel)', theme: 'Uriel the Archangel — "God is my light." He guards the gate of Eden, stands over thunder and terror, and illuminates the darkest places of creation. In 2 Esdras he answers Ezra\'s deepest theological questions. He represents the fearless light of God that penetrates every darkness — in the cosmos and in the human heart.', type: 'saint' },
+  23: { saint: 'ቅዱስ ጊዮርጊስ (St. George the Great Martyr)', theme: 'George — soldier of Christ, "Great Martyr and Trophy-bearer." He refused to recant his faith before the emperor Diocletian and endured seven years of miraculous tortures before his beheading. Ethiopia loves George as a warrior of unbreakable faith. His famous icon shows him slaying the dragon — a picture of the believer destroying the Devil through courage and prayer.', type: 'saint' },
+  24: { saint: 'አቡነ ተክለ ሃይማኖት (Abune Tekle Haymanot)', theme: 'Ethiopia\'s greatest saint — Tekle Haymanot, "Plant of the Faith." He evangelized pagan regions of Ethiopia, stood in prayer for 22 years on one leg (the other fell off, held by an angel), and received the gift of three sets of wings at his death. He embodies the EOTC ideal: prayer without ceasing, evangelism without fear, holiness without compromise.', type: 'saint' },
+  25: { saint: 'ቅዱስ መርቆሬዎስ (St. Mercurius the Martyr)', theme: 'Mercurius — "He of Many Swords" — a Roman soldier who refused to offer sacrifice to pagan gods and was martyred. He is venerated in the EOTC as a powerful intercessor and spiritual warrior. His feast celebrates the courage to refuse what the world demands when it contradicts what God commands.', type: 'saint' },
+  26: { saint: 'አረጋዊው ዮሴፍ (Joseph the Carpenter)', theme: 'Joseph the Carpenter — the silent guardian. He accepted the scandal of the Virgin\'s pregnancy on nothing but a dream. He worked with his hands, protected the Holy Family in Egypt, and raised the Son of God. The EOTC honors him as the model of faithful, quiet obedience: doing what God says without needing to understand it.', type: 'saint' },
+  27: { saint: 'መድኃኔዓለም (Medhane Alem — Savior of the World)', theme: 'Monthly feast of "Medhane Alem" — Jesus Christ as Savior of the entire world. The EOTC\'s greatest church in Addis Ababa bears this name. This feast meditates on the universal scope of the Cross: not one nation, not one people — but every human soul ever born is offered rescue. "For God so loved the world..."', type: 'feast' },
+  28: { saint: 'አማኑኤል (Amanuael — Emmanuel, God With Us)', theme: 'Emmanuel — "God with us." The Incarnation of Christ: the eternal, infinite God chose to enter time, space, and human flesh. Not from a distance but from within. This feast is a meditation on the astonishing nearness of God — He is not far away but as close as the next heartbeat, the next breath, the next moment of honest prayer.', type: 'feast' },
+  29: { saint: 'በዓለ ወልድ (Bale Wold — Feast of God the Son)', theme: 'Monthly feast of God the Son — the second Person of the Trinity, eternally begotten of the Father, who for our salvation became incarnate of the Holy Spirit and the Virgin Mary. This feast meditates on the Eternal Logos: "In the beginning was the Word, and the Word was with God, and the Word was God." He is the image of the invisible God.', type: 'feast' },
+  30: { saint: 'ቅዱስ ማርቆስ (St. Mark the Evangelist)', theme: 'Mark the Evangelist — author of the first and most urgent Gospel, founded the Church in Alexandria (Egypt), and was martyred there. His Gospel roars with action and power: immediately after one miracle comes another. The EOTC Alexandria Patriarchate traces its lineage directly to Mark. His lion symbol roars still in EOTC worship and iconography.', type: 'saint' },
 };
 
+
 const MAJOR_FIXED_FEASTS = [
-  { month: 1, day: 1,  name: 'Enkutatash (Ethiopian New Year)', theme: 'New beginnings, gratitude, renewal of faith, and the beauty of creation', type: 'major_feast', mood: 'joyful' },
-  { month: 1, day: 17, name: 'Meskel (Finding of the True Cross)', theme: 'The discovery of the True Cross by Queen Helena, the light of Christ conquering darkness', type: 'major_feast', mood: 'triumphant' },
-  { month: 3, day: 6,  name: 'Qusquam (ቁስቋም - Flight to Egypt)', theme: 'The annual culmination of the season of flowers, celebrating the Holy Family\'s protection in Mount Qusquam', type: 'major_feast', mood: 'joyful' },
-  { month: 3, day: 12, name: 'Hidar Michael', theme: 'The great annual feast of the Archangel Michael, delivering out of tribulation', type: 'major_feast', mood: 'celebratory' },
-  { month: 3, day: 21, name: 'Hidar Tsion (St. Mary of Zion)', theme: 'Celebrating the resting of the Ark of the Covenant in Axum and devotion to the Virgin Mary', type: 'major_feast', mood: 'joyful' },
-  { month: 4, day: 29, name: 'Genna (Ethiopian Christmas)', theme: 'The birth of Jesus Christ in Bethlehem, divine humility, the light entering the world', type: 'major_feast', mood: 'joyful' },
-  { month: 5, day: 11, name: 'Timkat (Epiphany / Baptism of Christ)', theme: 'The baptism of Jesus in the Jordan River, spiritual cleansing, and the Holy Trinity', type: 'major_feast', mood: 'celebratory' },
-  { month: 6, day: 16, name: 'Kidane Mihret (Covenant of Mercy)', theme: 'The great annual feast of the Covenant of Mercy given to the Virgin Mary', type: 'major_feast', mood: 'joyful' },
-  { month: 12, day: 16, name: 'Filseta (Assumption of Mary)', theme: 'The Assumption of the Blessed Virgin Mary into heaven, her eternal glory and intercession', type: 'major_feast', mood: 'celebratory' },
+  // ── Meskerem (Month 1) ──
+  { month: 1,  day: 1,  name: 'እንቁጣጣሽ (Enkutatash — Ethiopian New Year)', theme: 'The Ethiopian New Year, Enkutatash, meaning "Gift of Jewels." A day of new beginnings, singing, flowers, and gratitude to God for the completion of another year. Children present bouquets and sing songs of praise across the land.', type: 'major_feast', mood: 'joyful' },
+  { month: 1,  day: 2,  name: 'በዓለ ወልድ (Bale Wold — Feast of the Son)', theme: 'The second feast of God the Son in the New Year — commemorating the Incarnation of Christ and the mystery of divine love that descended for humanity\'s sake.', type: 'feast', mood: 'devotional' },
+  { month: 1,  day: 17, name: 'መስቀል (Meskel — Finding of the True Cross)', theme: 'Queen Helena\'s discovery of the True Cross of Christ, guided by a great fire (Demera). The bonfire symbolizes the cross and its light conquering all darkness. Ethiopia keeps this feast with bonfires, crowds, and triumphant song.', type: 'major_feast', mood: 'triumphant' },
+  { month: 1,  day: 26, name: 'ቅድስት ማርያም (Kidist Mariam — Start of Zemene Tsige)', theme: 'The monthly feast of the Blessed Virgin Mary coinciding with the opening of the Season of Flowers (Zemene Tsige) — commemorating the Holy Family\'s exile and God\'s protection through all wilderness.', type: 'feast', mood: 'joyful' },
+
+  // ── Hidar (Month 3) ──
+  { month: 3,  day: 1,  name: 'ልደታ ለማርያም (Lideta Mariam — Nativity of the Virgin Mary)', theme: 'The birth of the Most Holy Virgin Mary, daughter of Hanna and Joachim, chosen before the ages to be Theotokos — the God-bearer. Her birth brought the dawn of salvation closer to the world.', type: 'major_feast', mood: 'joyful' },
+  { month: 3,  day: 6,  name: 'ቁስቋም (Qusquam — Flight to Egypt / End of Zemene Tsige)', theme: 'The annual culmination of the Season of Flowers celebrating the Holy Family\'s divine protection on Mount Qusquam in Egypt. The idols fell as the Christ-child entered, fulfilling Isaiah\'s prophecy.', type: 'major_feast', mood: 'joyful' },
+  { month: 3,  day: 12, name: 'ኅዳር ሚካኤል (Hidar Michael — Annual Feast of Archangel Michael)', theme: 'The great annual feast of St. Michael the Archangel — Commander of the heavenly hosts, defeater of Satan, protector of God\'s people. Thousands gather at his shrines across Ethiopia in pilgrimage.', type: 'major_feast', mood: 'celebratory' },
+  { month: 3,  day: 21, name: 'ጽዮን ማርያም (Tsion Mariam — St. Mary of Zion)', theme: 'Celebrating the sacred Tabernacle of St. Mary of Zion in Axum — spiritual home of the Ark of the Covenant. The Virgin Mary is the living Ark who bore the Word of God made flesh.', type: 'major_feast', mood: 'joyful' },
+
+  // ── Tahsas (Month 4) ──
+  { month: 4,  day: 28, name: 'የገና ጋድ (Gahad Genna — Vigil of Christmas)', theme: 'The strict fast of Christmas Eve — absolute abstinence from all food and drink until the midnight Mass. A holy vigil, burning with anticipation for the Light of the World to be born in the silence of Bethlehem.', type: 'feast', mood: 'penitential' },
+  { month: 4,  day: 29, name: 'ገና / ልደት (Genna / Lidet — Ethiopian Christmas)', theme: 'The Nativity of our Lord Jesus Christ in the manger of Bethlehem. The eternal Son of God took on human flesh, born of the Virgin Mary. Angels sang, shepherds ran, and a star blazed over the birthplace of salvation. Ethiopian Christians celebrate with all-night liturgy and the game of Genna.', type: 'major_feast', mood: 'joyful' },
+
+  // ── Tir (Month 5) ──
+  { month: 5,  day: 10, name: 'የጥምቀት ጋድ (Gahad Timkat — Vigil of Epiphany)', theme: 'The eve of Timkat — a night of procession, vigil, and intense prayer as the Tabot (replica of the Ark) is carried to water. A night where heaven and earth draw near in anticipation.', type: 'feast', mood: 'penitential' },
+  { month: 5,  day: 11, name: 'ጥምቀት (Timkat — Ethiopian Epiphany)', theme: 'The Baptism of Jesus Christ in the Jordan River by John the Baptist — the Holy Trinity manifest in one moment: the Father speaks, the Spirit descends, the Son is baptized. Ethiopia\'s most spectacular feast: Tabots carried, hymns sung, believers sprinkled with holy water.', type: 'major_feast', mood: 'celebratory' },
+  { month: 5,  day: 12, name: 'ቃና ዘገሊላ / ሚካኤል (Kana Zegelila / Timkat Feast of St. Michael)', theme: 'The second day of Timkat celebrations dedicated to the Archangel Michael and the miracle at Cana. The Tabots return in triumphant procession as the faithful continue in joy.', type: 'feast', mood: 'celebratory' },
+
+  // ── Yekatit (Month 6) ──
+  { month: 6,  day: 16, name: 'ኪዳነ ምሕረት (Kidane Mihret — Covenant of Mercy)', theme: 'The great annual feast of the Covenant of Mercy — when the risen Christ appeared to His mother the Virgin Mary and promised that whoever calls upon her name shall receive mercy. Ethiopia\'s beloved feast of intercession and maternal love.', type: 'major_feast', mood: 'joyful' },
+
+  // ── Ginbot (Month 9) ──
+  { month: 9,  day: 5,  name: 'ደብረ ታቦር (Debre Tabor — Transfiguration of Christ)', theme: 'The radiant Transfiguration of Christ on Mount Tabor — His face shone as the sun, His garments became white as light, Moses and Elijah appeared beside Him. A preview of the glory that awaits the faithful.', type: 'major_feast', mood: 'triumphant' },
+
+  // ── Hamle (Month 11) ──
+  { month: 11, day: 5,  name: 'ቡሄ (Buhe — Feast of the Transfiguration)', theme: 'Ethiopia\'s beloved cultural celebration of the Transfiguration of Christ — Buhe. Boys run with torches (chibo), singing songs of praise, and families bake bread. A feast of light, joy, and the divine glory revealed on the mountain.', type: 'major_feast', mood: 'joyful' },
+
+  // ── Nehase (Month 12) ──
+  { month: 12, day: 1,  name: 'ጾመ ፍልሰታ መግቢያ (Start of Tsome Filseta)', theme: 'The beginning of the 15-day Fast of the Assumption — the most beloved Marian fast in Ethiopia. Believers fast with devotion, chanting Marian hymns (Mezmur) and preparing for the great feast of Mary\'s dormition and assumption.', type: 'feast', mood: 'penitential' },
+  { month: 12, day: 16, name: 'ፍልሰታ (Filseta — Assumption of the Virgin Mary)', theme: 'The blessed dormition and assumption of the Virgin Mary into heaven — body and soul. She who bore the King of Kings was received into eternal glory. Ethiopia erupts in song and celebration: her departure was not death but translation to glory.', type: 'major_feast', mood: 'celebratory' },
+
+  // ── Slete Berhan (Sun Feast) — 29th of each month ──
+  { month: 1,  day: 29, name: 'በዓለ ወልድ (Bale Wold — Monthly Feast of God the Son)', theme: 'Monthly commemoration of the divine light of Christ who is the Light of the world. The Sun feast reminds us that God clothed the creation in radiance and will clothe His saints in eternal glory.', type: 'feast', mood: 'joyful' },
 ];
 
+
 const FIXED_FASTS = [
-  { name: 'Tsome Nebiyat (Prophets Fast)', startMonth: 3, startDay: 15, endMonth: 4, endDay: 28, theme: 'Preparation for the coming of Christ, prophetic anticipation, and repentance', mood: 'contemplative' },
-  { name: 'Tsome Filseta (Fast of the Assumption)', startMonth: 12, startDay: 1, endMonth: 12, endDay: 15, theme: 'Devotion to the Virgin Mary, spiritual surrender, and imitating her purity', mood: 'contemplative' },
-  { name: 'Gahad (Vigil of Christmas)', startMonth: 4, startDay: 28, endMonth: 4, endDay: 28, theme: 'Strict preparation, intense fasting, and waiting for the morning light of Christ', mood: 'penitential' },
-  { name: 'Gahad (Vigil of Epiphany)', startMonth: 5, startDay: 10, endMonth: 5, endDay: 10, theme: 'Intense purification before the waters of Epiphany and spiritual renewal', mood: 'penitential' }
+  { name: 'ጾመ ነቢያት (Fast of the Prophets)', startMonth: 3, startDay: 15, endMonth: 4, endDay: 28, theme: 'A 43-day fast of prophetic anticipation — mourning the spiritual hunger of the world before the Incarnation and crying out for the coming of the Messiah. The prophets fasted for us; we fast in their memory and in longing for the Kingdom.', mood: 'contemplative' },
+  { name: 'ጾመ ፍልሰታ (Fast of the Assumption)', startMonth: 12, startDay: 1, endMonth: 12, endDay: 15, theme: 'A 15-day fast of Marian devotion — perhaps Ethiopia\'s most beloved fast. Believers abstain from all animal products, fill the churches with hymns (Mezmur), and contemplate the purity and surrender of the Virgin Mary who said: "Let it be done to me according to your word."', mood: 'contemplative' },
+  { name: 'የገና ጋድ (Vigil Fast of Christmas)', startMonth: 4, startDay: 28, endMonth: 4, endDay: 28, theme: 'The strictest single-day fast of the year — complete abstinence until the midnight liturgy of Christmas. A vigil of sacred hunger waiting for the Bread of Life to be born.', mood: 'penitential' },
+  { name: 'የጥምቀት ጋድ (Vigil Fast of Epiphany)', startMonth: 5, startDay: 10, endMonth: 5, endDay: 10, theme: 'Fasting before the great feast of Timkat — purifying the body and soul before the waters of Epiphany sanctify the faithful. A night of procession, prayer, and holy anticipation.', mood: 'penitential' }
 ];
 
 // ─── Bahire Hasab (Computus) ────────────────────────────────────────────────
@@ -181,14 +210,14 @@ function isEthDateInRange(date, start, end) {
 
 // ─── Lenten Weeks (8 Sundays of Abiy Tsom) ──────────────────────────────────
 const LENTEN_WEEKS = [
-  { name: 'Zewerede (He Who Descended)', theme: 'The incarnation of Christ who came down from Heaven for our salvation' },
-  { name: 'Kidist (Holy)', theme: 'The holiness of God and our calling to live sanctified lives' },
-  { name: 'Mikurab (The Temple)', theme: 'Christ teaching in the Temple and cleansing our bodies as the temple of the Holy Spirit' },
-  { name: 'Metsagu (The Infirm)', theme: 'Christ healing the paralytic, representing spiritual healing and liberation from sin' },
-  { name: 'Debre Zeit (Mount of Olives)', theme: 'The Second Coming of Christ, preparedness, and eternal judgment' },
-  { name: 'Gebir Her (Faithful Servant)', theme: 'Using our God-given talents and remaining faithful servants to the Lord' },
-  { name: 'Nicodimos (Nicodemus)', theme: 'Being born again in spirit, seeking Christ in the darkness, and true conversion' },
-  { name: 'Hosanna (Palm Sunday)', theme: 'The triumphal entry of Jesus into Jerusalem, declaring Him as the true King of Peace' }
+  { name: 'ዘወረደ (Zewerede - He Who Descended)', theme: 'The incarnation of Christ who came down from Heaven for our salvation' },
+  { name: 'ቅድስት (Kidist - Holy)', theme: 'The holiness of God and our calling to live sanctified lives' },
+  { name: 'ምኩራብ (Mikurab - The Temple)', theme: 'Christ teaching in the Temple and cleansing our bodies as the temple of the Holy Spirit' },
+  { name: 'መጻጉዕ (Metsagu - The Infirm)', theme: 'Christ healing the paralytic, representing spiritual healing and liberation from sin' },
+  { name: 'ደብረ ዘይት (Debre Zeit - Mount of Olives)', theme: 'The Second Coming of Christ, preparedness, and eternal judgment' },
+  { name: 'ገብርኄር (Gebir Her - Faithful Servant)', theme: 'Using our God-given talents and remaining faithful servants to the Lord' },
+  { name: 'ኒቆዲሞስ (Nicodimos - Nicodemus)', theme: 'Being born again in spirit, seeking Christ in the darkness, and true conversion' },
+  { name: 'ሆሣዕና (Hosanna - Palm Sunday)', theme: 'The triumphal entry of Jesus into Jerusalem, declaring Him as the true King of Peace' }
 ];
 
 // ─── Main Liturgical Context Engine ─────────────────────────────────────────
@@ -203,12 +232,23 @@ export function getLiturgicalContext(date = new Date()) {
   // Calculate Moveable Feasts using Bahire Hasab
   const moveables = calculateMoveableFeasts(ethDate.year);
 
+  // ── Determine if we are in the 50-day Fasika season (no fasting period) ──
+  const inFasikaSeason = (() => {
+    const ethVal  = ethDate.month * 1000 + ethDate.day;
+    const fasVal  = moveables.fasika.month * 1000 + moveables.fasika.day;
+    const perkVal = moveables.perakletos.month * 1000 + moveables.perakletos.day;
+    // Handle year-wrap edge case (extremely rare but safe)
+    if (fasVal <= perkVal) return ethVal >= fasVal && ethVal <= perkVal;
+    return ethVal >= fasVal || ethVal <= perkVal;
+  })();
+
   // 1. Check Moveable Major Feasts (Highest Priority)
-  if (isSameEthDate(ethDate, moveables.fasika)) return createFeast('Fasika (Easter Resurrection)', 'The glorious Resurrection of Jesus Christ conquering death, the greatest feast of the Church', 'major_feast', 'triumphant', ethDate, ethMonthName);
-  if (isSameEthDate(ethDate, moveables.erget)) return createFeast('Erget (Ascension)', 'The Ascension of Christ into heaven in glory, seated at the right hand of the Father', 'major_feast', 'celebratory', ethDate, ethMonthName);
-  if (isSameEthDate(ethDate, moveables.perakletos)) return createFeast('Perakletos (Pentecost)', 'The descent of the Holy Spirit upon the Apostles, empowering the Church', 'major_feast', 'joyful', ethDate, ethMonthName);
-  if (isSameEthDate(ethDate, moveables.hosanna)) return createFeast('Hosanna (Palm Sunday)', 'The triumphal entry into Jerusalem, declaring Jesus as King of Peace', 'major_feast', 'joyful', ethDate, ethMonthName);
-  if (isSameEthDate(ethDate, moveables.siklet)) return createFeast('Siklet (Good Friday)', 'The profound sacrifice of Christ on the cross, His pure love and our redemption', 'feast', 'penitential', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.fasika))     return createFeast('ፋሲካ (Fasika — Easter Resurrection)', 'The glorious Resurrection of Jesus Christ conquering death, the greatest feast of the Church. On this day death itself was defeated and eternal life was granted to all who believe. "ሞት ተዋጠ ለድል!" — Death is swallowed up in victory.', 'major_feast', 'triumphant', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.erget))      return createFeast('ዕርገት (Erget — Ascension of Christ)', 'The bodily Ascension of the risen Lord Jesus Christ into the highest heavens, seated at the right hand of God the Father Almighty. He ascended so that He might fill all things and send the Comforter.', 'major_feast', 'celebratory', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.perakletos)) return createFeast('ጰራቅሊጦስ (Perakletos — Pentecost)', 'The descent of the Holy Spirit as tongues of fire upon the Apostles in Jerusalem, birthing the Church and empowering believers with spiritual gifts. The 50-day fasting exemption now ends and the Apostles Fast begins.', 'major_feast', 'joyful', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.hosanna))    return createFeast('ሆሣዕና (Hosanna — Palm Sunday)', 'The triumphal entry of Jesus into Jerusalem riding a donkey — fulfilling prophecy and declaring Him the King of Peace. The crowd cried "ሆሳዕና!" as they laid palm branches before Him.', 'major_feast', 'joyful', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.hqmuss))     return createFeast('ጸሎተ ሐሙስ (Tselote Hamus — Maundy Thursday)', 'The night of the Last Supper where Christ instituted the Holy Eucharist and washed the disciples\' feet. He was then betrayed in Gethsemane. A night of deepest prayer and holy mystery.', 'major_feast', 'penitential', ethDate, ethMonthName);
+  if (isSameEthDate(ethDate, moveables.siklet))     return createFeast('ስቅለት (Siklet — Good Friday)', 'The voluntary sacrifice of Christ on the Holy Cross — the turning point of all history. His blood shed for the redemption of humanity. "ወደ ምድር ሁሉ ቃሉ ወጣ" — His word went out to all the earth.', 'major_feast', 'penitential', ethDate, ethMonthName);
 
   // 2. Check Fixed Major Feasts
   for (const feast of MAJOR_FIXED_FEASTS) {
@@ -218,7 +258,7 @@ export function getLiturgicalContext(date = new Date()) {
   }
 
   // 3. Check Moveable Fasts (Bahire Hasab Ranges)
-  // Abiy Tsom (Great Lent) -> 55 Days before Easter
+  // ዐቢይ ጾም (Great Lent) -> 55 Days before Easter
   if (isEthDateInRange(ethDate, moveables.abiyTsomStart, offsetEthDate(moveables.fasika, -1))) {
     // Determine the specific Lenten Week if it's a Sunday
     if (gDayOfWeek === 0) { // Sunday
@@ -231,27 +271,27 @@ export function getLiturgicalContext(date = new Date()) {
     
     // Check if it's the precise first day
     if (isSameEthDate(ethDate, moveables.abiyTsomStart)) {
-      return createFast('Start of Abiy Tsom (Great Lent)', 'The beginning of Great Lent: deep repentance, intense fasting, spiritual warfare, and preparation for the Resurrection', 'fasting_start', 'penitential', ethDate, ethMonthName);
+      return createFast('Start of ዐቢይ ጾም (Great Lent)', 'The beginning of Great Lent: deep repentance, intense fasting, spiritual warfare, and preparation for the Resurrection', 'fasting_start', 'penitential', ethDate, ethMonthName);
     }
 
     // Generic Great Lent Day
-    return createFast('Abiy Tsom (Great Lent)', 'Deep repentance, intense fasting, spiritual warfare, and preparation for the Resurrection', 'fasting_season', 'penitential', ethDate, ethMonthName);
+    return createFast('ዐቢይ ጾም (Great Lent)', 'Deep repentance, intense fasting, spiritual warfare, and preparation for the Resurrection', 'fasting_season', 'penitential', ethDate, ethMonthName);
   }
 
-  // Tsome Nenewe (Fast of Nineveh) -> 3 days
+  // ጾመ ነነዌ (Fast of Nineveh) -> 3 days
   if (isEthDateInRange(ethDate, moveables.nenewe, offsetEthDate(moveables.nenewe, 2))) {
     if (isSameEthDate(ethDate, moveables.nenewe)) {
-      return createFast('Start of Tsome Nenewe (Fast of Nineveh)', 'The beginning of the Fast of Nineveh: turning away from sin and trusting in God\'s ultimate mercy and forgiveness', 'fasting_start', 'penitential', ethDate, ethMonthName);
+      return createFast('Start of ጾመ ነነዌ (Fast of Nineveh)', 'The beginning of the Fast of Nineveh: turning away from sin and trusting in God\'s ultimate mercy and forgiveness', 'fasting_start', 'penitential', ethDate, ethMonthName);
     }
-    return createFast('Tsome Nenewe (Fast of Nineveh)', 'The repentance of Nineveh: turning away from sin and trusting in God\'s ultimate mercy and forgiveness', 'fasting_season', 'penitential', ethDate, ethMonthName);
+    return createFast('ጾመ ነነዌ (Fast of Nineveh)', 'The repentance of Nineveh: turning away from sin and trusting in God\'s ultimate mercy and forgiveness', 'fasting_season', 'penitential', ethDate, ethMonthName);
   }
 
-  // Tsome Hawariat (Apostles Fast) -> From Pentecost to Hamle 5
+  // ጾመ ሐዋርያት (Apostles Fast) -> From Pentecost to Hamle 5
   if (isEthDateInRange(ethDate, moveables.tsomeHawariatStart, { year: ethDate.year, month: 11, day: 5 })) {
     if (isSameEthDate(ethDate, moveables.tsomeHawariatStart)) {
-      return createFast('Start of Tsome Hawariat (Apostles Fast)', 'The beginning of the Apostles Fast: honoring their mission and the call to discipleship', 'fasting_start', 'contemplative', ethDate, ethMonthName);
+      return createFast('Start of ጾመ ሐዋርያት (Apostles Fast)', 'The beginning of the Apostles Fast: honoring their mission and the call to discipleship', 'fasting_start', 'contemplative', ethDate, ethMonthName);
     }
-    return createFast('Tsome Hawariat (Apostles Fast)', 'Honoring the apostles, their mission to spread the Gospel, and the call to discipleship', 'fasting_season', 'contemplative', ethDate, ethMonthName);
+    return createFast('ጾመ ሐዋርያት (Apostles Fast)', 'Honoring the apostles, their mission to spread the Gospel, and the call to discipleship', 'fasting_season', 'contemplative', ethDate, ethMonthName);
   }
 
   // 4. Check Fixed Fasts
@@ -270,18 +310,28 @@ export function getLiturgicalContext(date = new Date()) {
   // 6. Apply Daily Saint (Medium priority - forms the baseline of every day)
   const dailySaint = DAILY_COMMEMORATIONS[ethDate.day];
 
-  // 7. Check Weekly Fasts (Wednesday Friday)
+  // 7. Check Weekly Fasts (Wednesday & Friday)
+  // CRITICAL EOTC RULE: During the 50-day Fasika season (Easter to Pentecost),
+  // Wednesday and Friday fasts are COMPLETELY LIFTED. This is a canonical rule.
   if (gDayOfWeek === 3 || gDayOfWeek === 5) {
-    const wName = gDayOfWeek === 3 ? 'Wednesday Fast' : 'Friday Fast';
-    const wTheme = gDayOfWeek === 3 ? 'Remembering the betrayal of Judas — the cost of unfaithfulness' : 'Remembering the Crucifixion of Christ — the depth of divine sacrifice';
-    
-    // Combine Weekly fast with Daily Saint and Season
-    const compositeTheme = `${wTheme}. Also remembering ${dailySaint.saint}: ${dailySaint.theme}. We are in ${zemene.name} (${zemene.theme}).`;
-    return createFast(wName, compositeTheme, 'weekly_fast', 'contemplative', ethDate, ethMonthName);
+    if (inFasikaSeason) {
+      // No fast — it's the joyful 50 days of resurrection celebration
+      const dayName = gDayOfWeek === 3 ? 'Wednesday' : 'Friday';
+      const joyTheme = `Although today is ${dayName}, there is NO FASTING during the 50-day Fasika (Easter) season — this is a canonical EOTC rule. We rejoice in the Resurrection! Today we also commemorate ${dailySaint.saint}: ${dailySaint.theme}.`;
+      return createFeast(`${dayName} — Fasika Season (No Fast)`, joyTheme, 'fasika_season', 'triumphant', ethDate, ethMonthName);
+    }
+
+    const wName    = gDayOfWeek === 3 ? 'የረቡዕ ጾም (Wednesday Fast)' : 'የአርብ ጾም (Friday Fast)';
+    const wTheme   = gDayOfWeek === 3
+      ? 'Remembering the betrayal of Judas Iscariot with a kiss in the Garden — the cost of unfaithfulness, greed, and spiritual negligence. We fast to cleanse ourselves of all that separates us from Christ.'
+      : 'Remembering the Crucifixion of our Lord Jesus Christ on Calvary — His precious blood poured out for our salvation. We fast in solemn gratitude for the depth of divine sacrifice and in solidarity with His suffering.';
+
+    const compositeTheme = `${wTheme} Today we also commemorate ${dailySaint.saint}: ${dailySaint.theme}. Season: ${zemene.name} — ${zemene.theme}.`;
+    return createFast(wName, compositeTheme, 'weekly_fast', 'penitential', ethDate, ethMonthName);
   }
 
-  // If no major fast or feast, return the daily saint with the seasonal context
-  const baselineTheme = `Commemorating ${dailySaint.saint}: ${dailySaint.theme}. We are currently in ${zemene.name} (${zemene.theme}).`;
+  // If no major fast or feast, return the daily saint with full seasonal context
+  const baselineTheme = `Today the Church commemorates ${dailySaint.saint}: ${dailySaint.theme}. We are currently in ${zemene.name} — ${zemene.theme}.`;
   return createFeast(`Daily Commemoration: ${dailySaint.saint}`, baselineTheme, 'devotional', 'devotional', ethDate, ethMonthName);
 }
 
@@ -296,52 +346,86 @@ function createFast(name, theme, type, mood, ethDate, ethMonthName) {
 }
 
 function getZemene(ethDate) {
-  // Zemene Tsige (Season of Flowers) - approx Meskerem 26 to Hidar 6
+  const m = ethDate.month;
+  const d = ethDate.day;
+
+  // ── Zemene Tsige (Season of Flowers / Holy Family) — Meskerem 26 to Hidar 6
+  // Commemorates the Flight of the Holy Family to Egypt
   if (isEthDateInRange(ethDate, { year: ethDate.year, month: 1, day: 26 }, { year: ethDate.year, month: 3, day: 6 })) {
-    return { name: 'Zemene Tsige (Season of Flowers)', theme: 'The flight of the Holy Family to Egypt, divine protection in exile, and the blossoming of true faith' };
+    return {
+      name: 'ዘመነ ጽጌ (Zemene Tsige — Season of Flowers)',
+      theme: 'The season commemorating the Flight of the Holy Family to Egypt. Just as the Lord was protected in a foreign land, the faithful find shelter in God through every exile and trial. Nature blooms as the Church celebrates the Virgin Mary and the infant Christ.'
+    };
   }
-  // Keremt (Rainy Season / Winter) - Sene 26 to Meskerem 25
+
+  // ── Keremt (Rainy Season / Monastic Season) — Sene 26 to Meskerem 25
+  // A time of agricultural abundance and intense monastic retreat
   if (isEthDateInRange(ethDate, { year: ethDate.year, month: 10, day: 26 }, { year: ethDate.year + 1, month: 1, day: 25 })) {
-    return { name: 'Keremt (Rainy Season)', theme: 'God granting rain from heaven, fruitfulness, and the waters of life' };
+    return {
+      name: 'ዘመነ ክረምት (Keremt — Rainy Season / Monastic Retreat)',
+      theme: 'The long rainy season — a time when monks and clergy traditionally remain in their monasteries for intense study, prayer, and fasting. God sends the rain from heaven as a sign of His provision and the season reminds us that spiritual growth requires seasons of quiet withdrawal.'
+    };
   }
-  return { name: 'Zemene Sebket (Season of Preaching)', theme: 'The ongoing mission to preach the Kingdom of God and walk in His light' };
+
+  // ── Zemene Bega (Dry Season / Harvest Season) — Meskerem 26 to Tir 30 approx
+  // Actually this overlaps with Tsige, so we check a sub-range
+  if ((m === 9 || m === 10) || (m === 8 && d >= 15)) {
+    return {
+      name: 'ዘመነ በጋ (Zemene Bega — Dry / Harvest Season)',
+      theme: 'The dry, golden harvest season — the earth gives its fruit and the Church rejoices. A time of great feasts including Buhe and the preparations for the rains. Farmers harvest grain as the faithful harvest the fruits of their fasting and prayer.'
+    };
+  }
+
+  // ── Default: Zemene Sebket (Season of Preaching) — the rest of the year
+  return {
+    name: 'ዘመነ ስብከት (Zemene Sebket — Season of Preaching)',
+    theme: 'The season dedicated to the apostolic preaching of the Gospel — when the Church goes forth boldly, teaching, baptizing, and extending the Kingdom of God to every corner of the earth. A time for study of the scriptures and theological formation.'
+  };
 }
 
 export function formatContextForPrompt(context) {
   if (!context) return '';
 
   const moodInstructions = {
-    joyful: 'The tone should be bright, celebratory, and full of hope.',
-    triumphant: 'The tone should be bold, victorious, and powerful.',
-    celebratory: 'The tone should be festive, grateful, and uplifting.',
-    contemplative: 'The tone should be reflective, gentle, and deeply contemplative.',
-    penitential: 'The tone should be humble, introspective, and focused on repentance and renewal.',
-    devotional: 'The tone should be reverent, warm, and full of spiritual devotion.'
+    joyful:       'The tone must be radiant, warm, celebratory, and full of living hope. Avoid heaviness. Let the joy overflow.',
+    triumphant:   'The tone must be bold, victorious, and thunderously powerful. Christ has conquered — speak with absolute certainty of divine victory.',
+    celebratory:  'The tone must be festive, deeply grateful, and uplifting — as if writing for thousands gathered in worship.',
+    contemplative:'The tone must be gentle, reflective, and inward. Invite the reader to pause, breathe, and listen to the still small voice of God.',
+    penitential:  'The tone must be humble, sober, and focused on repentance, renewal, and the mercy of God. Avoid despair; end with hope.',
+    devotional:   'The tone must be reverent, intimate, and warm — like a trusted spiritual father speaking directly to the soul.',
+    penitential:  'The tone must be solemn yet hopeful — acknowledging the weight of sin while anchoring in the inexhaustible mercy of God.',
   };
 
-  const moodInstruction = moodInstructions[context.mood] || '';
+  const typeGuidance = {
+    major_feast:    'This is a MAJOR feast — treat it with maximum theological depth, cultural richness, and celebratory energy. Reference specific Ethiopian Orthodox traditions, rituals, and scriptural fulfillments associated with this feast.',
+    feast:          'This is a feast day. Give it liturgical weight, connect it to the broader salvation narrative, and honor any saints or archangels commemorated.',
+    fasting_start:  'This is the VERY FIRST DAY of a fasting season. Explicitly celebrate this beginning. Use language of starting, committing, and entering. Set the spiritual intention for the entire season.',
+    fasting_season: 'This is an ONGOING fast — NOT the first day. Do NOT say "begins today" or "starts now." Speak to someone already in the middle of the fast: encourage, deepen, sustain.',
+    abiy_tsom_sunday: 'This is a specific named Sunday of Great Lent with its own unique theological theme. Focus ENTIRELY and EXCLUSIVELY on this Sunday\'s specific theme — do not speak generally about Lent.',
+    weekly_fast:    'This is a weekly fast (Wednesday or Friday). Connect the day\'s fast to its specific spiritual meaning AND to the daily saint being commemorated.',
+    fasika_season:  'This is the joyful 50-day Fasika season — there is NO FASTING today. The tone must be entirely triumphant and resurrection-focused.',
+    devotional:     'This is an ordinary day with a daily saint commemoration. Make the saint\'s story vivid and draw a direct, practical spiritual lesson for modern Ethiopian believers.',
+  };
 
-  let contextStatement = `Today is a special day in the Ethiopian Orthodox Church calendar: "${context.event}".`;
-  let timeInstruction = `Your generated content MUST deeply reflect this specific occasion and theme. Do NOT generate generic or unrelated content.`;
-  
-  if (context.type === 'fasting_season' || context.type === 'weekly_fast') {
-      contextStatement = `The Ethiopian Orthodox Church is currently observing an ongoing season/fast: "${context.event}".`;
-      timeInstruction = `IMPORTANT: This is an ONGOING season, NOT the first day. Do NOT say "starts today" or "begins today" or indicate it is a new event. Keep the continuing nature of the season in mind.`;
-  } else if (context.type === 'fasting_start') {
-      contextStatement = `Today marks the BEGINNING of a special period in the Ethiopian Orthodox Church: "${context.event}".`;
-      timeInstruction = `IMPORTANT: This is the very first day. You should mention and celebrate the start or beginning of this season.`;
-  } else if (context.type === 'abiy_tsom_sunday') {
-      contextStatement = `Today is a specific Sunday during Great Lent: "${context.event}".`;
-      timeInstruction = `IMPORTANT: Focus intensely on the specific theme of this Lenten Sunday.`;
-  }
+  const moodInstruction = moodInstructions[context.mood] || 'The tone should be spiritually rich and authentically EOTC.';
+  const typeGuideline   = typeGuidance[context.type]   || '';
 
   return [
-    `\n\n--- LITURGICAL CONTEXT (IMPORTANT) ---`,
-    contextStatement,
-    `Ethiopian Calendar Date: ${context.ethiopianDate}.`,
-    `Theme: ${context.theme}.`,
-    moodInstruction,
-    timeInstruction,
-    `--- END LITURGICAL CONTEXT ---\n`
+    `\n\n═══════════ LITURGICAL CONTEXT (MANDATORY — READ CAREFULLY) ═══════════`,
+    `📅 Ethiopian Calendar Date: ${context.ethiopianDate}`,
+    `🔔 Today's Occasion: "${context.event}"`,
+    `📖 Theological Theme: ${context.theme}`,
+    ``,
+    `🎭 MOOD & TONE INSTRUCTION: ${moodInstruction}`,
+    ``,
+    `📋 CONTENT TYPE GUIDANCE: ${typeGuideline}`,
+    ``,
+    `⚠️  CRITICAL RULES:`,
+    `   1. Your content MUST be deeply anchored in this specific occasion. Do NOT produce generic or recycled content.`,
+    `   2. Use the exact Ethiopian feast name in your content where appropriate (in Amharic script).`,
+    `   3. Reference at least one specific scriptural passage that directly connects to this theme.`,
+    `   4. If this is a saints' day, make the saint come alive — tell their story, their sacrifice, their relevance today.`,
+    `   5. Write as a respected EOTC theologian, not as a generic religious platform.`,
+    `═══════════════════════════════════════════════════════════════════════\n`,
   ].join('\n');
 }

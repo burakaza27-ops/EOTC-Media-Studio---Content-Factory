@@ -66,17 +66,89 @@ Strict Guidelines:
 4. CRITICAL SPELLING: Ensure all proper nouns and EOTC terms are spelled perfectly in Amharic (e.g., 'Qusquam' or 'Kusquam' MUST always be exactly 'ቁስቋም' NOT 'ቅስቋም' or 'ቅፍቃም').
 5. Keep the output strictly in the exact same format as the input. NEVER add markdown (like \`\`\`json) or extra conversational text. Return ONLY the validated content.`;
 
+// ─── Content Topic Pool ────────────────────────────────────────────────────
+// 60+ diverse topics spanning theology, ethics, history, spirituality & culture.
+// These are used when NO liturgical context is active, ensuring maximum variety.
 const THEMES = [
-  'እምነት (Faith)',
-  'ተስፋ (Hope)',
-  'ፍቅር (Love)',
-  'ንስሐ (Repentance)',
-  'ሰላም (Peace)',
-  'ትዕግስት (Patience)',
-  'ትሕትና (Humility)',
-  'ምስጋና (Thanksgiving)',
-  'ጾም እና ጸሎት (Fasting and Prayer)',
-  'የእግዚአብሔር ቃል (Word of God)'
+  // ── Core Virtues & Spiritual Dispositions ──
+  'ሃይማኖት እና እምነት (Faith and Belief — trusting God in the unseen)',
+  'ተስፋ (Hope — the anchor of the soul)',
+  'መንፈሳዊ ፍቅር (Unconditional Spiritual Love — Agape)',
+  'እውነተኛ ንስሐ (True Repentance — returning to God with a broken heart)',
+  'የአእምሮ ሰላም (Inner Peace — the peace that surpasses understanding)',
+  'ትዕግሥት (Patience and Long-suffering)',
+  'ትሕትና (Humility — the foundation of all virtues)',
+  'ምስጋና (Gratitude and Thanksgiving to God)',
+  'ቅድስና (Holiness — being set apart for God)',
+  'የልብ ንጽሕና (Purity of Heart and Body)',
+
+  // ── Prayer & Fasting Life ──
+  'የጾም እና የጸሎት ኃይል (The Power of Fasting and Prayer)',
+  'ዘወትር መጸለይ (Unceasing Prayer — praying without ceasing)',
+  'የሌሊት ጸሎትና ሱባዔ (Night Vigils and Subaé — seeking God in silence)',
+  'ጸሎተ አቡነ ዘበሰማያት (The Lord\'s Prayer — depth and meaning)',
+  'የሥውር ጸሎት (Secret Prayer — finding God in the quiet place)',
+  'መዝሙር እና ማኅሌት (Mezmur and Mahlet — Praise through spiritual song)',
+
+  // ── Scripture & Theology ──
+  'ሕያው የእግዚአብሔር ቃል (The Living Word of God)',
+  'ምሥጢረ ሥላሴ (Mystery of the Holy Trinity — Unity and Trinity)',
+  'ምሥጢረ ሥጋዌ (Mystery of the Incarnation — God becoming man)',
+  'ትንሣኤ ሙታን (Resurrection of the Dead — Christ and our hope)',
+  'ድኅነተ ነፍስ (Salvation of the Soul — what it means to be saved)',
+  'የእግዚአብሔር ጸጋ (Divine Grace — unmerited divine favor)',
+  'የዕለት እንጀራችን (Our Daily Bread — God\'s daily provision)',
+  'የመስቀሉ ቤዛነት (Redemption through the Cross — bought at a great price)',
+  'ዘለዓለማዊ ሕይወት (Eternal Life — what awaits the faithful)',
+
+  // ── EOTC Sacraments & Church Life ──
+  'ምሥጢረ ቁርባን (Holy Communion — Body and Blood of Christ)',
+  'ምሥጢረ ጥምቀት (Holy Baptism — being born of water and Spirit)',
+  'ምሥጢረ ሜሮን (Holy Chrism — the seal of the Holy Spirit)',
+  'ኑዛዜ እና ንስሐ (Confession and Repentance — the medicine of the soul)',
+  'ቅድስት ቤተ ክርስቲያን (The Holy Church — body of Christ, pillar of truth)',
+  'የሱባዔ ሕይወት (Subaé — the discipline of extended spiritual retreat)',
+  'የቤተ ክርስቲያን ሊቃውንት (The Scholars — the EOTC tradition of Qine and theology)',
+
+  // ── Saints, Martyrs & Ethiopian Fathers ──
+  'የሰማዕታት ሕይወት (Martyrdom — dying for Christ)',
+  'የምናኔ ሕይወት (Monastic Life — the way of the desert fathers)',
+  'ቅዱስ ጊዮርጊስ (St. George — courage, faith, and martyrdom)',
+  'አቡነ ተክለ ሃይማኖት (Abune Tekle Haymanot — Ethiopian pillar of faith)',
+  'ቅዱስ ያሬድ (St. Yared — divine music, chant, and praise)',
+  'ቅዱስ ላሊበላ (King Lalibela — faith carved in living rock)',
+  'ተሰዓቱ ቅዱሳን (The Nine Saints — spreading the Gospel in Ethiopia)',
+  'ቅዱሳት አንስት (Holy Women of the Bible and the EOTC)',
+  'ሕፃኑ ቅዱስ ቂርቆስ (St. Kirkos — the unwavering child martyr)',
+
+  // ── Ethiopian Spiritual Heritage ──
+  'ታቦተ ጽዮን (The Tabot — Ark of the Covenant and its profound mystery)',
+  'የማኅሌት አገልግሎት (Mahlet — the magnificent night chanting of the EOTC)',
+  'ደብረ ዳሞ እና ገዳማት (Debre Damo & Monasteries — fortresses of prayer)',
+  'የጻድቃን መንገድ (The Path of the Righteous — walking in God\'s ways)',
+  'የኢትዮጵያ ቤተ ክርስቲያን ታሪክ (Ethiopian Church History — 2000 years of faith)',
+  'የእግዚአብሔር ኪዳን (Divine Covenant — God\'s promises and our response)',
+
+  // ── Family, Community & Ethics ──
+  'ክርስቲያናዊ ቤተሰብ (Christian Family — a church in miniature)',
+  'ወላጆችን ማክበር (Honoring Parents — fulfilling the commandment)',
+  'ይቅርታ እና ምሕረት (Forgiveness and Mercy — releasing the debt)',
+  'መንፈሳዊ አንድነት (Spiritual Unity — the bond of peace)',
+  'ምጽዋት (Almsgiving and Charity — seeing Christ in the poor)',
+  'እውነተኛ ፍርድ (True Justice — God\'s standard of righteousness)',
+  'እውነትን መናገር (Speaking Truth — living without deception)',
+  'ከቅንዓት መራቅ (Overcoming Envy — cultivating a generous heart)',
+  'ትዕቢት እና ትሕትና (Pride vs. Humility — the great spiritual battle)',
+  'ሥራ እንደ መንፈሳዊ አገልግሎት (Work as Worship — doing all things to the glory of God)',
+
+  // ── Personal Transformation ──
+  'ልብን ለእግዚአብሔር መስጠት (Giving the Heart to God — true transformation)',
+  'ከጨለማ ወደ ብርሃን (From Darkness to Light — the journey of grace)',
+  'ፈተናን ማሸነፍ (Overcoming Temptation — standing firm in the Spirit)',
+  'ኀዘን እና መጽናናት (Grief and Divine Comfort — God is near the brokenhearted)',
+  'መንፈሳዊ ፈውስ (Spiritual Healing — restoration of body and soul)',
+  'ክርስቲያናዊ ምርጫ (Christian Choices — weighing decisions with eternal consequence)',
+  'የዕለት ተዕለት ክርስቲያናዊ ሕይወት (Daily Christian Living — bearing the cross daily)'
 ];
 
 const MAX_RETRIES = 3;
