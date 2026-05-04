@@ -101,6 +101,14 @@ jobs:
           path: ./output.png
           retention-days: 7
 
+      - name: Upload TikTok MP4 Artifact
+        if: always() && steps.compute-type.outputs.target_type != 'carousel'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiktok-video-${{ github.run_id }}
+          path: ./tiktok_*.mp4
+          retention-days: 7
+
       - name: Upload Carousel Artifacts
         if: always() && steps.compute-type.outputs.target_type == 'carousel'
         uses: actions/upload-artifact@v4

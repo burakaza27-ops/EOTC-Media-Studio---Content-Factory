@@ -40,6 +40,8 @@ import { checkDuplicate, saveQuote } from './db/supabase.js';
 import { sendToTelegram, sendMessage, sendCarousel } from './telegram/bot.js';
 import { renderQuote, renderDailyVerse, renderCarousel, renderWeeklyReflection } from './render/puppeteer.js';
 import { getLiturgicalContext } from './utils/calendar.js';
+import { generateAmharicAudio } from './ai/tts.js';
+import { renderCinematicVideo } from './render/video.js';
 
 const CONFIG = {
   tempDir: path.join(__dirname, '../temp'),
@@ -109,6 +111,25 @@ async function pipelineWrapper(paths, genFn, renderFn, getCaptionFn, dbTextFn, s
   log('INFO', `📦 Output saved to: ${paths.final}`);
 
   await runStage('save', () => saveQuote(dbText));
+
+  await runStage(`video_${stageNameModifier}`, async () => {
+    try {
+      const videoOutputPath = path.join(CONFIG.outputDir, `tiktok_${Date.now()}.mp4`);
+      const voiceoverText = aiData.reflection || aiData.verse || aiData.text; 
+      
+      const audioPath = await generateAmharicAudio(voiceoverText, 'male');
+      
+      await renderCinematicVideo(
+          paths.final, 
+          audioPath, 
+          null, // No BGM for now, can be added later
+          videoOutputPath
+      );
+      log('INFO', `🎬 TikTok Video saved to: ${videoOutputPath}`);
+    } catch (err) {
+      log('WARN', `⚠️ Cinematic video skipped or failed: ${err.message}`);
+    }
+  });
 
   await runStage(`telegram_${stageNameModifier}`, async () => {
     const caption = getCaptionFn(aiData);
