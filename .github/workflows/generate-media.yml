@@ -1,10 +1,19 @@
-name: Daily Content Generator
+# ═══════════════════════════════════════════════════════════════
+#  EOTC Media Studio — Automated Content & Video Pipeline
+#  Generates spiritual content, renders images + cinematic
+#  TikTok videos, and broadcasts to Telegram automatically.
+# ═══════════════════════════════════════════════════════════════
+
+name: "✝️ EOTC Media Studio — Generate Content"
 
 on:
+  # ────────────────────────────────────────────────
+  # MANUAL TRIGGER: Click "Run workflow" on GitHub
+  # ────────────────────────────────────────────────
   workflow_dispatch:
     inputs:
       content_type:
-        description: 'Content type to generate'
+        description: "📋 Content Type to Generate"
         type: choice
         options:
           - quote
@@ -13,9 +22,19 @@ on:
           - reflection
         default: quote
       use_liturgical:
-        description: 'Apply Liturgical Calendar Context (feast/fast/saint of the day)'
+        description: "📅 Apply Liturgical Calendar (feast/fast/saint of the day)"
         type: boolean
         default: true
+
+  # ────────────────────────────────────────────────
+  # AUTOMATED SCHEDULE (East Africa Time / UTC+3)
+  # ────────────────────────────────────────────────
+  # Uncomment below to enable fully autonomous daily posting:
+  # schedule:
+  #   - cron: '0 2 * * *'   # 5:00 AM EAT → Daily Verse
+  #   - cron: '0 9 * * *'   # 12:00 PM EAT → Power Quote
+  #   - cron: '0 15 * * *'  # 6:00 PM EAT → Deep Dive Carousel
+  #   - cron: '0 5 * * 0'   # Sun 8:00 AM EAT → Weekly Reflection
 
 concurrency:
   group: content-generation
@@ -23,21 +42,25 @@ concurrency:
 
 jobs:
   generate:
+    name: "🎬 Generate Content + Cinematic Video"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
+    timeout-minutes: 20
+
     steps:
-      - name: Checkout code
+      # ── 1. CHECKOUT CODE ──
+      - name: "📥 Checkout Repository"
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      # ── 2. SETUP NODE.JS ──
+      - name: "⚙️ Setup Node.js 20"
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: ./package-lock.json
 
-      - name: Install System Dependencies
+      # ── 3. INSTALL SYSTEM DEPS (Puppeteer + Fonts) ──
+      - name: "🔧 Install System Dependencies"
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -46,10 +69,12 @@ jobs:
             libxrandr2 libpango-1.0-0 libcairo2 libatspi2.0-0 \
             libxshmfence1 fonts-noto-color-emoji fonts-noto-core
 
-      - name: Install Project Dependencies
+      # ── 4. INSTALL NPM PACKAGES ──
+      - name: "📦 Install Project Dependencies"
         run: npm ci --prefer-offline
 
-      - name: Create Environment File
+      # ── 5. CREATE .ENV SECRETS ──
+      - name: "🔐 Create Environment File"
         shell: bash
         run: |
           cat > .env << EOF
@@ -65,26 +90,32 @@ jobs:
           LOG_LEVEL=INFO
           EOF
 
-      - name: Determine Content Type
+      # ── 6. DETERMINE CONTENT TYPE ──
+      - name: "🧠 Determine Content Type"
         id: compute-type
         run: |
-          # Default manual input
           TYPE="${{ github.event.inputs.content_type }}"
           LITURGICAL="${{ github.event.inputs.use_liturgical }}"
-          
+
+          # Smart defaults for scheduled runs
           if [ -z "$TYPE" ]; then
-            TYPE="quote"
+            HOUR=$(date -u +%H)
+            if [ "$HOUR" -lt 6 ]; then TYPE="verse"
+            elif [ "$HOUR" -lt 12 ]; then TYPE="quote"
+            elif [ "$HOUR" -lt 18 ]; then TYPE="carousel"
+            else TYPE="reflection"; fi
           fi
-          
+
           if [ -z "$LITURGICAL" ]; then
             LITURGICAL="true"
           fi
-          
-          echo "Determined type: $TYPE (liturgical: $LITURGICAL)"
+
+          echo "🎯 Content: $TYPE | Liturgical: $LITURGICAL"
           echo "target_type=$TYPE" >> $GITHUB_OUTPUT
           echo "use_liturgical=$LITURGICAL" >> $GITHUB_OUTPUT
 
-      - name: Run Pipeline
+      # ── 7. RUN THE FULL PIPELINE ──
+      - name: "🚀 Run Media Pipeline (Image + Video + Telegram)"
         id: pipeline
         run: |
           LITURGICAL_FLAG=""
@@ -93,23 +124,27 @@ jobs:
           fi
           node src/index.js ${{ steps.compute-type.outputs.target_type }} $LITURGICAL_FLAG
 
-      - name: Upload Single Image Artifacts
+      # ── 8. SAVE IMAGE ARTIFACT ──
+      - name: "🖼️ Upload Image Artifact"
         if: always() && steps.compute-type.outputs.target_type != 'carousel'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.compute-type.outputs.target_type }}-${{ github.run_id }}
-          path: ./output.png
+          name: image-${{ steps.compute-type.outputs.target_type }}-${{ github.run_id }}
+          path: ./src/output.png
           retention-days: 7
 
-      - name: Upload TikTok MP4 Artifact
+      # ── 9. SAVE TIKTOK VIDEO ARTIFACT ──
+      - name: "🎬 Upload TikTok Video Artifact"
         if: always() && steps.compute-type.outputs.target_type != 'carousel'
         uses: actions/upload-artifact@v4
         with:
           name: tiktok-video-${{ github.run_id }}
-          path: ./tiktok_*.mp4
+          path: ./src/tiktok_latest.mp4
           retention-days: 7
+          if-no-files-found: ignore
 
-      - name: Upload Carousel Artifacts
+      # ── 10. SAVE CAROUSEL ARTIFACT ──
+      - name: "🎠 Upload Carousel Artifacts"
         if: always() && steps.compute-type.outputs.target_type == 'carousel'
         uses: actions/upload-artifact@v4
         with:
@@ -117,11 +152,19 @@ jobs:
           path: ./temp/carousel/run_*/*.png
           retention-days: 7
 
-      - name: Run Summary
+      # ── 11. PIPELINE SUMMARY ──
+      - name: "📊 Pipeline Summary"
         if: always()
         run: |
-          echo "## EOTC Media Studio Pipeline 🚀" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ${{ steps.pipeline.outcome }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Content**: ${{ steps.compute-type.outputs.target_type }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Liturgical**: ${{ steps.compute-type.outputs.use_liturgical }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Timestamp**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "## ✝️ EOTC Media Studio Pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Status** | ${{ steps.pipeline.outcome == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Content Type** | ${{ steps.compute-type.outputs.target_type }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Liturgical** | ${{ steps.compute-type.outputs.use_liturgical }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Video Engine** | FFmpeg Ken Burns + Google Amharic TTS |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Timestamp** | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Downloads" >> $GITHUB_STEP_SUMMARY
+          echo "Scroll down to **Artifacts** to download the generated image and TikTok-ready MP4 video." >> $GITHUB_STEP_SUMMARY

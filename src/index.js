@@ -37,7 +37,7 @@ async function withTimeout(promise, ms, timeoutMsg) {
 
 import { generateQuote, generateDailyVerse, generateCarousel, generateWeeklyReflection } from './ai/openrouter.js';
 import { checkDuplicate, saveQuote } from './db/supabase.js';
-import { sendToTelegram, sendMessage, sendCarousel } from './telegram/bot.js';
+import { sendToTelegram, sendMessage, sendCarousel, sendVideoToTelegram } from './telegram/bot.js';
 import { renderQuote, renderDailyVerse, renderCarousel, renderWeeklyReflection } from './render/puppeteer.js';
 import { getLiturgicalContext } from './utils/calendar.js';
 import { generateAmharicAudio } from './ai/tts.js';
@@ -48,12 +48,15 @@ const CONFIG = {
   carouselDir: path.join(__dirname, '../temp/carousel'),
   outputDir: __dirname,
   outputFile: 'output.png',
+  videoOutputFile: 'tiktok_latest.mp4',
   stages: {
     ai: 'AI Generation',
     duplicate: 'Duplicate Check',
     render: 'Image Rendering',
+    video: 'Cinematic Video Rendering',
     save: 'Database Save',
-    telegram: 'Telegram Send'
+    telegram: 'Telegram Send',
+    telegram_video: 'Telegram Video Send'
   }
 };
 
@@ -112,31 +115,61 @@ async function pipelineWrapper(paths, genFn, renderFn, getCaptionFn, dbTextFn, s
 
   await runStage('save', () => saveQuote(dbText));
 
-  await runStage(`video_${stageNameModifier}`, async () => {
-    try {
-      const videoOutputPath = path.join(CONFIG.outputDir, `tiktok_${Date.now()}.mp4`);
-      const voiceoverText = aiData.reflection || aiData.verse || aiData.text; 
-      
-      const audioPath = await generateAmharicAudio(voiceoverText, 'male');
-      
-      await renderCinematicVideo(
-          paths.final, 
-          audioPath, 
-          null, // No BGM for now, can be added later
-          videoOutputPath
-      );
-      log('INFO', `🎬 TikTok Video saved to: ${videoOutputPath}`);
-    } catch (err) {
-      log('WARN', `⚠️ Cinematic video skipped or failed: ${err.message}`);
-    }
-  });
-
+  // Send the Image to Telegram (Existing)
   await runStage(`telegram_${stageNameModifier}`, async () => {
     const caption = getCaptionFn(aiData);
     const result = await sendToTelegram(paths.final, caption);
     if (result?.skipped) log('WARN', '📋 Telegram skipped (not configured)');
     else if (!result?.success) throw new Error(result?.error || 'Telegram send failed');
   });
+
+  // Generate Cinematic TikTok Video (NEW - runs after Telegram image so it never blocks delivery)
+  let videoPath = null;
+  await runStage(`video_${stageNameModifier}`, async () => {
+    try {
+      const videoOutputPath = path.join(CONFIG.outputDir, CONFIG.videoOutputFile);
+      // Extract the best available text for voiceover narration
+      const voiceoverText = aiData.reflection || aiData.verse || aiData.text;
+
+      if (!voiceoverText || voiceoverText.length < 10) {
+        log('WARN', '⚠️ Text too short for video. Generating silent Ken Burns video.');
+      }
+
+      const audioPath = await generateAmharicAudio(voiceoverText);
+
+      await renderCinematicVideo(
+          paths.final,
+          audioPath,
+          null, // BGM path — add an .mp3 to assets/ folder to enable
+          videoOutputPath
+      );
+
+      videoPath = videoOutputPath;
+      log('INFO', `🎬 TikTok Video saved: ${videoOutputPath}`);
+
+      // Cleanup temporary voiceover file
+      if (audioPath && fs.existsSync(audioPath)) {
+        fs.unlinkSync(audioPath);
+        log('DEBUG', '🧹 Cleaned up temp voiceover file');
+      }
+    } catch (err) {
+      log('WARN', `⚠️ Video generation skipped: ${err.message}`);
+    }
+  });
+
+  // Send the Video to Telegram as well (if generated successfully)
+  if (videoPath && fs.existsSync(videoPath)) {
+    await runStage(`telegram_video_${stageNameModifier}`, async () => {
+      try {
+        const caption = `🎬 TikTok Ready\n\n${getCaptionFn(aiData)}`;
+        const result = await sendVideoToTelegram(videoPath, caption);
+        if (result?.skipped) log('WARN', '📋 Telegram video skipped (not configured)');
+        else if (result?.success) log('INFO', '✅ Video sent to Telegram!');
+      } catch (err) {
+        log('WARN', `⚠️ Telegram video send skipped: ${err.message}`);
+      }
+    });
+  }
 }
 
 async function runQuotePipeline(paths, liturgicalContext = null) {
