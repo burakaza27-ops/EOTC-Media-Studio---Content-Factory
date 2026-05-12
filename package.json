@@ -1,15 +1,20 @@
 {
   "name": "eotc-media-studio",
-  "version": "5.0.0",
-  "description": "EOTC Media Studio — World-class automated spiritual content generation engine",
+  "version": "6.0.0",
+  "description": "EOTC Media Studio — World-class automated liturgical content engine with 9 content types",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "quote": "node src/index.js quote --liturgical",
-    "verse": "node src/index.js verse --liturgical",
-    "carousel": "node src/index.js carousel --liturgical",
-    "reflection": "node src/index.js reflection --liturgical",
+    "quote": "cross-env CONTENT_TYPE=quote USE_LITURGICAL=true node src/index.js",
+    "verse": "cross-env CONTENT_TYPE=verse USE_LITURGICAL=true node src/index.js",
+    "carousel": "cross-env CONTENT_TYPE=carousel USE_LITURGICAL=true node src/index.js",
+    "reflection": "cross-env CONTENT_TYPE=reflection USE_LITURGICAL=true node src/index.js",
+    "saint": "cross-env CONTENT_TYPE=saint USE_LITURGICAL=true node src/index.js",
+    "fasting": "cross-env CONTENT_TYPE=fasting USE_LITURGICAL=true node src/index.js",
+    "holyweek": "cross-env CONTENT_TYPE=holyweek USE_LITURGICAL=true node src/index.js",
+    "history": "cross-env CONTENT_TYPE=history USE_LITURGICAL=true node src/index.js",
+    "calendar": "cross-env CONTENT_TYPE=calendar USE_LITURGICAL=true node src/index.js",
     "dev": "node --watch src/index.js",
     "test": "node --test src/**/*.test.js",
     "lint": "eslint src/",
@@ -37,6 +42,7 @@
     "puppeteer": "^24.0.0"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "eslint": "^9.18.0",
     "prettier": "^3.4.2"
   }

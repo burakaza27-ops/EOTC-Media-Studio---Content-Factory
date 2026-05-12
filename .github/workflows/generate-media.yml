@@ -1,137 +1,69 @@
-# ═══════════════════════════════════════════════════════════════
-#  EOTC Media Studio v5.0 — Perfected Content Pipeline
-#  Generates world-class spiritual images and broadcasts
-#  them to Telegram on manual dispatch.
-# ═══════════════════════════════════════════════════════════════
-
 name: "✝️ EOTC Media Studio — Generate Content"
 
 on:
   workflow_dispatch:
     inputs:
       content_type:
-        description: "📋 Content Type to Generate"
+        description: 'Content type to generate'
+        required: true
         type: choice
         options:
           - quote
           - verse
           - carousel
           - reflection
-        default: quote
+          - saint
+          - fasting
+          - holyweek
+          - history
+          - calendar
+        default: 'quote'
       use_liturgical:
-        description: "📅 Apply Liturgical Calendar (feast/fast/saint of the day)"
+        description: 'Use liturgical calendar context'
+        required: true
         type: boolean
         default: true
 
-concurrency:
-  group: content-generation
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
   generate:
-    name: "🎨 Generate & Deliver Content"
+    name: "✝️ Generate ${{ github.event.inputs.content_type }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
-      # ── 1. CHECKOUT CODE ──
-      - name: "📥 Checkout Repository"
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
-      # ── 2. SETUP NODE.JS ──
-      - name: "⚙️ Setup Node.js 20"
+      - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: ./package-lock.json
 
-      # ── 3. INSTALL SYSTEM DEPS (Puppeteer + Fonts) ──
-      - name: "🔧 Install System Dependencies"
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libgbm1 libasound2t64 libatk-bridge2.0-0 libcups2 libdrm2 \
-            libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
-            libxrandr2 libpango-1.0-0 libcairo2 libatspi2.0-0 \
-            libxshmfence1 fonts-noto-color-emoji fonts-noto-core
+      - name: 📦 Install Dependencies
+        run: npm ci
 
-      # ── 4. INSTALL NPM PACKAGES ──
-      - name: "📦 Install Project Dependencies"
-        run: npm ci --prefer-offline
+      - name: 🎨 Generate Content
+        env:
+          CONTENT_TYPE: ${{ github.event.inputs.content_type }}
+          USE_LITURGICAL: ${{ github.event.inputs.use_liturgical }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
+          PUPPETEER_EXEC_PATH: /usr/bin/google-chrome-stable
+        run: node src/index.js
 
-      # ── 5. CREATE .ENV SECRETS ──
-      - name: "🔐 Create Environment File"
-        shell: bash
-        run: |
-          cat > .env << EOF
-          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
-          SUPABASE_TABLE=${{ vars.SUPABASE_TABLE || 'quotes' }}
-          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
-          AI_MODEL=google/gemini-2.5-flash
-          PUPPETEER_EXEC_PATH=/usr/bin/google-chrome
-          LOG_LEVEL=INFO
-          EOF
-
-      # ── 6. DETERMINE CONTENT TYPE ──
-      - name: "🧠 Determine Content Type"
-        id: compute-type
-        run: |
-          TYPE="${{ github.event.inputs.content_type }}"
-          LITURGICAL="${{ github.event.inputs.use_liturgical }}"
-
-          if [ -z "$TYPE" ]; then
-            TYPE="quote"
-          fi
-
-          if [ -z "$LITURGICAL" ]; then
-            LITURGICAL="true"
-          fi
-
-          echo "🎯 Content: $TYPE | Liturgical: $LITURGICAL"
-          echo "target_type=$TYPE" >> $GITHUB_OUTPUT
-          echo "use_liturgical=$LITURGICAL" >> $GITHUB_OUTPUT
-
-      # ── 7. RUN THE PIPELINE ──
-      - name: "🚀 Run Media Pipeline"
-        id: pipeline
-        run: |
-          LITURGICAL_FLAG=""
-          if [ "${{ steps.compute-type.outputs.use_liturgical }}" == "true" ]; then
-            LITURGICAL_FLAG="--liturgical"
-          fi
-          node src/index.js ${{ steps.compute-type.outputs.target_type }} $LITURGICAL_FLAG
-
-      # ── 8. SAVE IMAGE ARTIFACT ──
-      - name: "🖼️ Upload Image Artifact"
-        if: always() && steps.compute-type.outputs.target_type != 'carousel'
-        uses: actions/upload-artifact@v4
-        with:
-          name: image-${{ steps.compute-type.outputs.target_type }}-${{ github.run_id }}
-          path: ./src/output.png
-          retention-days: 7
-
-      # ── 9. SAVE CAROUSEL ARTIFACT ──
-      - name: "🎠 Upload Carousel Artifacts"
-        if: always() && steps.compute-type.outputs.target_type == 'carousel'
-        uses: actions/upload-artifact@v4
-        with:
-          name: carousel-${{ github.run_id }}
-          path: ./temp/carousel/run_*/*.png
-          retention-days: 7
-
-      # ── 10. PIPELINE SUMMARY ──
-      - name: "📊 Pipeline Summary"
+      - name: 📤 Upload Artifacts
         if: always()
-        run: |
-          echo "## ✝️ EOTC Media Studio v5.0" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Status** | ${{ steps.pipeline.outcome == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Content Type** | ${{ steps.compute-type.outputs.target_type }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Liturgical** | ${{ steps.compute-type.outputs.use_liturgical }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Timestamp** | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+        uses: actions/upload-artifact@v4
+        with:
+          name: eotc-media-${{ github.event.inputs.content_type }}-${{ github.run_number }}
+          path: output/
+          retention-days: 30
+          if-no-files-found: warn

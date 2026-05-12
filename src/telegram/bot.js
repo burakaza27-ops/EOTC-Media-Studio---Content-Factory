@@ -356,3 +356,7 @@ function sendMediaGroupRequest(path, body, boundary) {
     req.end();
   });
 }
+
+// ─── Named Export Aliases (used by index.js) ────────────────────────────────
+export const sendImageToTelegram = sendToTelegram;
+export const sendCarouselToTelegram = sendCarousel;

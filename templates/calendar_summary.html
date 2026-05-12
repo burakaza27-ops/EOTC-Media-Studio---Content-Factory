@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EOTC Weekly Calendar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-ivory: #faf8f4;
+      --bg-cream: #f5f2ec;
+      --gold: #b8860b;
+      --gold-light: #d4a418;
+      --gold-dim: rgba(184, 134, 11, 0.55);
+      --gold-glow: rgba(184, 134, 11, 0.10);
+      --ink: #0f1419;
+      --ink-body: #2d3340;
+      --ink-muted: #6b7280;
+      --mood-primary: #b8860b;
+      --mood-primary-light: #d4a418;
+      --mood-primary-dim: rgba(184, 134, 11, 0.55);
+      --feast-gold: #d4af37;
+      --fast-purple: #7c3aed;
+      --normal-blue: #3b82f6;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; font-feature-settings: "kern" 1, "liga" 1; }
+
+    body {
+      width: 1080px; min-height: 1920px; height: auto;
+      font-family: 'Noto Sans Ethiopic', sans-serif;
+      background: var(--bg-ivory); position: relative;
+    }
+
+    .bg-gradient {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(180deg, var(--bg-ivory) 0%, var(--bg-cream) 50%, #eee9e0 100%);
+      z-index: 0;
+    }
+
+    .paper-texture {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+      z-index: 1; pointer-events: none;
+    }
+
+    .border-frame {
+      position: absolute; top: 55px; left: 55px; right: 55px; bottom: 55px;
+      border: 2px solid var(--gold); z-index: 2; pointer-events: none;
+    }
+    .border-frame::before { content: ''; position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px; border: 1px solid rgba(184,134,11,0.2); }
+    .border-frame::after { content: '✦'; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); font-size: 14px; color: var(--gold); background: var(--bg-ivory); padding: 0 14px; }
+
+    .content {
+      position: relative; z-index: 10;
+      width: 100%; min-height: 1920px;
+      display: flex; flex-direction: column;
+      padding: 110px 90px;
+    }
+
+    .header { text-align: center; margin-bottom: 40px; }
+
+    .week-tag {
+      font-size: 15px; font-weight: 700; letter-spacing: 0.25em;
+      color: var(--gold); text-transform: uppercase;
+      border-bottom: 1.5px solid var(--gold); padding-bottom: 10px;
+      display: inline-block; margin-bottom: 20px;
+    }
+
+    .week-title {
+      font-size: 40px; font-weight: 900; color: var(--ink);
+      line-height: 1.3;
+    }
+
+    /* Calendar grid */
+    .calendar-grid { flex: 1; }
+
+    .day-row {
+      display: flex; align-items: flex-start;
+      padding: 22px 0; gap: 22px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .day-indicator {
+      width: 60px; flex-shrink: 0;
+      text-align: center;
+    }
+
+    .day-number {
+      font-size: 28px; font-weight: 900;
+      color: var(--ink);
+    }
+
+    .day-weekday {
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.15em; color: var(--ink-muted);
+      text-transform: uppercase;
+    }
+
+    .day-mood {
+      width: 10px; height: 10px; border-radius: 50%;
+      margin: 8px auto 0;
+    }
+    .mood-feast { background: var(--feast-gold); box-shadow: 0 0 8px rgba(212,175,55,0.4); }
+    .mood-fast { background: var(--fast-purple); box-shadow: 0 0 8px rgba(124,58,237,0.4); }
+    .mood-normal { background: var(--normal-blue); box-shadow: 0 0 8px rgba(59,130,246,0.3); }
+
+    .day-content { flex: 1; }
+
+    .day-saint {
+      font-size: 22px; font-weight: 700;
+      color: var(--ink); margin-bottom: 4px;
+    }
+
+    .day-event {
+      font-size: 17px; font-weight: 500;
+      color: var(--ink-body); line-height: 1.5;
+    }
+
+    .day-fast-tag {
+      display: inline-block; margin-top: 6px;
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.15em; color: var(--fast-purple);
+      background: rgba(124,58,237,0.06);
+      border: 1px solid rgba(124,58,237,0.15);
+      padding: 3px 12px; border-radius: 12px;
+      text-transform: uppercase;
+    }
+
+    .day-feast-tag {
+      display: inline-block; margin-top: 6px;
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.15em; color: var(--feast-gold);
+      background: rgba(212,175,55,0.06);
+      border: 1px solid rgba(212,175,55,0.15);
+      padding: 3px 12px; border-radius: 12px;
+      text-transform: uppercase;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex; justify-content: center; align-items: center;
+      gap: 30px; margin-top: 30px; padding-top: 20px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .legend-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600; color: var(--ink-muted);
+    }
+
+    .legend-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+
+    .footer {
+      display: flex; justify-content: center; align-items: center;
+      gap: 16px; margin-top: 30px;
+    }
+    .footer-line { width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-dim), transparent); }
+    .footer-text { font-size: 14px; letter-spacing: 0.42em; color: var(--ink-muted); font-weight: 700; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div class="paper-texture"></div>
+  <div class="border-frame"></div>
+
+  <div class="content">
+    <div class="header">
+      <div class="week-tag">📅 የሳምንቱ መርሃ ግብር</div>
+      <h1 class="week-title" id="week-title">Weekly Calendar</h1>
+    </div>
+
+    <div class="calendar-grid" id="calendar-grid">
+      <!-- Dynamically injected -->
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot mood-feast"></div>Feast</div>
+      <div class="legend-item"><div class="legend-dot mood-fast"></div>Fast</div>
+      <div class="legend-item"><div class="legend-dot mood-normal"></div>Regular</div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-line"></div>
+      <div class="footer-text">EOTC Media Studio</div>
+      <div class="footer-line"></div>
+    </div>
+  </div>
+</body>
+</html>

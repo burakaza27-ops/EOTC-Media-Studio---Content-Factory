@@ -72,6 +72,53 @@ Strict Guidelines:
 4. SPELLING: Ensure all EOTC proper nouns are spelled correctly: ቁስቋም (not ቅስቋም), ሥላሴ (not ስላሴ), ጥምቀት (not ትምቀት), ፋሲካ (not ፓሲካ).
 5. FORMAT: Return the output in the EXACT SAME format as the input. NEVER add markdown code fences, JSON labels, or conversational text. Return ONLY the corrected content.`;
 
+const SAINT_SYSTEM_PROMPT = `You are an EOTC hagiographer writing about the daily saint commemoration for Ethiopian Orthodox youth.
+
+Given a saint's name and description, generate:
+1. "saint": The saint's name exactly as given (Amharic).
+2. "story": A compelling 2-3 sentence narrative of the saint's life, martyrdom, or miracle (Amharic, 30-50 words). Make the reader FEEL the saint's courage, faith, or sacrifice.
+3. "lesson": A short, punchy spiritual lesson for TODAY drawn from this saint's life (Amharic, 15-25 words). This should feel directly applicable.
+4. "reference": A relevant Bible verse reference using Ge'ez numerals (e.g., ዮሐንስ ፲፭፥፲፫). The verse should connect to the saint's theme.
+5. "feastType": The type of commemoration — "ቅዱስ/ቅድስት" for saints, "በዓል" for feasts, "መልአክ" for archangels.
+
+Return ONLY valid JSON. No markdown.`;
+
+const FASTING_SYSTEM_PROMPT = `You are an EOTC fasting guide writing encouraging spiritual content during a fasting season.
+
+Given the name of the current fast and its context, generate:
+1. "encouragement": A powerful, uplifting encouragement for someone in the middle of fasting (Amharic, 25-40 words). Acknowledge the difficulty but affirm the spiritual reward.
+2. "reference": A relevant Bible verse reference about fasting using Ge'ez numerals (e.g., ማቴዎስ ፮፥፲፮).
+
+Return ONLY valid JSON. No markdown.`;
+
+const HOLY_WEEK_SYSTEM_PROMPT = `You are an EOTC priest delivering a Holy Week (ሰሙነ ሕማማት) teaching.
+
+Given the specific day and its theme, generate:
+1. "teaching": A profound, emotionally resonant teaching about this specific day of Holy Week (Amharic, 30-50 words). Make the reader feel the weight of the Passion.
+2. "scripture": The EXACT literal Bible verse (1962 EOTC) most relevant to this day's event.
+3. "reference": Scripture reference in Ge'ez numerals.
+
+Return ONLY valid JSON. No markdown.`;
+
+const CHURCH_HISTORY_SYSTEM_PROMPT = `You are an EOTC church historian writing about Ethiopian Orthodox history for youth education.
+
+Given a historical topic and its context, generate:
+1. "title": A compelling title for this historical event (Amharic, 3-8 words).
+2. "narrative": A vivid, engaging account of the historical event (Amharic, 40-60 words). Make history come alive — use vivid details.
+3. "significance": Why this event matters TODAY for modern Ethiopian Christians (Amharic, 20-35 words).
+4. "era": The historical era label (keep as given).
+5. "year": The year (keep as given).
+
+Return ONLY valid JSON. No markdown.`;
+
+const BILINGUAL_SYSTEM_PROMPT = `You are an expert Amharic-to-English translator specializing in Ethiopian Orthodox spiritual literature.
+
+Translate the given Amharic text into elegant, literary English. Rules:
+1. Preserve the poetic cadence and spiritual weight of the original.
+2. Keep EOTC-specific terms untranslated where appropriate (e.g., Kidase, Tabot, Mezmur).
+3. Use formal, dignified English — not casual or modern slang.
+4. Return ONLY the English translation text. Nothing else.`;
+
 // ─── Content Topic Pool ────────────────────────────────────────────────────
 // 60+ diverse topics spanning theology, ethics, history, spirituality & culture.
 // These are used when NO liturgical context is active, ensuring maximum variety.
@@ -373,6 +420,48 @@ export async function generateWeeklyReflection(liturgicalContext = null) {
   
   const auditedData = await verifyAndCorrect(rawData, true);
   return { ...auditedData, theme: theme.split(' ')[0], liturgicalEvent: liturgicalContext?.event || null };
+}
+
+export async function generateSaintOfDay(saintData, liturgicalContext = null) {
+  const contextPrompt = formatContextForPrompt(liturgicalContext);
+  console.log(`🧠 AI Saint: ${saintData.saint}`);
+  const content = await callAI(SAINT_SYSTEM_PROMPT, `Saint: ${saintData.saint}\nDescription: ${saintData.theme}${contextPrompt}`, true);
+  const rawData = extractJSON(content);
+  const auditedData = await verifyAndCorrect(rawData, true);
+  return { ...auditedData, liturgicalEvent: liturgicalContext?.event || null };
+}
+
+export async function generateFastingGuide(fastingInfo, liturgicalContext = null) {
+  const contextPrompt = formatContextForPrompt(liturgicalContext);
+  console.log(`🧠 AI Fasting Guide: ${fastingInfo.name}`);
+  const content = await callAI(FASTING_SYSTEM_PROMPT, `Current fast: ${fastingInfo.name}\nDay ${fastingInfo.currentDay} of ${fastingInfo.totalDays}${contextPrompt}`, true);
+  const rawData = extractJSON(content);
+  const auditedData = await verifyAndCorrect(rawData, true);
+  return { ...auditedData, liturgicalEvent: liturgicalContext?.event || null };
+}
+
+export async function generateHolyWeekContent(holyWeekDay, liturgicalContext = null) {
+  const contextPrompt = formatContextForPrompt(liturgicalContext);
+  console.log(`🧠 AI Holy Week: ${holyWeekDay.amharic}`);
+  const content = await callAI(HOLY_WEEK_SYSTEM_PROMPT, `Day: ${holyWeekDay.amharic} (${holyWeekDay.english})\nTheme: ${holyWeekDay.theme}${contextPrompt}`, true);
+  const rawData = extractJSON(content);
+  const auditedData = await verifyAndCorrect(rawData, true);
+  return { ...auditedData, dayName: holyWeekDay.amharic, subtitle: holyWeekDay.english, liturgicalEvent: liturgicalContext?.event || null };
+}
+
+export async function generateChurchHistory(historyTopic, liturgicalContext = null) {
+  const contextPrompt = formatContextForPrompt(liturgicalContext);
+  console.log(`🧠 AI Church History: ${historyTopic.title}`);
+  const content = await callAI(CHURCH_HISTORY_SYSTEM_PROMPT, `Topic: ${historyTopic.title}\nEra: ${historyTopic.era}\nYear: ${historyTopic.year}\nContext: ${historyTopic.theme}${contextPrompt}`, true);
+  const rawData = extractJSON(content);
+  const auditedData = await verifyAndCorrect(rawData, true);
+  return { ...auditedData, era: historyTopic.era, year: historyTopic.year, liturgicalEvent: liturgicalContext?.event || null };
+}
+
+export async function translateToEnglish(amharicText) {
+  console.log(`🌐 Translating to English...`);
+  const translation = await callAI(BILINGUAL_SYSTEM_PROMPT, `Translate this Amharic text to elegant English:\n\n${amharicText}`, false);
+  return translation.trim();
 }
 
 export function isConfigured() {

@@ -335,14 +335,49 @@ export function getLiturgicalContext(date = new Date()) {
   return createFeast(`Daily Commemoration: ${dailySaint.saint}`, baselineTheme, 'devotional', 'devotional', ethDate, ethMonthName);
 }
 
+// ─── Ge'ez Numeral System ───────────────────────────────────────────────────
+
+const GEEZ_ONES = ['', '፩', '፪', '፫', '፬', '፭', '፮', '፯', '፰', '፱'];
+const GEEZ_TENS = ['', '፲', '፳', '፴', '፵', '፶', '፷', '፸', '፹', '፺'];
+
+export function toGeezNumerals(num) {
+  if (num === 0) return '';
+  if (num < 0) return toGeezNumerals(-num);
+  if (num < 10) return GEEZ_ONES[num];
+  if (num < 100) return GEEZ_TENS[Math.floor(num / 10)] + GEEZ_ONES[num % 10];
+  if (num < 10000) {
+    const hundreds = Math.floor(num / 100);
+    const remainder = num % 100;
+    const hundredStr = hundreds === 1 ? '፻' : (GEEZ_ONES[hundreds] + '፻');
+    return hundredStr + (remainder > 0 ? toGeezNumerals(remainder) : '');
+  }
+  return String(num); // Fallback for very large numbers
+}
+
+const ETHIOPIAN_MONTHS_AMHARIC = {
+  1: 'መስከረም', 2: 'ጥቅምት', 3: 'ኅዳር', 4: 'ታኅሣሥ',
+  5: 'ጥር', 6: 'የካቲት', 7: 'መጋቢት', 8: 'ሚያዝያ',
+  9: 'ግንቦት', 10: 'ሰኔ', 11: 'ሐምሌ', 12: 'ነሐሴ', 13: 'ጳጉሜ'
+};
+
+/**
+ * Returns Ethiopian date formatted in Amharic with Ge'ez numerals.
+ * Example: "ግንቦት ፬ ፳፻፲፰"
+ */
+export function getEthiopianDateGeez(gregorianDate = new Date()) {
+  const eth = toEthiopianDate(gregorianDate);
+  const monthName = ETHIOPIAN_MONTHS_AMHARIC[eth.month] || '';
+  return `${monthName} ${toGeezNumerals(eth.day)} ${toGeezNumerals(eth.year)}`;
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function createFeast(name, theme, type, mood, ethDate, ethMonthName) {
-  return { event: name, theme: theme, type: type, mood: mood, ethiopianDate: `${ethMonthName} ${ethDate.day}`, priority: 'high' };
+  return { event: name, theme: theme, type: type, mood: mood, ethiopianDate: `${ethMonthName} ${ethDate.day}`, ethiopianDateGeez: getEthiopianDateGeez(), priority: 'high' };
 }
 
 function createFast(name, theme, type, mood, ethDate, ethMonthName) {
-  return { event: name, theme: theme, type: type, mood: mood, ethiopianDate: `${ethMonthName} ${ethDate.day}`, priority: 'medium' };
+  return { event: name, theme: theme, type: type, mood: mood, ethiopianDate: `${ethMonthName} ${ethDate.day}`, ethiopianDateGeez: getEthiopianDateGeez(), priority: 'medium' };
 }
 
 function getZemene(ethDate) {
@@ -429,3 +464,167 @@ export function formatContextForPrompt(context) {
     `═══════════════════════════════════════════════════════════════════════\n`,
   ].join('\n');
 }
+
+// ─── Fasting Progress Info ──────────────────────────────────────────────────
+
+/**
+ * Returns current fasting season info if active, including day count and progress.
+ * Used by the Fasting Guide content type.
+ */
+export function getFastingInfo(date = new Date()) {
+  const ethDate = toEthiopianDate(date);
+  const moveables = calculateMoveableFeasts(ethDate.year);
+  
+  const ethVal = ethDate.month * 30 + ethDate.day;
+  
+  // Great Lent (55 days)
+  const lentStart = moveables.abiyTsomStart;
+  const lentEnd = offsetEthDate(moveables.fasika, -1);
+  if (isEthDateInRange(ethDate, lentStart, lentEnd)) {
+    const startVal = lentStart.month * 30 + lentStart.day;
+    const dayNum = ethVal - startVal + 1;
+    return { active: true, name: 'ዐቢይ ጾም (Great Lent)', totalDays: 55, currentDay: dayNum, rules: [
+      'ከምንም የእንስሳ ምርት መራቅ',
+      'እስከ ከሰዓት ድረስ ምግብ አለመብላት',
+      'ከእጽዋት የተዘጋጁ ምግቦች ብቻ',
+      'ጸሎትና ንስሐ ማብዛት'
+    ]};
+  }
+  
+  // Nineveh (3 days)
+  const ninEnd = offsetEthDate(moveables.nenewe, 2);
+  if (isEthDateInRange(ethDate, moveables.nenewe, ninEnd)) {
+    const startVal = moveables.nenewe.month * 30 + moveables.nenewe.day;
+    const dayNum = ethVal - startVal + 1;
+    return { active: true, name: 'ጾመ ነነዌ (Fast of Nineveh)', totalDays: 3, currentDay: dayNum, rules: [
+      'ሦስት ቀን ፍጹም ጾም',
+      'ንስሐ መግባት',
+      'ከእንስሳ ምግቦች መራቅ'
+    ]};
+  }
+
+  // Apostles Fast
+  const apostlesEnd = { year: ethDate.year, month: 11, day: 5 };
+  if (isEthDateInRange(ethDate, moveables.tsomeHawariatStart, apostlesEnd)) {
+    const startVal = moveables.tsomeHawariatStart.month * 30 + moveables.tsomeHawariatStart.day;
+    const endVal = apostlesEnd.month * 30 + apostlesEnd.day;
+    const dayNum = ethVal - startVal + 1;
+    const totalDays = endVal - startVal + 1;
+    return { active: true, name: 'ጾመ ሐዋርያት (Apostles Fast)', totalDays, currentDay: dayNum, rules: [
+      'ከእንስሳ ምርት መራቅ',
+      'የሐዋርያትን ትምህርት ማንበብ',
+      'ስብከትና ወንጌል ማካፈል'
+    ]};
+  }
+  
+  // Fixed fasts
+  for (const fast of FIXED_FASTS) {
+    const fStart = { year: ethDate.year, month: fast.startMonth, day: fast.startDay };
+    const fEnd = { year: ethDate.year, month: fast.endMonth, day: fast.endDay };
+    if (isEthDateInRange(ethDate, fStart, fEnd)) {
+      const startVal = fStart.month * 30 + fStart.day;
+      const endVal = fEnd.month * 30 + fEnd.day;
+      const dayNum = ethVal - startVal + 1;
+      const totalDays = endVal - startVal + 1;
+      return { active: true, name: fast.name, totalDays, currentDay: dayNum, rules: [
+        'ከእንስሳ ምርት መራቅ',
+        'ጸሎትና ትጋት ማብዛት'
+      ]};
+    }
+  }
+  
+  // Weekly fast check
+  const gDay = date.getDay();
+  if (gDay === 3 || gDay === 5) {
+    return { active: true, name: gDay === 3 ? 'የረቡዕ ጾም' : 'የአርብ ጾም', totalDays: 1, currentDay: 1, rules: [
+      'ከእንስሳ ምርት መራቅ',
+      'ጸሎት ማብዛት'
+    ]};
+  }
+
+  return { active: false };
+}
+
+// ─── Holy Week Day Detection ────────────────────────────────────────────────
+
+const HOLY_WEEK_DAYS = [
+  { offset: -7, amharic: 'ሆሣዕና', english: 'Palm Sunday — Triumphal Entry', theme: 'Christ enters Jerusalem as the Prince of Peace, fulfilling Zechariah\'s prophecy.' },
+  { offset: -6, amharic: 'ሰኞ — ሰሙነ ሕማማት', english: 'Monday — Cursing of the Fig Tree', theme: 'Jesus curses the barren fig tree — a warning against spiritual fruitlessness.' },
+  { offset: -5, amharic: 'ማክሰኞ — ሰሙነ ሕማማት', english: 'Tuesday — Parables of Judgment', theme: 'Jesus teaches with authority in the Temple: the wicked tenants, the great banquet, the ten virgins.' },
+  { offset: -4, amharic: 'ረቡዕ — ሰሙነ ሕማማት', english: 'Wednesday — Betrayal of Judas', theme: 'Judas agrees to betray the Lord for thirty pieces of silver. The price of a slave for the King of Kings.' },
+  { offset: -3, amharic: 'ጸሎተ ሐሙስ', english: 'Maundy Thursday — The Last Supper', theme: 'Christ washes feet, institutes the Eucharist, and prays in Gethsemane.' },
+  { offset: -2, amharic: 'ስቅለት', english: 'Good Friday — The Crucifixion', theme: 'The Son of God is nailed to the Cross. Darkness covers the earth. "It is finished."' },
+  { offset: -1, amharic: 'ቅዳሜ ስዑር', english: 'Holy Saturday — Harrowing of Hell', theme: 'Christ descends to Sheol and breaks open the gates of death, liberating the righteous who waited.' }
+];
+
+export function getHolyWeekDay(date = new Date()) {
+  const ethDate = toEthiopianDate(date);
+  const moveables = calculateMoveableFeasts(ethDate.year);
+  
+  for (const day of HOLY_WEEK_DAYS) {
+    const targetDate = offsetEthDate(moveables.fasika, day.offset);
+    if (isSameEthDate(ethDate, targetDate)) {
+      return { isHolyWeek: true, ...day };
+    }
+  }
+  return { isHolyWeek: false };
+}
+
+// ─── Pagume Detection ───────────────────────────────────────────────────────
+
+export function isPagume(date = new Date()) {
+  const ethDate = toEthiopianDate(date);
+  if (ethDate.month === 13) {
+    const isLeap = ethDate.year % 4 === 3;
+    const totalDays = isLeap ? 6 : 5;
+    return { isPagume: true, day: ethDate.day, totalDays, daysToNewYear: totalDays - ethDate.day + 1 };
+  }
+  return { isPagume: false };
+}
+
+// ─── Weekly Calendar Data ───────────────────────────────────────────────────
+
+const WEEKDAY_NAMES_AM = ['እሑድ', 'ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'ዓርብ', 'ቅዳሜ'];
+
+export function getWeekCalendarData(startDate = new Date()) {
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    const eth = toEthiopianDate(d);
+    const saint = DAILY_COMMEMORATIONS[eth.day];
+    const ctx = getLiturgicalContext(d);
+    const weekdayName = WEEKDAY_NAMES_AM[d.getDay()];
+    
+    let moodType = 'normal';
+    if (ctx.type?.includes('feast') || ctx.type?.includes('major')) moodType = 'feast';
+    if (ctx.type?.includes('fast') || ctx.mood === 'penitential') moodType = 'fast';
+    
+    days.push({
+      ethDay: toGeezNumerals(eth.day),
+      ethMonth: ETHIOPIAN_MONTHS_AMHARIC[eth.month],
+      weekday: weekdayName,
+      saint: saint?.saint || '',
+      event: ctx.event || '',
+      mood: moodType,
+      isFeast: ctx.type?.includes('feast'),
+      isFast: ctx.type?.includes('fast') || ctx.mood === 'penitential'
+    });
+  }
+  return days;
+}
+
+// ─── Church History Topics ──────────────────────────────────────────────────
+
+export const CHURCH_HISTORY_TOPICS = [
+  { era: 'Aksumite Era', year: '340 AD', title: 'የአክሱም ወደ ክርስትና መመለስ', theme: 'The conversion of the Aksumite Kingdom to Christianity under King Ezana through the ministry of Frumentius (Abba Salama). Ethiopia became one of the first nations on earth to adopt Christianity as a state religion.' },
+  { era: '5th Century', year: '480 AD', title: 'ዘጠኙ ቅዱሳን (The Nine Saints)', theme: 'Nine monks from the Roman Empire who came to Ethiopia and established monasticism, translated scriptures into Ge\'ez, and spread Christianity to rural areas. They built churches that stand to this day.' },
+  { era: 'Zagwe Dynasty', year: '1200 AD', title: 'ላሊበላ — የአለት አብያተ ክርስቲያናት', theme: 'King Lalibela\'s divine vision to build a "New Jerusalem" — 11 rock-hewn churches carved from living rock, a feat of engineering and faith unmatched in human history.' },
+  { era: 'Solomonic Dynasty', year: '1270 AD', title: 'ከብረ ነገሥት — የንጉሦች ክብር', theme: 'The Kebra Nagast (Glory of Kings) — the foundational text of Ethiopian civilization tracing the Solomonic dynasty from King Solomon and the Queen of Sheba.' },
+  { era: 'Medieval', year: '1450 AD', title: 'ዘአማኑኤል — ቤተ ክርስቲያን ያደረገው ቅድስና', theme: 'The Council of Debre Mitmaq that resolved the Sabbath controversy, vindicating the teachings of Eustathius and establishing Saturday-Sunday dual observance.' },
+  { era: 'Golden Age', year: '6th Century', title: 'ቅዱስ ያሬድ — የዜማ አባት', theme: 'St. Yared invented the Ethiopian church music system (Zema) with its three modes: Ge\'ez, Ezel, and Araray — creating a musical tradition that has survived 1,500 years unchanged.' },
+  { era: 'Apostolic', year: '34 AD', title: 'ፊልጶስ እና ኢትዮጵያዊው ሹም', theme: 'The Ethiopian eunuch baptized by Philip the Evangelist (Acts 8) — making Ethiopia one of the earliest Christian nations, before Rome, before Constantinople.' },
+  { era: 'Modern', year: '1959 AD', title: 'የኢትዮጵያ ቤተ ክርስቲያን ነጻነት', theme: 'The Ethiopian Orthodox Tewahedo Church received its first native Patriarch (Abune Basilios), becoming autocephalous after centuries of Alexandrian appointment.' },
+];
+
+export { DAILY_COMMEMORATIONS };
