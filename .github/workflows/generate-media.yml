@@ -1,15 +1,12 @@
 # ═══════════════════════════════════════════════════════════════
-#  EOTC Media Studio — Automated Content & Video Pipeline
-#  Generates spiritual content, renders images + cinematic
-#  TikTok videos, and broadcasts to Telegram automatically.
+#  EOTC Media Studio v5.0 — Perfected Content Pipeline
+#  Generates world-class spiritual images and broadcasts
+#  them to Telegram on manual dispatch.
 # ═══════════════════════════════════════════════════════════════
 
 name: "✝️ EOTC Media Studio — Generate Content"
 
 on:
-  # ────────────────────────────────────────────────
-  # MANUAL TRIGGER: Click "Run workflow" on GitHub
-  # ────────────────────────────────────────────────
   workflow_dispatch:
     inputs:
       content_type:
@@ -26,25 +23,15 @@ on:
         type: boolean
         default: true
 
-  # ────────────────────────────────────────────────
-  # AUTOMATED SCHEDULE (East Africa Time / UTC+3)
-  # ────────────────────────────────────────────────
-  # Uncomment below to enable fully autonomous daily posting:
-  # schedule:
-  #   - cron: '0 2 * * *'   # 5:00 AM EAT → Daily Verse
-  #   - cron: '0 9 * * *'   # 12:00 PM EAT → Power Quote
-  #   - cron: '0 15 * * *'  # 6:00 PM EAT → Deep Dive Carousel
-  #   - cron: '0 5 * * 0'   # Sun 8:00 AM EAT → Weekly Reflection
-
 concurrency:
   group: content-generation
   cancel-in-progress: false
 
 jobs:
   generate:
-    name: "🎬 Generate Content + Cinematic Video"
+    name: "🎨 Generate & Deliver Content"
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       # ── 1. CHECKOUT CODE ──
@@ -78,7 +65,6 @@ jobs:
         shell: bash
         run: |
           cat > .env << EOF
-          GOOGLE_AI_STUDIO_API=${{ secrets.GOOGLE_AI_STUDIO_API }}
           OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
           SUPABASE_URL=${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
@@ -97,13 +83,8 @@ jobs:
           TYPE="${{ github.event.inputs.content_type }}"
           LITURGICAL="${{ github.event.inputs.use_liturgical }}"
 
-          # Smart defaults for scheduled runs
           if [ -z "$TYPE" ]; then
-            HOUR=$(date -u +%H)
-            if [ "$HOUR" -lt 6 ]; then TYPE="verse"
-            elif [ "$HOUR" -lt 12 ]; then TYPE="quote"
-            elif [ "$HOUR" -lt 18 ]; then TYPE="carousel"
-            else TYPE="reflection"; fi
+            TYPE="quote"
           fi
 
           if [ -z "$LITURGICAL" ]; then
@@ -114,8 +95,8 @@ jobs:
           echo "target_type=$TYPE" >> $GITHUB_OUTPUT
           echo "use_liturgical=$LITURGICAL" >> $GITHUB_OUTPUT
 
-      # ── 7. RUN THE FULL PIPELINE ──
-      - name: "🚀 Run Media Pipeline (Image + Video + Telegram)"
+      # ── 7. RUN THE PIPELINE ──
+      - name: "🚀 Run Media Pipeline"
         id: pipeline
         run: |
           LITURGICAL_FLAG=""
@@ -133,17 +114,7 @@ jobs:
           path: ./src/output.png
           retention-days: 7
 
-      # ── 9. SAVE TIKTOK VIDEO ARTIFACT ──
-      - name: "🎬 Upload TikTok Video Artifact"
-        if: always() && steps.compute-type.outputs.target_type != 'carousel'
-        uses: actions/upload-artifact@v4
-        with:
-          name: tiktok-video-${{ github.run_id }}
-          path: ./src/tiktok_latest.mp4
-          retention-days: 7
-          if-no-files-found: ignore
-
-      # ── 10. SAVE CAROUSEL ARTIFACT ──
+      # ── 9. SAVE CAROUSEL ARTIFACT ──
       - name: "🎠 Upload Carousel Artifacts"
         if: always() && steps.compute-type.outputs.target_type == 'carousel'
         uses: actions/upload-artifact@v4
@@ -152,19 +123,15 @@ jobs:
           path: ./temp/carousel/run_*/*.png
           retention-days: 7
 
-      # ── 11. PIPELINE SUMMARY ──
+      # ── 10. PIPELINE SUMMARY ──
       - name: "📊 Pipeline Summary"
         if: always()
         run: |
-          echo "## ✝️ EOTC Media Studio Pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "## ✝️ EOTC Media Studio v5.0" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| **Status** | ${{ steps.pipeline.outcome == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Content Type** | ${{ steps.compute-type.outputs.target_type }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Liturgical** | ${{ steps.compute-type.outputs.use_liturgical }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Video Engine** | FFmpeg Ken Burns + Google Amharic TTS |" >> $GITHUB_STEP_SUMMARY
           echo "| **Timestamp** | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📥 Downloads" >> $GITHUB_STEP_SUMMARY
-          echo "Scroll down to **Artifacts** to download the generated image and TikTok-ready MP4 video." >> $GITHUB_STEP_SUMMARY

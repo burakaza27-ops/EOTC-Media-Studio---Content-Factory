@@ -9,17 +9,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #0f1420;
-      --bg-secondary: #080b12;
-      --bg-deep: #050710;
-      --accent-color: #e2c073;
-      --accent-bright: #f0d590;
-      --accent-dim: #b89a4a;
-      --accent-glow: rgba(226, 192, 115, 0.22);
-      --accent-glow-soft: rgba(226, 192, 115, 0.08);
-      --text-main: #ffffff;
-      --text-sub: rgba(255, 255, 255, 0.72);
-      --text-muted: rgba(255, 255, 255, 0.4);
+      --bg-abyss: #050710;
+      --bg-deep: #080c16;
+      --bg-mid: #0e1320;
+      --gold: #e2c073;
+      --gold-bright: #f0d590;
+      --gold-pale: #f7ecbf;
+      --gold-dim: #b89a4a;
+      --gold-dark: #7a6530;
+      --gold-glow: rgba(226, 192, 115, 0.22);
+      --gold-glow-strong: rgba(226, 192, 115, 0.40);
+      --blue-glow: rgba(30, 58, 138, 0.08);
+      --white: #ffffff;
+      --white-85: rgba(255, 255, 255, 0.85);
+      --white-55: rgba(255, 255, 255, 0.55);
+      --white-30: rgba(255, 255, 255, 0.30);
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,163 +35,188 @@
       font-feature-settings: "kern" 1, "liga" 1;
     }
 
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+    }
+
+    @keyframes rotateRing {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
     body {
       width: 1080px; height: 1080px;
       font-family: 'Noto Sans Ethiopic', sans-serif;
-      background: var(--bg-deep);
+      background: var(--bg-abyss);
       display: flex; align-items: center; justify-content: center;
       position: relative; overflow: hidden;
     }
 
-    /* === Multi-layer background === */
-    .bg-gradient {
+    /* ═══ BACKGROUND LAYERS ═══ */
+    .bg-base {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background:
-        linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 40%, var(--bg-deep) 100%);
+      background: linear-gradient(165deg, var(--bg-abyss) 0%, var(--bg-deep) 45%, var(--bg-mid) 100%);
       z-index: 0;
     }
 
-    .circle-glow {
+    /* Central golden halo */
+    .halo {
       position: absolute; width: 850px; height: 850px;
-      background: radial-gradient(circle, var(--accent-glow) 0%, rgba(226, 192, 115, 0.06) 40%, transparent 70%);
+      background: radial-gradient(circle, var(--gold-glow) 0%, rgba(226, 192, 115, 0.05) 40%, transparent 68%);
       top: 50%; left: 50%; transform: translate(-50%, -50%);
       border-radius: 50%; pointer-events: none; z-index: 1;
+      animation: pulseGlow 12s ease-in-out infinite;
     }
 
-    .circle-glow-inner {
-      position: absolute; width: 400px; height: 400px;
-      background: radial-gradient(circle, rgba(226, 192, 115, 0.08) 0%, transparent 70%);
+    /* Inner tighter glow */
+    .halo-inner {
+      position: absolute; width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(226, 192, 115, 0.06) 0%, transparent 65%);
       top: 50%; left: 50%; transform: translate(-50%, -50%);
-      border-radius: 50%; pointer-events: none; z-index: 1;
+      border-radius: 50%; z-index: 1;
     }
 
-    /* Noise grain */
-    .noise {
+    /* Blue accent at top — adds dimensional depth */
+    .bloom-top {
+      position: absolute;
+      top: -10%; left: 30%; width: 500px; height: 400px;
+      background: radial-gradient(ellipse at center, var(--blue-glow) 0%, transparent 60%);
+      z-index: 0;
+    }
+
+    /* Film grain */
+    .grain {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
       z-index: 2; pointer-events: none;
     }
 
     /* Vignette */
     .vignette {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.45) 100%);
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.48) 100%);
       z-index: 2; pointer-events: none;
     }
 
-    /* Decorative ring */
-    .deco-ring {
+    /* Decorative rings — sacred geometry */
+    .deco-ring-outer {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 720px; height: 720px;
+      border-radius: 50%;
+      border: 1px solid rgba(226, 192, 115, 0.06);
+      pointer-events: none; z-index: 2;
+    }
+
+    .deco-ring-mid {
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       width: 700px; height: 700px;
       border-radius: 50%;
-      border: 1px solid rgba(226, 192, 115, 0.08);
-      pointer-events: none;
-      z-index: 2;
+      border: 1px solid rgba(226, 192, 115, 0.03);
+      pointer-events: none; z-index: 2;
     }
 
-    .deco-ring-inner {
+    /* Rotating ornamental ring (very subtle) */
+    .deco-ring-rotating {
       position: absolute;
       top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 680px; height: 680px;
+      width: 760px; height: 760px;
       border-radius: 50%;
-      border: 1px solid rgba(226, 192, 115, 0.04);
-      pointer-events: none;
-      z-index: 2;
+      border: 1px dashed rgba(226, 192, 115, 0.04);
+      pointer-events: none; z-index: 2;
+      animation: rotateRing 180s linear infinite;
     }
 
-    /* === Content === */
+    /* ═══ CONTENT ═══ */
     .content {
       position: relative; z-index: 10;
-      text-align: center; max-width: 850px; padding: 60px;
+      text-align: center; max-width: 840px; padding: 60px;
     }
 
-    .top-icon {
-      font-size: 56px;
-      color: var(--accent-color);
-      margin-bottom: 45px;
-      filter: drop-shadow(0 0 20px var(--accent-glow));
+    /* Sacred book icon */
+    .icon {
+      font-size: 50px;
+      margin-bottom: 40px;
+      filter: drop-shadow(0 0 24px var(--gold-glow));
       line-height: 1;
     }
 
+    /* Verse text */
     .verse-text {
-      font-size: clamp(36px, 5vw, 52px);
+      font-size: clamp(34px, 4.6vw, 50px);
       font-weight: 700;
-      line-height: 1.55;
-      color: var(--text-main);
-      margin-bottom: 45px;
+      line-height: 1.58;
+      color: var(--white);
+      margin-bottom: 48px;
       display: -webkit-box;
       -webkit-line-clamp: 7;
       line-clamp: 7;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      text-shadow: 0 3px 12px rgba(0,0,0,0.35);
       letter-spacing: 0.01em;
     }
 
+    /* Scripture reference — the anchor of authority */
     .verse-ref {
-      font-size: 22px;
+      font-size: 21px;
       font-weight: 800;
-      letter-spacing: 0.12em;
-      color: var(--accent-bright);
-      text-transform: uppercase;
-      display: inline-block;
-      padding: 12px 36px;
-      border-top: 1.5px solid var(--accent-dim);
-      border-bottom: 1.5px solid var(--accent-dim);
-      text-shadow: 0 0 20px var(--accent-glow);
+      letter-spacing: 0.14em;
+      color: var(--gold-bright);
+      display: inline-flex;
+      align-items: center;
+      gap: 18px;
+      padding: 14px 38px;
+      border-top: 1.5px solid var(--gold-dim);
+      border-bottom: 1.5px solid var(--gold-dim);
+      text-shadow: 0 0 24px var(--gold-glow);
       position: relative;
     }
 
-    /* Small ornament dots beside the reference */
     .verse-ref::before, .verse-ref::after {
       content: '✦';
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 8px;
-      color: var(--accent-dim);
+      font-size: 7px;
+      color: var(--gold-dim);
     }
-    .verse-ref::before { left: 10px; }
-    .verse-ref::after { right: 10px; }
 
-    /* === Footer === */
+    /* ═══ FOOTER ═══ */
     .footer {
-      position: absolute; bottom: 58px; width: 100%; text-align: center;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
+      position: absolute; bottom: 56px; width: 100%;
+      text-align: center; z-index: 10;
+      display: flex; align-items: center; justify-content: center; gap: 18px;
     }
 
     .footer-line {
-      width: 50px; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+      width: 55px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
     }
 
     .footer-text {
-      font-size: 15px;
-      letter-spacing: 0.4em;
-      color: var(--text-sub);
+      font-size: 14px;
+      letter-spacing: 0.42em;
+      color: var(--white-55);
       text-transform: uppercase;
       font-weight: 600;
     }
   </style>
 </head>
 <body>
-  <div class="bg-gradient"></div>
-  <div class="circle-glow"></div>
-  <div class="circle-glow-inner"></div>
-  <div class="noise"></div>
+  <div class="bg-base"></div>
+  <div class="bloom-top"></div>
+  <div class="halo"></div>
+  <div class="halo-inner"></div>
+  <div class="grain"></div>
   <div class="vignette"></div>
-  <div class="deco-ring"></div>
-  <div class="deco-ring-inner"></div>
+  <div class="deco-ring-outer"></div>
+  <div class="deco-ring-mid"></div>
+  <div class="deco-ring-rotating"></div>
 
   <div class="content">
-    <div class="top-icon">📖</div>
+    <div class="icon">📖</div>
     <div class="verse-text" id="quote-text">የእግዚአብሔር ቃል ሕያው ነውና፥ የሚሠራም...</div>
     <div class="verse-ref" id="scripture-ref">ዕብራውያን ፬፥፲፪</div>
   </div>

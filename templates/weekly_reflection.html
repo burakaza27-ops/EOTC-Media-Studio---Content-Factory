@@ -9,17 +9,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #f7f6f3;
-      --bg-secondary: #fefefe;
-      --bg-warm: #f4f1eb;
-      --accent-primary: #0a0b10;
-      --accent-gold: #b8860b;
-      --accent-gold-light: #d4a418;
-      --accent-gold-dim: rgba(184, 134, 11, 0.6);
-      --accent-gold-glow: rgba(184, 134, 11, 0.12);
-      --text-dark: #111827;
-      --text-body: #374151;
-      --text-muted: #6b7280;
+      --bg-ivory: #faf8f4;
+      --bg-cream: #f5f2ec;
+      --bg-warm: #eeebe4;
+      --gold: #b8860b;
+      --gold-light: #d4a418;
+      --gold-pale: #e8c25e;
+      --gold-dim: rgba(184, 134, 11, 0.55);
+      --gold-glow: rgba(184, 134, 11, 0.10);
+      --gold-glow-strong: rgba(184, 134, 11, 0.18);
+      --ink: #0f1419;
+      --ink-body: #2d3340;
+      --ink-muted: #6b7280;
+      --ink-faint: rgba(0, 0, 0, 0.06);
+      --ink-hairline: rgba(0, 0, 0, 0.04);
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -36,172 +39,206 @@
       min-height: 1920px;
       height: auto;
       font-family: 'Noto Sans Ethiopic', sans-serif;
-      background: var(--bg-primary);
+      background: var(--bg-ivory);
       position: relative;
     }
 
-    /* Warm background gradient */
+    /* ═══ BACKGROUND ═══ */
     .bg-gradient {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background:
-        radial-gradient(ellipse at 50% 0%, rgba(184, 134, 11, 0.04) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 100%, rgba(184, 134, 11, 0.03) 0%, transparent 50%),
-        linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-warm) 50%, var(--bg-primary) 100%);
+        radial-gradient(ellipse at 50% 0%, var(--gold-glow) 0%, transparent 45%),
+        radial-gradient(ellipse at 50% 100%, rgba(184, 134, 11, 0.04) 0%, transparent 40%),
+        linear-gradient(180deg, var(--bg-ivory) 0%, var(--bg-cream) 40%, var(--bg-warm) 100%);
       z-index: 0;
     }
 
-    /* Paper texture */
+    /* Authentic paper texture */
     .paper-texture {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
       z-index: 1; pointer-events: none;
     }
 
-    /* Double border frame */
+    /* ═══ DOUBLE BORDER FRAME ═══ */
     .border-frame {
-      position: absolute; top: 58px; left: 58px; right: 58px; bottom: 58px;
-      border: 2px solid var(--accent-gold);
-      z-index: 2;
-      pointer-events: none;
-    }
-    
-    .border-frame::before {
-      content: ''; position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px;
-      border: 1px solid rgba(184, 134, 11, 0.25);
+      position: absolute; top: 55px; left: 55px; right: 55px; bottom: 55px;
+      border: 2px solid var(--gold);
+      z-index: 2; pointer-events: none;
     }
 
-    /* Corner ornaments */
+    .border-frame::before {
+      content: ''; position: absolute;
+      top: 10px; left: 10px; right: 10px; bottom: 10px;
+      border: 1px solid rgba(184, 134, 11, 0.20);
+    }
+
+    /* Top center ornament */
     .border-frame::after {
       content: '✦';
-      position: absolute; top: -8px; left: 50%;
+      position: absolute; top: -9px; left: 50%;
       transform: translateX(-50%);
       font-size: 14px;
-      color: var(--accent-gold);
-      background: var(--bg-primary);
-      padding: 0 12px;
+      color: var(--gold);
+      background: var(--bg-ivory);
+      padding: 0 14px;
     }
 
-    /* === Content === */
+    /* Bottom center ornament */
+    .ornament-bottom {
+      position: absolute;
+      bottom: 46px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      color: var(--gold);
+      background: var(--bg-warm);
+      padding: 0 14px;
+      z-index: 3;
+    }
+
+    /* ═══ CONTENT ═══ */
     .content {
       position: relative; z-index: 10;
       width: 100%; min-height: 1920px;
       display: flex; flex-direction: column;
-      padding: 120px 100px;
+      padding: 115px 95px;
     }
 
+    /* Header */
     .header {
-      text-align: center; margin-bottom: 50px; flex-shrink: 0;
+      text-align: center; margin-bottom: 42px; flex-shrink: 0;
     }
 
     .week-tag {
-      font-size: 18px; font-weight: 700; letter-spacing: 0.2em;
-      color: var(--accent-gold); text-transform: uppercase;
-      margin-bottom: 22px; display: inline-block;
-      border-bottom: 1.5px solid var(--accent-gold); padding-bottom: 10px;
+      font-size: 16px; font-weight: 700; letter-spacing: 0.24em;
+      color: var(--gold); text-transform: uppercase;
+      margin-bottom: 24px; display: inline-block;
+      border-bottom: 1.5px solid var(--gold); padding-bottom: 10px;
     }
 
     .title {
-      font-size: 50px; font-weight: 900; color: var(--text-dark);
-      line-height: 1.3;
-      margin-bottom: 20px;
-      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      font-size: 48px; font-weight: 900; color: var(--ink);
+      line-height: 1.32;
+      margin-bottom: 18px;
+      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
       letter-spacing: -0.01em;
+    }
+
+    /* Decorative line below title */
+    .title-ornament {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; margin-bottom: 8px;
+    }
+    .title-ornament-line {
+      width: 50px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    }
+    .title-ornament-icon {
+      font-size: 10px; color: var(--gold);
     }
 
     /* Scripture highlight block */
     .scripture-highlight {
-      background: linear-gradient(135deg, var(--accent-gold-glow), rgba(184, 134, 11, 0.03));
-      border-left: 6px solid var(--accent-gold);
-      padding: 24px 32px;
-      margin-bottom: 30px;
-      font-size: 26px; font-weight: 600; color: var(--text-dark);
-      line-height: 1.65; font-style: italic;
+      background: linear-gradient(135deg, var(--gold-glow-strong), var(--gold-glow), transparent);
+      border-left: 5px solid var(--gold);
+      padding: 26px 34px 26px 36px;
+      margin-bottom: 28px;
+      font-size: 25px; font-weight: 600; color: var(--ink);
+      line-height: 1.68; font-style: italic;
       flex-shrink: 0;
       position: relative;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+      border-radius: 0 4px 4px 0;
     }
 
     .scripture-highlight::before {
       content: '❝';
       position: absolute;
       top: 8px; left: 14px;
-      font-size: 40px;
-      color: rgba(184, 134, 11, 0.15);
+      font-size: 38px;
+      color: rgba(184, 134, 11, 0.12);
       font-family: Georgia, serif;
       font-style: normal;
     }
 
     .scripture-ref {
-      display: block; margin-top: 16px; font-size: 21px;
-      color: var(--accent-gold); font-weight: 800; font-style: normal;
-      letter-spacing: 0.05em;
+      display: block; margin-top: 16px; font-size: 20px;
+      color: var(--gold); font-weight: 800; font-style: normal;
+      letter-spacing: 0.06em;
     }
 
     /* Reflection body */
     .reflection-body {
-      font-size: 27px; line-height: 1.65; color: var(--text-body);
+      font-size: 26px; line-height: 1.68; color: var(--ink-body);
       display: flex; flex-direction: column;
     }
     
     .reflection-body p { 
-      margin-bottom: 18px; 
+      margin-bottom: 18px;
+      text-align: justify;
     }
 
     /* Prayer section */
     .prayer-section {
-      margin-top: 30px;
-      border-top: 1.5px solid rgba(0,0,0,0.08);
-      padding-top: 30px;
+      margin-top: 28px;
+      border-top: 1px solid var(--ink-hairline);
+      padding-top: 28px;
       position: relative;
       flex-shrink: 0;
     }
 
     .prayer-label {
-      font-size: 19px; font-weight: 800; letter-spacing: 0.22em;
-      color: var(--accent-gold); text-transform: uppercase;
+      font-size: 17px; font-weight: 800; letter-spacing: 0.24em;
+      color: var(--gold); text-transform: uppercase;
       margin-bottom: 16px;
       display: flex; align-items: center; gap: 10px;
     }
 
     .prayer-label::before {
       content: '🙏';
-      font-size: 18px;
+      font-size: 16px;
     }
 
     .prayer-text {
-      font-size: 25px; font-weight: 500; color: var(--text-dark);
-      line-height: 1.6; font-style: italic;
+      font-size: 24px; font-weight: 500; color: var(--ink);
+      line-height: 1.62; font-style: italic;
     }
 
     /* Footer */
     .footer {
       display: flex; justify-content: center; align-items: center;
-      margin-top: 40px; gap: 18px;
+      margin-top: 38px; gap: 16px;
       flex-shrink: 0;
     }
 
     .footer-line {
-      width: 40px; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--accent-gold-dim), transparent);
+      width: 45px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
     }
 
-    .logo-cross { color: var(--accent-gold); font-size: 24px; }
+    .logo-cross { color: var(--gold); font-size: 22px; }
     .brand {
-      font-size: 15px; letter-spacing: 0.4em; color: var(--text-muted);
+      font-size: 14px; letter-spacing: 0.42em; color: var(--ink-muted);
       font-weight: 700; text-transform: uppercase;
     }
-
   </style>
 </head>
 <body>
   <div class="bg-gradient"></div>
   <div class="paper-texture"></div>
   <div class="border-frame"></div>
+  <div class="ornament-bottom">✦</div>
 
   <div class="content">
     <div class="header">
       <div class="week-tag">የሳምንቱ መንፈሳዊ ትምህርት</div>
       <h1 class="title" id="title">ርዕስ</h1>
+      <div class="title-ornament">
+        <div class="title-ornament-line"></div>
+        <div class="title-ornament-icon">◆</div>
+        <div class="title-ornament-line"></div>
+      </div>
     </div>
 
     <div class="scripture-highlight">

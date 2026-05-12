@@ -37,26 +37,22 @@ async function withTimeout(promise, ms, timeoutMsg) {
 
 import { generateQuote, generateDailyVerse, generateCarousel, generateWeeklyReflection } from './ai/openrouter.js';
 import { checkDuplicate, saveQuote } from './db/supabase.js';
-import { sendToTelegram, sendMessage, sendCarousel, sendVideoToTelegram } from './telegram/bot.js';
+import { sendToTelegram, sendMessage, sendCarousel } from './telegram/bot.js';
 import { renderQuote, renderDailyVerse, renderCarousel, renderWeeklyReflection } from './render/puppeteer.js';
 import { getLiturgicalContext } from './utils/calendar.js';
-import { generateAmharicAudio } from './ai/tts.js';
-import { renderCinematicVideo } from './render/video.js';
 
 const CONFIG = {
   tempDir: path.join(__dirname, '../temp'),
   carouselDir: path.join(__dirname, '../temp/carousel'),
   outputDir: __dirname,
   outputFile: 'output.png',
-  videoOutputFile: 'tiktok_latest.mp4',
+  maxFileSizeBytes: 10 * 1024 * 1024, // Telegram 10MB limit
   stages: {
     ai: 'AI Generation',
     duplicate: 'Duplicate Check',
     render: 'Image Rendering',
-    video: 'Cinematic Video Rendering',
     save: 'Database Save',
-    telegram: 'Telegram Send',
-    telegram_video: 'Telegram Video Send'
+    telegram: 'Telegram Delivery'
   }
 };
 
@@ -91,6 +87,21 @@ async function runStage(stageName, fn) {
   }
 }
 
+/**
+ * Validates the rendered image file size is within Telegram's limits.
+ * Logs a clear warning if the file is too large.
+ */
+function validateFileSize(filePath) {
+  if (!fs.existsSync(filePath)) return false;
+  const stats = fs.statSync(filePath);
+  const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+  log('INFO', `📦 Output: ${sizeMB} MB`);
+  if (stats.size > CONFIG.maxFileSizeBytes) {
+    log('WARN', `⚠️ File exceeds Telegram 10MB limit (${sizeMB}MB). Delivery may fail.`);
+  }
+  return true;
+}
+
 async function pipelineWrapper(paths, genFn, renderFn, getCaptionFn, dbTextFn, stageNameModifier) {
   const aiData = await runStage(`ai_${stageNameModifier}`, async () => {
     return await withTimeout(genFn(), 60000, 'AI generation timeout');
@@ -100,7 +111,7 @@ async function pipelineWrapper(paths, genFn, renderFn, getCaptionFn, dbTextFn, s
   const isDuplicate = await runStage('duplicate', () => checkDuplicate(dbText));
   
   if (isDuplicate) {
-    log('WARN', '⚠️ Duplicate detected - stopping pipeline');
+    log('WARN', '⚠️ Duplicate detected — stopping pipeline');
     await sendMessage(`⚠️ <b>EOTC Media Studio</b>\n\nDuplicate skipped.\n\n"${dbText}"`);
     return;
   }
@@ -111,65 +122,16 @@ async function pipelineWrapper(paths, genFn, renderFn, getCaptionFn, dbTextFn, s
 
   if (!fs.existsSync(tempOutputPath)) throw new PipelineError('Render output not found', 'render');
   fs.copyFileSync(tempOutputPath, paths.final);
-  log('INFO', `📦 Output saved to: ${paths.final}`);
+  validateFileSize(paths.final);
 
   await runStage('save', () => saveQuote(dbText));
 
-  // Send the Image to Telegram (Existing)
   await runStage(`telegram_${stageNameModifier}`, async () => {
     const caption = getCaptionFn(aiData);
     const result = await sendToTelegram(paths.final, caption);
     if (result?.skipped) log('WARN', '📋 Telegram skipped (not configured)');
     else if (!result?.success) throw new Error(result?.error || 'Telegram send failed');
   });
-
-  // Generate Cinematic TikTok Video (NEW - runs after Telegram image so it never blocks delivery)
-  let videoPath = null;
-  await runStage(`video_${stageNameModifier}`, async () => {
-    try {
-      const videoOutputPath = path.join(CONFIG.outputDir, CONFIG.videoOutputFile);
-      // Extract the best available text for voiceover narration
-      const voiceoverText = aiData.reflection || aiData.verse || aiData.text;
-
-      if (!voiceoverText || voiceoverText.length < 10) {
-        log('WARN', '⚠️ Text too short for video. Generating silent Ken Burns video.');
-      }
-
-      const audioPath = await generateAmharicAudio(voiceoverText);
-
-      await renderCinematicVideo(
-          paths.final,
-          audioPath,
-          null, // BGM path — add an .mp3 to assets/ folder to enable
-          videoOutputPath
-      );
-
-      videoPath = videoOutputPath;
-      log('INFO', `🎬 TikTok Video saved: ${videoOutputPath}`);
-
-      // Cleanup temporary voiceover file
-      if (audioPath && fs.existsSync(audioPath)) {
-        fs.unlinkSync(audioPath);
-        log('DEBUG', '🧹 Cleaned up temp voiceover file');
-      }
-    } catch (err) {
-      log('WARN', `⚠️ Video generation skipped: ${err.message}`);
-    }
-  });
-
-  // Send the Video to Telegram as well (if generated successfully)
-  if (videoPath && fs.existsSync(videoPath)) {
-    await runStage(`telegram_video_${stageNameModifier}`, async () => {
-      try {
-        const caption = `🎬 TikTok Ready\n\n${getCaptionFn(aiData)}`;
-        const result = await sendVideoToTelegram(videoPath, caption);
-        if (result?.skipped) log('WARN', '📋 Telegram video skipped (not configured)');
-        else if (result?.success) log('INFO', '✅ Video sent to Telegram!');
-      } catch (err) {
-        log('WARN', `⚠️ Telegram video send skipped: ${err.message}`);
-      }
-    });
-  }
 }
 
 async function runQuotePipeline(paths, liturgicalContext = null) {
@@ -240,8 +202,8 @@ async function main() {
   const startTime = Date.now();
   
   log('INFO', '═══════════════════════════════════════════════════════');
-  log('INFO', `🎬 EOTC Media Studio v4.0 - Liturgical Intelligence`);
-  log('INFO', `📋 Content Flow: [${contentType.toUpperCase()}]${useLiturgical ? ' + 📅 LITURGICAL' : ''}`);
+  log('INFO', `✝️  EOTC Media Studio v5.0 — Perfected Pipeline`);
+  log('INFO', `📋 Content: [${contentType.toUpperCase()}]${useLiturgical ? ' + 📅 LITURGICAL' : ''}`);
   log('INFO', '═══════════════════════════════════════════════════════');
   
   ensureDirectories();

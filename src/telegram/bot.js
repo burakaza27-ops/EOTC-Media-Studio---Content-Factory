@@ -110,7 +110,7 @@ export async function sendToTelegram(imagePath, caption) {
   const chatIds = TELEGRAM_CHAT_IDS();
   
   if (!token || chatIds.length === 0) {
-    console.log('📋 Telegram not configured - skipping notification');
+    console.log('📋 Telegram not configured — skipping notification');
     return { skipped: true, reason: 'not_configured' };
   }
 
@@ -120,11 +120,11 @@ export async function sendToTelegram(imagePath, caption) {
 
   const stats = fs.statSync(imagePath);
   if (stats.size > MAX_FILE_SIZE) {
-    throw new Error(`Image too large: ${stats.size} bytes (max: ${MAX_FILE_SIZE})`);
+    throw new Error(`Image too large: ${(stats.size / 1024 / 1024).toFixed(1)}MB (max: 10MB)`);
   }
 
   try {
-    console.log('📤 Sending to Telegram, image size:', stats.size);
+    console.log(`📤 Sending to Telegram (${(stats.size / 1024 / 1024).toFixed(2)}MB)...`);
     const results = [];
     
     for (const chatId of chatIds) {
@@ -141,7 +141,7 @@ export async function sendToTelegram(imagePath, caption) {
               parse_mode: 'HTML'
             }
           );
-          console.log(`✅ Image sent to ${chatId}, message_id:`, response.result.message_id);
+          console.log(`✅ Sent to ${chatId}, message_id:`, response.result.message_id);
           results.push({ success: true, chatId, message_id: response.result.message_id });
           sent = true;
           break;
@@ -160,124 +160,6 @@ export async function sendToTelegram(imagePath, caption) {
     return { success: results.some(r => r.success), results };
   } catch (error) {
     console.error('❌ Telegram broadcast failed:', error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-export async function sendVideoToTelegram(videoPath, caption) {
-  const token = TELEGRAM_BOT_TOKEN();
-  const chatIds = TELEGRAM_CHAT_IDS();
-  
-  if (!token || chatIds.length === 0) {
-    console.log('📋 Telegram not configured - skipping video send');
-    return { skipped: true, reason: 'not_configured' };
-  }
-
-  if (!fs.existsSync(videoPath)) {
-    throw new Error(`Video file not found: ${videoPath}`);
-  }
-
-  const stats = fs.statSync(videoPath);
-  const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // Telegram allows 50MB for videos
-  if (stats.size > MAX_VIDEO_SIZE) {
-    throw new Error(`Video too large: ${(stats.size / 1024 / 1024).toFixed(1)}MB (max: 50MB)`);
-  }
-
-  try {
-    console.log(`📤 Sending video to Telegram (${(stats.size / 1024 / 1024).toFixed(1)}MB)...`);
-    const results = [];
-    
-    for (const chatId of chatIds) {
-      let sent = false;
-      for (let i = 0; i < MAX_RETRIES; i++) {
-        try {
-          const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-          const videoBuffer = fs.readFileSync(videoPath);
-
-          // Build multipart form data for video
-          let parts = [];
-          // chat_id field
-          parts.push(Buffer.from(
-            `--${boundary}\r\n` +
-            `Content-Disposition: form-data; name="chat_id"\r\n\r\n` +
-            `${chatId}\r\n`
-          ));
-          // video file field
-          parts.push(Buffer.from(
-            `--${boundary}\r\n` +
-            `Content-Disposition: form-data; name="video"; filename="tiktok_video.mp4"\r\n` +
-            `Content-Type: video/mp4\r\n\r\n`
-          ));
-          parts.push(videoBuffer);
-          parts.push(Buffer.from('\r\n'));
-          // caption field
-          if (caption) {
-            parts.push(Buffer.from(
-              `--${boundary}\r\n` +
-              `Content-Disposition: form-data; name="caption"\r\n\r\n` +
-              `${caption}\r\n`
-            ));
-            parts.push(Buffer.from(
-              `--${boundary}\r\n` +
-              `Content-Disposition: form-data; name="parse_mode"\r\n\r\n` +
-              `HTML\r\n`
-            ));
-          }
-          // supports_streaming field
-          parts.push(Buffer.from(
-            `--${boundary}\r\n` +
-            `Content-Disposition: form-data; name="supports_streaming"\r\n\r\n` +
-            `true\r\n`
-          ));
-          parts.push(Buffer.from(`--${boundary}--\r\n`));
-
-          const body = Buffer.concat(parts);
-
-          const response = await new Promise((resolve, reject) => {
-            const options = {
-              hostname: 'api.telegram.org',
-              path: `/bot${token}/sendVideo`,
-              method: 'POST',
-              headers: {
-                'Content-Type': `multipart/form-data; boundary=${boundary}`,
-                'Content-Length': body.length
-              }
-            };
-            const req = https.request(options, (res) => {
-              let data = '';
-              res.on('data', chunk => data += chunk);
-              res.on('end', () => {
-                try {
-                  const parsed = JSON.parse(data);
-                  if (parsed.ok) resolve(parsed);
-                  else reject(new Error(parsed.description));
-                } catch (e) { reject(e); }
-              });
-            });
-            req.on('error', reject);
-            req.write(body);
-            req.end();
-          });
-
-          console.log(`✅ Video sent to ${chatId}, message_id:`, response.result.message_id);
-          results.push({ success: true, chatId, message_id: response.result.message_id });
-          sent = true;
-          break;
-        } catch (error) {
-          if (i === MAX_RETRIES - 1) {
-            console.error(`❌ Video send failed for ${chatId}:`, error.message);
-            results.push({ success: false, chatId, error: error.message });
-          } else {
-            const delay = 1500 * Math.pow(2, i);
-            console.log(`⏳ Retrying video send for ${chatId} in ${delay}ms...`);
-            await sleep(delay);
-          }
-        }
-      }
-    }
-    return { success: results.some(r => r.success), results };
-  } catch (error) {
-    console.error('❌ Telegram video broadcast failed:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -344,7 +226,7 @@ export async function sendCarousel(imagePaths, caption = '') {
   const chatIds = TELEGRAM_CHAT_IDS();
   
   if (!token || chatIds.length === 0) {
-    console.log('📋 Telegram not configured - skipping carousel');
+    console.log('📋 Telegram not configured — skipping carousel');
     return { skipped: true };
   }
 
@@ -369,7 +251,6 @@ export async function sendCarousel(imagePaths, caption = '') {
 
       for (let i = 0; i < imagePaths.length; i++) {
         const imageBuffer = fs.readFileSync(imagePaths[i]);
-        const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
         
         const slideCaption = i === 0 ? caption : undefined;
         const parseMode = i === 0 ? 'HTML' : undefined;
@@ -381,6 +262,7 @@ export async function sendCarousel(imagePaths, caption = '') {
         if (slideCaption) fields.caption = slideCaption;
         if (parseMode) fields.parse_mode = parseMode;
         
+        const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
         const body = buildCarouselSlideFormData(fields, boundary);
         
         let slideSent = false;
@@ -400,7 +282,7 @@ export async function sendCarousel(imagePaths, caption = '') {
           }
         }
         
-        if (!slideSent) break; // Stop this group if a slide fails after retries
+        if (!slideSent) break;
         if (i < imagePaths.length - 1) await sleep(500);
       }
 

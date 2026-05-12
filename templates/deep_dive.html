@@ -9,17 +9,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #040507;
-      --bg-secondary: #090a0f;
-      --accent-gold: #d4af37;
-      --accent-gold-light: #f3e5ab;
-      --accent-gold-bright: #ffd700;
-      --accent-gold-dim: #8a7322;
-      --accent-highlight: #1e3a8a;
-      --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.88);
-      --text-muted: rgba(255, 255, 255, 0.48);
-      --glass-border: rgba(212, 175, 55, 0.2);
+      --bg-void: #030408;
+      --bg-deep: #070910;
+      --bg-mid: #0d1018;
+      --gold-100: #f7ecbf;
+      --gold-200: #f0d890;
+      --gold-300: #e8c25e;
+      --gold-400: #d4af37;
+      --gold-500: #b8962e;
+      --gold-600: #8a7122;
+      --gold-700: #5c4b17;
+      --gold-glow: rgba(212, 175, 55, 0.20);
+      --gold-glow-strong: rgba(212, 175, 55, 0.45);
+      --blue-accent: rgba(30, 58, 138, 0.15);
+      --white: #ffffff;
+      --white-90: rgba(255, 255, 255, 0.90);
+      --white-50: rgba(255, 255, 255, 0.50);
+      --white-20: rgba(255, 255, 255, 0.20);
+      --white-08: rgba(255, 255, 255, 0.08);
+      --white-04: rgba(255, 255, 255, 0.04);
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -37,176 +45,203 @@
       font-family: 'Noto Sans Ethiopic', sans-serif;
       overflow: hidden;
       position: relative;
-      background: var(--bg-primary);
+      background: var(--bg-void);
     }
 
-    /* === Multi-layer background === */
+    /* ═══ BACKGROUND SYSTEM ═══ */
     .bg-gradient {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background:
-        radial-gradient(ellipse at 50% -5%, rgba(30, 58, 138, 0.18) 0%, transparent 55%),
-        radial-gradient(ellipse at 50% 105%, rgba(212, 175, 55, 0.10) 0%, transparent 55%),
-        radial-gradient(circle at 20% 50%, rgba(212, 175, 55, 0.04) 0%, transparent 40%);
+        radial-gradient(ellipse at 50% -8%, var(--blue-accent) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 110%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 15% 50%, rgba(212, 175, 55, 0.03) 0%, transparent 35%),
+        linear-gradient(170deg, var(--bg-void) 0%, var(--bg-deep) 50%, var(--bg-mid) 100%);
       z-index: 0;
     }
 
-    .noise {
+    /* Soft vertical light beam — subtle center illumination */
+    .light-beam {
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 400px; height: 100%;
+      background: linear-gradient(180deg, rgba(212, 175, 55, 0.04) 0%, transparent 30%, transparent 70%, rgba(212, 175, 55, 0.02) 100%);
+      z-index: 0; pointer-events: none;
+    }
+
+    .grain {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
       z-index: 1; pointer-events: none;
     }
 
     .vignette {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.35) 100%);
+      background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.40) 100%);
       z-index: 1; pointer-events: none;
     }
 
+    /* Outer frame */
     .frame {
-      position: absolute; top: 50px; left: 50px; right: 50px; bottom: 50px;
-      border: 1px solid rgba(255,255,255,0.04);
-      z-index: 2; border-radius: 8px;
+      position: absolute; top: 48px; left: 48px; right: 48px; bottom: 48px;
+      border: 1px solid var(--white-04);
+      z-index: 2; border-radius: 6px;
     }
 
-    /* === Main Content === */
+    /* ═══ MAIN CONTENT ═══ */
     .main-content {
       position: relative; z-index: 10;
       width: 100%; height: 100%;
       display: flex; flex-direction: column;
-      padding: 120px 100px;
+      padding: 110px 95px 100px;
     }
 
+    /* Header row: slide number + topic */
     .header-row {
       display: flex; justify-content: space-between; align-items: flex-start;
-      margin-bottom: 80px;
+      margin-bottom: 70px;
     }
 
     .slide-indicator {
-      display: flex; align-items: center; gap: 20px;
+      display: flex; align-items: center; gap: 18px;
     }
 
     .slide-number-box {
-      width: 80px; height: 80px;
-      border: 2px solid var(--accent-gold);
-      border-radius: 14px;
+      width: 78px; height: 78px;
+      border: 2px solid var(--gold-400);
+      border-radius: 16px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 32px; font-weight: 800; color: var(--accent-gold-light);
-      background: rgba(212, 175, 55, 0.05);
-      box-shadow: 0 0 30px rgba(212, 175, 55, 0.1), inset 0 0 15px rgba(212, 175, 55, 0.03);
+      font-size: 30px; font-weight: 800; color: var(--gold-100);
+      background: rgba(212, 175, 55, 0.04);
+      box-shadow: 0 0 35px rgba(212, 175, 55, 0.08), inset 0 0 12px rgba(212, 175, 55, 0.03);
     }
 
     .slide-total {
-      font-size: 15px; letter-spacing: 0.35em;
-      color: var(--text-muted); text-transform: uppercase; font-weight: 700;
-      margin-left: 10px;
+      font-size: 14px; letter-spacing: 0.35em;
+      color: var(--white-50); text-transform: uppercase; font-weight: 700;
     }
 
     .topic-tag {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      padding: 12px 26px; border-radius: 30px;
-      font-size: 14px; letter-spacing: 0.22em; color: var(--text-secondary);
+      background: var(--white-04);
+      border: 1px solid var(--white-08);
+      padding: 12px 28px; border-radius: 30px;
+      font-size: 13px; letter-spacing: 0.24em; color: var(--white-90);
       text-transform: uppercase; font-weight: 600;
     }
 
+    /* Title section */
     .title-section {
-      text-align: left; margin-bottom: 60px;
+      text-align: left; margin-bottom: 55px;
     }
 
     .title {
-      font-size: 70px; font-weight: 900; line-height: 1.2;
-      background: linear-gradient(to right, #ffffff 20%, var(--accent-gold-light) 50%, #ffffff 80%);
+      font-size: 66px; font-weight: 900; line-height: 1.22;
+      background: linear-gradient(to right, #ffffff 15%, var(--gold-100) 45%, #ffffff 75%);
       background-clip: text;
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+      filter: drop-shadow(0 5px 14px rgba(0,0,0,0.45));
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
-    .title-accent-line {
-      width: 120px; height: 4px;
-      background: linear-gradient(90deg, var(--accent-gold), var(--accent-gold-dim));
-      margin-top: 30px;
+    .title-underline {
+      width: 110px; height: 4px;
+      background: linear-gradient(90deg, var(--gold-400), var(--gold-600), transparent);
+      margin-top: 28px;
       border-radius: 2px;
-      box-shadow: 0 0 18px rgba(212, 175, 55, 0.45);
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
     }
 
+    /* Content area */
     .content-box {
       flex: 1; display: flex; flex-direction: column; justify-content: center;
     }
 
     .quote-text {
-      font-size: 50px; font-weight: 600; line-height: 1.55;
-      color: var(--text-secondary);
-      position: relative; padding-left: 60px;
-      border-left: 2.5px solid var(--accent-gold);
-      text-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      font-size: 46px; font-weight: 600; line-height: 1.58;
+      color: var(--white-90);
+      position: relative; padding-left: 55px;
+      border-left: 3px solid var(--gold-400);
+      text-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      display: -webkit-box;
+      -webkit-line-clamp: 6;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .quote-text::before {
-      content: '❝'; position: absolute; left: -28px; top: -30px;
-      font-size: 80px; color: rgba(212, 175, 55, 0.25); font-family: Georgia, serif;
+      content: '❝'; position: absolute; left: -30px; top: -28px;
+      font-size: 75px; color: rgba(212, 175, 55, 0.18); font-family: Georgia, serif;
     }
 
+    /* Scripture reference box */
     .reference-box {
-      margin-top: 80px; align-self: flex-start;
-      background: linear-gradient(90deg, rgba(212, 175, 55, 0.10), rgba(212, 175, 55, 0.02), transparent);
-      padding: 16px 40px 16px 22px;
-      border-left: 4px solid var(--accent-gold);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      margin-top: 70px; align-self: flex-start;
+      background: linear-gradient(90deg, rgba(212, 175, 55, 0.08), rgba(212, 175, 55, 0.02), transparent);
+      padding: 16px 42px 16px 24px;
+      border-left: 4px solid var(--gold-400);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.22);
     }
 
     .reference-text {
-      font-size: 20px; color: var(--accent-gold-light);
-      letter-spacing: 0.1em; font-weight: 700;
+      font-size: 19px; color: var(--gold-100);
+      letter-spacing: 0.12em; font-weight: 700;
     }
 
-    /* === Footer === */
+    /* ═══ FOOTER ═══ */
     .footer {
       display: flex; justify-content: space-between; align-items: center;
-      margin-top: auto; padding-top: 40px;
+      margin-top: auto; padding-top: 35px;
     }
 
     .brand-group {
-      display: flex; align-items: center; gap: 15px;
+      display: flex; align-items: center; gap: 14px;
     }
 
-    .brand-logo { color: var(--accent-gold); font-size: 24px; filter: drop-shadow(0 0 8px rgba(212,175,55,0.2)); }
+    .brand-logo {
+      color: var(--gold-400); font-size: 22px;
+      filter: drop-shadow(0 0 10px rgba(212,175,55,0.18));
+    }
     .brand-name {
-      font-size: 15px; letter-spacing: 0.3em; font-weight: 700;
-      color: var(--text-muted); text-transform: uppercase;
+      font-size: 14px; letter-spacing: 0.32em; font-weight: 700;
+      color: var(--white-50); text-transform: uppercase;
     }
 
     .dots-container {
-      display: flex; gap: 12px;
+      display: flex; gap: 10px;
     }
 
     .dot {
       width: 12px; height: 12px; border-radius: 50%;
-      background: rgba(255,255,255,0.08);
+      background: var(--white-08);
       transition: all 0.3s ease;
     }
 
     .dot.active {
-      background: var(--accent-gold);
-      box-shadow: 0 0 18px rgba(212, 175, 55, 0.6);
+      background: var(--gold-400);
+      box-shadow: 0 0 18px rgba(212, 175, 55, 0.55);
       transform: scale(1.3);
     }
 
+    /* Bottom progress bar */
     .progress-bar-container {
-      position: absolute; bottom: 0; left: 0; width: 100%; height: 6px;
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 5px;
       background: rgba(255,255,255,0.02); z-index: 20;
     }
 
     .progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, var(--accent-gold-dim), var(--accent-gold), var(--accent-gold-bright));
-      box-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+      background: linear-gradient(90deg, var(--gold-600), var(--gold-400), var(--gold-300));
+      box-shadow: 0 0 14px rgba(212, 175, 55, 0.5);
       border-radius: 0 3px 3px 0;
     }
   </style>
 </head>
 <body>
   <div class="bg-gradient"></div>
-  <div class="noise"></div>
+  <div class="light-beam"></div>
+  <div class="grain"></div>
   <div class="vignette"></div>
   <div class="frame"></div>
 
@@ -221,7 +256,7 @@
 
     <div class="title-section">
       <h1 class="title" id="title">ርዕስ ይገባል</h1>
-      <div class="title-accent-line"></div>
+      <div class="title-underline"></div>
     </div>
 
     <div class="content-box">
