@@ -90,41 +90,65 @@ const DAILY_COMMEMORATIONS = {
 
 const MAJOR_FIXED_FEASTS = [
   // ── Meskerem (Month 1) ──
-  { month: 1,  day: 1,  name: 'እንቁጣጣሽ (Enkutatash — Ethiopian New Year)', theme: 'The Ethiopian New Year, Enkutatash, meaning "Gift of Jewels." A day of new beginnings, singing, flowers, and gratitude to God for the completion of another year. Children present bouquets and sing songs of praise across the land.', type: 'major_feast', mood: 'joyful' },
-  { month: 1,  day: 2,  name: 'በዓለ ወልድ (Bale Wold — Feast of the Son)', theme: 'The second feast of God the Son in the New Year — commemorating the Incarnation of Christ and the mystery of divine love that descended for humanity\'s sake.', type: 'feast', mood: 'devotional' },
-  { month: 1,  day: 17, name: 'መስቀል (Meskel — Finding of the True Cross)', theme: 'Queen Helena\'s discovery of the True Cross of Christ, guided by a great fire (Demera). The bonfire symbolizes the cross and its light conquering all darkness. Ethiopia keeps this feast with bonfires, crowds, and triumphant song.', type: 'major_feast', mood: 'triumphant' },
-  { month: 1,  day: 26, name: 'ቅድስት ማርያም (Kidist Mariam — Start of Zemene Tsige)', theme: 'The monthly feast of the Blessed Virgin Mary coinciding with the opening of the Season of Flowers (Zemene Tsige) — commemorating the Holy Family\'s exile and God\'s protection through all wilderness.', type: 'feast', mood: 'joyful' },
+  { month: 1,  day: 1,  name: 'እንቁጣጣሽ (Enkutatash — Ethiopian New Year)', theme: 'The Ethiopian New Year, Enkutatash, meaning "Gift of Jewels." A day of new beginnings, singing, flowers, and gratitude to God for the completion of another year. Children present bouquets of አደይ አበባ (yellow daisies) and sing songs of praise across the land.', type: 'major_feast', mood: 'joyful' },
+  { month: 1,  day: 2,  name: 'በዓለ ዮሐንስ (Feast of St. John the Baptist)', theme: 'The feast of the Forerunner and Baptizer of Christ. John prepared the way of the Lord, preaching repentance in the wilderness. "He must increase, but I must decrease." His humility is the foundation of all true ministry.', type: 'feast', mood: 'devotional' },
+  { month: 1,  day: 17, name: 'መስቀል (Meskel — Finding of the True Cross)', theme: 'Queen Helena\'s discovery of the True Cross of Christ in 326 AD, guided by a great bonfire (ደመራ). Ethiopia keeps this feast with massive bonfires, crowds wearing traditional white, and the triumphant chanting of "መስቀል በደመና ተገኘ!" The cross is the throne of glory.', type: 'major_feast', mood: 'triumphant' },
+  { month: 1,  day: 26, name: 'ቅድስት ማርያም (Kidist Mariam — Start of Zemene Tsige)', theme: 'The monthly feast of the Blessed Virgin Mary coinciding with the opening of ዘመነ ጽጌ (Season of Flowers) — commemorating the Holy Family\'s exile and God\'s protection through all wilderness.', type: 'feast', mood: 'joyful' },
+
+  // ── Tikimt (Month 2) ──
+  { month: 2,  day: 1,  name: 'ልደታ ለማርያም (Lideta Mariam)', theme: 'Monthly commemoration of the Nativity of the Blessed Virgin Mary. The birth of her who would carry the Creator of the universe in her womb — the second Eve who reversed the curse. Her parents Hanna and Joachim wept with joy.', type: 'feast', mood: 'joyful' },
+  { month: 2,  day: 12, name: 'ቅዱስ ሚካኤል (Tikimt Mikael)', theme: 'Monthly feast of Archangel Michael. In Tikimt, the faithful remember his victory over Satan and his constant intercession for the Church. ሚካኤል ማለት "ማን እንደ እግዚአብሔር" ማለት ነው — Who is like God?', type: 'feast', mood: 'celebratory' },
+  { month: 2,  day: 21, name: 'ቅድስት ማርያም (Tikimt Mariam)', theme: 'Monthly feast of the Virgin Mary during the Season of Flowers. The faithful chant ውዳሴ ማርያም (Praise of Mary) and contemplate her exile to Egypt with the infant Christ.', type: 'feast', mood: 'devotional' },
 
   // ── Hidar (Month 3) ──
   { month: 3,  day: 1,  name: 'ልደታ ለማርያም (Lideta Mariam — Nativity of the Virgin Mary)', theme: 'The birth of the Most Holy Virgin Mary, daughter of Hanna and Joachim, chosen before the ages to be Theotokos — the God-bearer. Her birth brought the dawn of salvation closer to the world.', type: 'major_feast', mood: 'joyful' },
-  { month: 3,  day: 6,  name: 'ቁስቋም (Qusquam — Flight to Egypt / End of Zemene Tsige)', theme: 'The annual culmination of the Season of Flowers celebrating the Holy Family\'s divine protection on Mount Qusquam in Egypt. The idols fell as the Christ-child entered, fulfilling Isaiah\'s prophecy.', type: 'major_feast', mood: 'joyful' },
-  { month: 3,  day: 12, name: 'ኅዳር ሚካኤል (Hidar Michael — Annual Feast of Archangel Michael)', theme: 'The great annual feast of St. Michael the Archangel — Commander of the heavenly hosts, defeater of Satan, protector of God\'s people. Thousands gather at his shrines across Ethiopia in pilgrimage.', type: 'major_feast', mood: 'celebratory' },
-  { month: 3,  day: 21, name: 'ጽዮን ማርያም (Tsion Mariam — St. Mary of Zion)', theme: 'Celebrating the sacred Tabernacle of St. Mary of Zion in Axum — spiritual home of the Ark of the Covenant. The Virgin Mary is the living Ark who bore the Word of God made flesh.', type: 'major_feast', mood: 'joyful' },
+  { month: 3,  day: 6,  name: 'ቁስቋም (Qusquam — Flight to Egypt / End of Zemene Tsige)', theme: 'The annual culmination of ዘመነ ጽጌ celebrating the Holy Family\'s divine protection on Mount ቁስቋም in Egypt. The idols fell as the Christ-child entered, fulfilling Isaiah\'s prophecy: "Behold, the Lord rides on a swift cloud and comes to Egypt."', type: 'major_feast', mood: 'joyful' },
+  { month: 3,  day: 12, name: 'ኅዳር ሚካኤል (Hidar Michael — Annual Feast of Archangel Michael)', theme: 'The great annual feast of St. Michael the Archangel — Commander of the heavenly hosts, defeater of Satan, protector of God\'s people. Thousands gather at his shrines across Ethiopia in pilgrimage. The biggest Mikael celebration of the year.', type: 'major_feast', mood: 'celebratory' },
+  { month: 3,  day: 21, name: 'ጽዮን ማርያም (Tsion Mariam — St. Mary of Zion)', theme: 'Celebrating the sacred Tabernacle of ቅድስት ማርያም ጽዮን in Axum — spiritual home of the Ark of the Covenant. The Virgin Mary is the living Ark who bore the Word of God made flesh.', type: 'major_feast', mood: 'joyful' },
 
   // ── Tahsas (Month 4) ──
-  { month: 4,  day: 28, name: 'የገና ጋድ (Gahad Genna — Vigil of Christmas)', theme: 'The strict fast of Christmas Eve — absolute abstinence from all food and drink until the midnight Mass. A holy vigil, burning with anticipation for the Light of the World to be born in the silence of Bethlehem.', type: 'feast', mood: 'penitential' },
-  { month: 4,  day: 29, name: 'ገና / ልደት (Genna / Lidet — Ethiopian Christmas)', theme: 'The Nativity of our Lord Jesus Christ in the manger of Bethlehem. The eternal Son of God took on human flesh, born of the Virgin Mary. Angels sang, shepherds ran, and a star blazed over the birthplace of salvation. Ethiopian Christians celebrate with all-night liturgy and the game of Genna.', type: 'major_feast', mood: 'joyful' },
+  { month: 4,  day: 7,  name: 'ቅድስት ሥላሴ (Kidist Selassie)', theme: 'Monthly feast of the Most Holy Trinity — ፫ አካል ፩ አምላክ — Three Persons, One God. The EOTC holds this mystery as the foundation of all theology. We confess: the Father is God, the Son is God, the Holy Spirit is God, yet there are not three Gods but One.', type: 'feast', mood: 'devotional' },
+  { month: 4,  day: 28, name: 'የገና ጋድ (Gahad Genna — Vigil of Christmas)', theme: 'The strict fast of Christmas Eve — absolute abstinence from all food and drink until the midnight ቅዳሴ. A holy vigil, burning with anticipation for the Light of the World to be born in the silence of Bethlehem.', type: 'feast', mood: 'penitential' },
+  { month: 4,  day: 29, name: 'ገና / ልደት (Genna / Lidet — Ethiopian Christmas)', theme: 'The Nativity of our Lord Jesus Christ — ልደተ ብርሃን. The eternal Son of God took on human flesh, born of the Virgin Mary in the manger of Bethlehem. Angels sang "ስብሐት ለእግዚአብሔር!", shepherds ran, and a star blazed. Ethiopian Christians celebrate with all-night liturgy and the game of ገና.', type: 'major_feast', mood: 'joyful' },
 
   // ── Tir (Month 5) ──
-  { month: 5,  day: 10, name: 'የጥምቀት ጋድ (Gahad Timkat — Vigil of Epiphany)', theme: 'The eve of Timkat — a night of procession, vigil, and intense prayer as the Tabot (replica of the Ark) is carried to water. A night where heaven and earth draw near in anticipation.', type: 'feast', mood: 'penitential' },
-  { month: 5,  day: 11, name: 'ጥምቀት (Timkat — Ethiopian Epiphany)', theme: 'The Baptism of Jesus Christ in the Jordan River by John the Baptist — the Holy Trinity manifest in one moment: the Father speaks, the Spirit descends, the Son is baptized. Ethiopia\'s most spectacular feast: Tabots carried, hymns sung, believers sprinkled with holy water.', type: 'major_feast', mood: 'celebratory' },
-  { month: 5,  day: 12, name: 'ቃና ዘገሊላ / ሚካኤል (Kana Zegelila / Timkat Feast of St. Michael)', theme: 'The second day of Timkat celebrations dedicated to the Archangel Michael and the miracle at Cana. The Tabots return in triumphant procession as the faithful continue in joy.', type: 'feast', mood: 'celebratory' },
+  { month: 5,  day: 10, name: 'የጥምቀት ጋድ (Gahad Timkat — Vigil of Epiphany)', theme: 'The eve of ጥምቀት — a night of procession, vigil, and intense prayer as the ታቦት (replica of the Ark) is carried to water. The faithful keep vigil by rivers and pools, singing through the night.', type: 'feast', mood: 'penitential' },
+  { month: 5,  day: 11, name: 'ጥምቀት (Timkat — Ethiopian Epiphany)', theme: 'The Baptism of Jesus Christ in the Jordan River by John the Baptist — the Holy Trinity manifest: the Father speaks from heaven, the Spirit descends as a dove, the Son is baptized. Ethiopia\'s most spectacular feast: ታቦታት carried in procession, ዜማ sung, believers sprinkled with holy water.', type: 'major_feast', mood: 'celebratory' },
+  { month: 5,  day: 12, name: 'ቃና ዘገሊላ (Kana Zegelila — Wedding at Cana)', theme: 'The second day of Timkat celebrating Christ\'s first miracle at the wedding of Cana, where He turned water into wine. ታቦታት return in triumphant procession. This miracle reveals Christ\'s power over creation and His care for human joy.', type: 'feast', mood: 'celebratory' },
 
   // ── Yekatit (Month 6) ──
-  { month: 6,  day: 16, name: 'ኪዳነ ምሕረት (Kidane Mihret — Covenant of Mercy)', theme: 'The great annual feast of the Covenant of Mercy — when the risen Christ appeared to His mother the Virgin Mary and promised that whoever calls upon her name shall receive mercy. Ethiopia\'s beloved feast of intercession and maternal love.', type: 'major_feast', mood: 'joyful' },
+  { month: 6,  day: 16, name: 'ኪዳነ ምሕረት (Kidane Mihret — Covenant of Mercy)', theme: 'The great annual feast of ኪዳነ ምሕረት — when the risen Christ appeared to His mother and promised: "Whoever calls upon your name for mercy shall receive it." Ethiopia\'s beloved feast of intercession and maternal love. Churches overflow with faithful seeking Mary\'s prayers.', type: 'major_feast', mood: 'joyful' },
+  { month: 6,  day: 23, name: 'ቅዱስ ጊዮርጊስ (Yekatit Giyorgis)', theme: 'Monthly feast of St. George, the great martyr and dragon-slayer. Ethiopia\'s most beloved warrior-saint who endured seven years of miraculous tortures before his beheading, never denying Christ. His churches dot every hilltop in Ethiopia.', type: 'feast', mood: 'celebratory' },
+
+  // ── Megabit (Month 7) ──
+  { month: 7,  day: 1,  name: 'ልደታ ለማርያም (Megabit Lideta)', theme: 'Monthly feast of the Nativity of the Virgin in the month of Megabit. Spring approaches and the Church recalls the birth of her who is the "flower of flowers" — ጽጌ ጽጌያት — the most beautiful soul ever created.', type: 'feast', mood: 'devotional' },
+  { month: 7,  day: 19, name: 'ቅዱስ ገብርኤል (Megabit Gabriel)', theme: 'The annual feast of Archangel Gabriel — the divine messenger. He announced to ዘካርያስ the birth of John the Baptist, and to the Virgin Mary the Incarnation of Christ: "ደስ ይበልሽ ሙሉ ጸጋ! ጌታ ከአንቺ ጋር ነው!" Gabriel is the archangel of revelation.', type: 'major_feast', mood: 'celebratory' },
+  { month: 7,  day: 29, name: 'ሰቆቃወ ድንግል (Sequqawe Dingil — Annunciation)', theme: 'The Annunciation — the moment the Word became flesh. The Archangel Gabriel appeared to the Virgin Mary in Nazareth and announced: "You will conceive and give birth to a Son." Mary replied: "ነፍሴ ጌታን ታከብረዋለች!" The Incarnation begins.', type: 'major_feast', mood: 'joyful' },
+
+  // ── Miyazya (Month 8) ──
+  { month: 8,  day: 1,  name: 'ልደታ ለማርያም (Miyazya Lideta)', theme: 'Monthly Nativity feast of the Virgin Mary in the holy month of Miyazya — the month in which Christ\'s Passion, death, and Resurrection often fall. The mother of sorrows who stood at the Cross.', type: 'feast', mood: 'contemplative' },
+  { month: 8,  day: 23, name: 'ቅዱስ ጊዮርጊስ (Miyazya Giyorgis — Annual Feast of St. George)', theme: 'The great annual feast of ቅዱስ ጊዮርጊስ — Ethiopia\'s most celebrated saint. Tens of thousands make pilgrimage to his churches. He is the model of Christian courage: a soldier who chose death over denying Christ, and was raised three times before his final martyrdom.', type: 'major_feast', mood: 'celebratory' },
 
   // ── Ginbot (Month 9) ──
-  { month: 9,  day: 5,  name: 'ደብረ ታቦር (Debre Tabor — Transfiguration of Christ)', theme: 'The radiant Transfiguration of Christ on Mount Tabor — His face shone as the sun, His garments became white as light, Moses and Elijah appeared beside Him. A preview of the glory that awaits the faithful.', type: 'major_feast', mood: 'triumphant' },
+  { month: 9,  day: 5,  name: 'ደብረ ታቦር (Debre Tabor — Transfiguration of Christ)', theme: 'The radiant ልብሰ ብርሃን (Transfiguration) of Christ on Mount Tabor — His face shone as the sun, His garments became white as light, Moses and Elijah appeared beside Him. A preview of the glory that awaits the faithful. The disciples fell on their faces in holy terror.', type: 'major_feast', mood: 'triumphant' },
+  { month: 9,  day: 12, name: 'ቅዱስ ሚካኤል (Ginbot Mikael)', theme: 'Monthly feast of Archangel Michael in the month of Ginbot. Celebrating his protection over the faithful as the rainy season approaches, reminding us that God\'s army surrounds those who fear Him.', type: 'feast', mood: 'celebratory' },
+
+  // ── Sene (Month 10) ──
+  { month: 10, day: 19, name: 'ቅዱስ ገብርኤል (Sene Gabriel)', theme: 'Monthly feast of Archangel Gabriel during the rains. The messenger of God who brought the greatest news in history — the Incarnation — is remembered as the rains bring life to the earth, just as the Word brought life to humanity.', type: 'feast', mood: 'devotional' },
+  { month: 10, day: 28, name: 'አማኑኤል (Sene Amanuel — Emmanuel)', theme: 'Monthly feast of Emmanuel — "God with us." During the rains, when communities are isolated, this feast reminds us that God is never far. He entered our world, walked our roads, and promised: "I am with you always, to the end of the age."', type: 'feast', mood: 'devotional' },
 
   // ── Hamle (Month 11) ──
-  { month: 11, day: 5,  name: 'ቡሄ (Buhe — Feast of the Transfiguration)', theme: 'Ethiopia\'s beloved cultural celebration of the Transfiguration of Christ — Buhe. Boys run with torches (chibo), singing songs of praise, and families bake bread. A feast of light, joy, and the divine glory revealed on the mountain.', type: 'major_feast', mood: 'joyful' },
+  { month: 11, day: 5,  name: 'ቡሄ (Buhe — Feast of the Transfiguration)', theme: 'Ethiopia\'s beloved cultural celebration of ቡሄ. Boys run with torches (ጭቦ), singing songs of praise, and families bake special bread (ሙልሙል). A feast of light, joy, and the divine glory revealed on the mountain. "ሆ ቡሄ ሆ! አባባ ይመጣል ገበያ ሲወጣ!"', type: 'major_feast', mood: 'joyful' },
+  { month: 11, day: 7,  name: 'ቅድስት ሥላሴ (Hamle Selassie)', theme: 'The feast of the Holy Trinity in Hamle — one of the most important Trinity commemorations. The mystery of ፫ አካል ፩ አምላክ is meditated upon as monks chant the ቅዳሴ throughout the night.', type: 'feast', mood: 'devotional' },
+  { month: 11, day: 12, name: 'ቅዱስ ሚካኤል (Hamle Mikael)', theme: 'Monthly feast of the Archangel Michael as the rainy season reaches its peak. His protection is invoked against the storms and floods, and his churches serve as places of shelter and worship for surrounding communities.', type: 'feast', mood: 'celebratory' },
 
   // ── Nehase (Month 12) ──
-  { month: 12, day: 1,  name: 'ጾመ ፍልሰታ መግቢያ (Start of Tsome Filseta)', theme: 'The beginning of the 15-day Fast of the Assumption — the most beloved Marian fast in Ethiopia. Believers fast with devotion, chanting Marian hymns (Mezmur) and preparing for the great feast of Mary\'s dormition and assumption.', type: 'feast', mood: 'penitential' },
-  { month: 12, day: 16, name: 'ፍልሰታ (Filseta — Assumption of the Virgin Mary)', theme: 'The blessed dormition and assumption of the Virgin Mary into heaven — body and soul. She who bore the King of Kings was received into eternal glory. Ethiopia erupts in song and celebration: her departure was not death but translation to glory.', type: 'major_feast', mood: 'celebratory' },
+  { month: 12, day: 1,  name: 'ጾመ ፍልሰታ መግቢያ (Start of Tsome Filseta)', theme: 'The beginning of the 15-day ጾመ ፍልሰታ — the most beloved Marian fast in Ethiopia. Believers fast with deep devotion, churches overflow with chanting of ውዳሴ ማርያም and ማኅሌት. The faithful prepare for the great feast of Mary\'s assumption into heaven.', type: 'feast', mood: 'penitential' },
+  { month: 12, day: 7,  name: 'ቅድስት ሥላሴ (Nehase Selassie)', theme: 'Feast of the Holy Trinity during the Assumption fast. The contemplation of God\'s triune nature deepens during fasting — as the body empties, the spirit fills with the mystery of the Three-in-One.', type: 'feast', mood: 'contemplative' },
+  { month: 12, day: 16, name: 'ፍልሰታ (Filseta — Assumption of the Virgin Mary)', theme: 'The blessed ዕረፍተ ማርያም (Dormition) and assumption of the Virgin Mary into heaven — body and soul. She who bore the King of Kings was received into eternal glory by her Son. Ethiopia erupts in song: "ማርያም ሆይ፣ ተፈሰህኩ በበረከትሽ!" Her departure was not death but translation to glory.', type: 'major_feast', mood: 'celebratory' },
 
-  // ── Slete Berhan (Sun Feast) — 29th of each month ──
-  { month: 1,  day: 29, name: 'በዓለ ወልድ (Bale Wold — Monthly Feast of God the Son)', theme: 'Monthly commemoration of the divine light of Christ who is the Light of the world. The Sun feast reminds us that God clothed the creation in radiance and will clothe His saints in eternal glory.', type: 'feast', mood: 'joyful' },
+  // ── Pagume (Month 13) ──
+  { month: 13, day: 1,  name: 'ጳጉሜ (Pagume — The 13th Month Begins)', theme: 'The sacred 13th month of the Ethiopian calendar — 5 or 6 short days before the New Year. A time of intense prayer, reflection on the passing year, seeking forgiveness, and preparing the heart for እንቁጣጣሽ. Each day is precious.', type: 'feast', mood: 'contemplative' },
 ];
 
 
@@ -385,7 +409,6 @@ function getZemene(ethDate) {
   const d = ethDate.day;
 
   // ── Zemene Tsige (Season of Flowers / Holy Family) — Meskerem 26 to Hidar 6
-  // Commemorates the Flight of the Holy Family to Egypt
   if (isEthDateInRange(ethDate, { year: ethDate.year, month: 1, day: 26 }, { year: ethDate.year, month: 3, day: 6 })) {
     return {
       name: 'ዘመነ ጽጌ (Zemene Tsige — Season of Flowers)',
@@ -394,27 +417,25 @@ function getZemene(ethDate) {
   }
 
   // ── Keremt (Rainy Season / Monastic Season) — Sene 26 to Meskerem 25
-  // A time of agricultural abundance and intense monastic retreat
   if (isEthDateInRange(ethDate, { year: ethDate.year, month: 10, day: 26 }, { year: ethDate.year + 1, month: 1, day: 25 })) {
     return {
       name: 'ዘመነ ክረምት (Keremt — Rainy Season / Monastic Retreat)',
-      theme: 'The long rainy season — a time when monks and clergy traditionally remain in their monasteries for intense study, prayer, and fasting. God sends the rain from heaven as a sign of His provision and the season reminds us that spiritual growth requires seasons of quiet withdrawal.'
+      theme: 'The long rainy season — a time when monks and clergy traditionally remain in their monasteries for intense study, prayer, and fasting. God sends the rain from heaven as a sign of His provision.'
     };
   }
 
-  // ── Zemene Bega (Dry Season / Harvest Season) — Meskerem 26 to Tir 30 approx
-  // Actually this overlaps with Tsige, so we check a sub-range
+  // ── Zemene Bega (Dry Season / Harvest Season)
   if ((m === 9 || m === 10) || (m === 8 && d >= 15)) {
     return {
       name: 'ዘመነ በጋ (Zemene Bega — Dry / Harvest Season)',
-      theme: 'The dry, golden harvest season — the earth gives its fruit and the Church rejoices. A time of great feasts including Buhe and the preparations for the rains. Farmers harvest grain as the faithful harvest the fruits of their fasting and prayer.'
+      theme: 'The dry, golden harvest season — the earth gives its fruit and the Church rejoices. A time of great feasts including ቡሄ and the preparations for the rains.'
     };
   }
 
-  // ── Default: Zemene Sebket (Season of Preaching) — the rest of the year
+  // ── Default: Zemene Sebket (Season of Preaching)
   return {
     name: 'ዘመነ ስብከት (Zemene Sebket — Season of Preaching)',
-    theme: 'The season dedicated to the apostolic preaching of the Gospel — when the Church goes forth boldly, teaching, baptizing, and extending the Kingdom of God to every corner of the earth. A time for study of the scriptures and theological formation.'
+    theme: 'The season dedicated to the apostolic preaching of the Gospel — when the Church goes forth boldly, teaching, baptizing, and extending the Kingdom of God to every corner of the earth.'
   };
 }
 
@@ -422,24 +443,23 @@ export function formatContextForPrompt(context) {
   if (!context) return '';
 
   const moodInstructions = {
-    joyful:       'The tone must be radiant, warm, celebratory, and full of living hope. Avoid heaviness. Let the joy overflow.',
-    triumphant:   'The tone must be bold, victorious, and thunderously powerful. Christ has conquered — speak with absolute certainty of divine victory.',
-    celebratory:  'The tone must be festive, deeply grateful, and uplifting — as if writing for thousands gathered in worship.',
-    contemplative:'The tone must be gentle, reflective, and inward. Invite the reader to pause, breathe, and listen to the still small voice of God.',
-    penitential:  'The tone must be humble, sober, and focused on repentance, renewal, and the mercy of God. Avoid despair; end with hope.',
-    devotional:   'The tone must be reverent, intimate, and warm — like a trusted spiritual father speaking directly to the soul.',
-    penitential:  'The tone must be solemn yet hopeful — acknowledging the weight of sin while anchoring in the inexhaustible mercy of God.',
+    joyful:       'The tone must be radiant, warm, celebratory, and full of living hope. Avoid heaviness. Let the joy overflow like the songs of እንቁጣጣሽ.',
+    triumphant:   'The tone must be bold, victorious, and thunderously powerful. Christ has conquered — speak with absolute certainty of divine victory. Use language of ድል (victory) and ክብር (glory).',
+    celebratory:  'The tone must be festive, deeply grateful, and uplifting — as if writing for thousands gathered in worship at ቅዳሴ.',
+    contemplative:'The tone must be gentle, reflective, and inward. Invite the reader to pause, breathe, and listen to the still small voice of God. Use ስንብት (meditation) language.',
+    penitential:  'The tone must be solemn yet hopeful — acknowledging the weight of sin while anchoring in the inexhaustible mercy of God. Speak of ንስሐ (repentance) leading to ምሕረት (mercy). Avoid despair; always end with hope.',
+    devotional:   'The tone must be reverent, intimate, and warm — like a trusted spiritual father (አባት) speaking directly to the soul of a young believer.',
   };
 
   const typeGuidance = {
-    major_feast:    'This is a MAJOR feast — treat it with maximum theological depth, cultural richness, and celebratory energy. Reference specific Ethiopian Orthodox traditions, rituals, and scriptural fulfillments associated with this feast.',
+    major_feast:    'This is a MAJOR feast — treat it with maximum theological depth, cultural richness, and celebratory energy. Reference specific Ethiopian Orthodox traditions, rituals, and scriptural fulfillments.',
     feast:          'This is a feast day. Give it liturgical weight, connect it to the broader salvation narrative, and honor any saints or archangels commemorated.',
-    fasting_start:  'This is the VERY FIRST DAY of a fasting season. Explicitly celebrate this beginning. Use language of starting, committing, and entering. Set the spiritual intention for the entire season.',
+    fasting_start:  'This is the VERY FIRST DAY of a fasting season. Explicitly celebrate this beginning. Use language of starting, committing, and entering.',
     fasting_season: 'This is an ONGOING fast — NOT the first day. Do NOT say "begins today" or "starts now." Speak to someone already in the middle of the fast: encourage, deepen, sustain.',
-    abiy_tsom_sunday: 'This is a specific named Sunday of Great Lent with its own unique theological theme. Focus ENTIRELY and EXCLUSIVELY on this Sunday\'s specific theme — do not speak generally about Lent.',
+    abiy_tsom_sunday: 'This is a specific named Sunday of Great Lent with its own unique theological theme. Focus ENTIRELY on this Sunday\'s specific theme — do not speak generally about Lent.',
     weekly_fast:    'This is a weekly fast (Wednesday or Friday). Connect the day\'s fast to its specific spiritual meaning AND to the daily saint being commemorated.',
     fasika_season:  'This is the joyful 50-day Fasika season — there is NO FASTING today. The tone must be entirely triumphant and resurrection-focused.',
-    devotional:     'This is an ordinary day with a daily saint commemoration. Make the saint\'s story vivid and draw a direct, practical spiritual lesson for modern Ethiopian believers.',
+    devotional:     'This is an ordinary day with a daily saint commemoration. Make the saint\'s story vivid and draw a practical spiritual lesson for modern Ethiopian believers.',
   };
 
   const moodInstruction = moodInstructions[context.mood] || 'The tone should be spiritually rich and authentically EOTC.';
@@ -483,11 +503,13 @@ export function getFastingInfo(date = new Date()) {
   if (isEthDateInRange(ethDate, lentStart, lentEnd)) {
     const startVal = lentStart.month * 30 + lentStart.day;
     const dayNum = ethVal - startVal + 1;
-    return { active: true, name: 'ዐቢይ ጾም (Great Lent)', totalDays: 55, currentDay: dayNum, rules: [
-      'ከምንም የእንስሳ ምርት መራቅ',
-      'እስከ ከሰዓት ድረስ ምግብ አለመብላት',
-      'ከእጽዋት የተዘጋጁ ምግቦች ብቻ',
-      'ጸሎትና ንስሐ ማብዛት'
+    return { active: true, name: 'ዐቢይ ጾም (Great Lent)', nameAmharic: 'ዐቢይ ጾም', totalDays: 55, currentDay: dayNum, rules: [
+      'ከማንኛውም የእንስሳ ተዋጽኦ ሙሉ በሙሉ መራቅ — ሥጋ፣ ወተት፣ እንቁላል፣ ቅቤ',
+      'እስከ ምሽቱ ፱ ሰዓት ድረስ ምግብ አለመብላት (በተለይ የመጀመሪያ ሳምንት)',
+      'ከዕፅዋት የተዘጋጁ ምግቦች ብቻ — ሽሮ፣ ምስር፣ ድንች፣ አትክልት',
+      'በየቀኑ ጸሎትና ስግደት ማብዛት',
+      'ንስሐ መግባት — ከካህን ጋር የኑዛዜ ጊዜ',
+      'መጽሐፍ ቅዱስ ማንበብ — በተለይ መዝሙረ ዳዊት'
     ]};
   }
   
@@ -496,10 +518,11 @@ export function getFastingInfo(date = new Date()) {
   if (isEthDateInRange(ethDate, moveables.nenewe, ninEnd)) {
     const startVal = moveables.nenewe.month * 30 + moveables.nenewe.day;
     const dayNum = ethVal - startVal + 1;
-    return { active: true, name: 'ጾመ ነነዌ (Fast of Nineveh)', totalDays: 3, currentDay: dayNum, rules: [
-      'ሦስት ቀን ፍጹም ጾም',
-      'ንስሐ መግባት',
-      'ከእንስሳ ምግቦች መራቅ'
+    return { active: true, name: 'ጾመ ነነዌ (Fast of Nineveh)', nameAmharic: 'ጾመ ነነዌ', totalDays: 3, currentDay: dayNum, rules: [
+      'ሦስት ቀን ፍጹም ጾም — ውኃ እንኳ ሳይጠጡ (ለጠንካሮች)',
+      'ከእንስሳ ተዋጽኦ ሙሉ በሙሉ መራቅ',
+      'ንስሐ መግባትና ኃጢአትን መናዘዝ',
+      'የነነዌ ሰዎችን ንስሐ ማሰብ — ዮናስ ምዕራፍ ፫'
     ]};
   }
 
@@ -510,14 +533,15 @@ export function getFastingInfo(date = new Date()) {
     const endVal = apostlesEnd.month * 30 + apostlesEnd.day;
     const dayNum = ethVal - startVal + 1;
     const totalDays = endVal - startVal + 1;
-    return { active: true, name: 'ጾመ ሐዋርያት (Apostles Fast)', totalDays, currentDay: dayNum, rules: [
-      'ከእንስሳ ምርት መራቅ',
-      'የሐዋርያትን ትምህርት ማንበብ',
-      'ስብከትና ወንጌል ማካፈል'
+    return { active: true, name: 'ጾመ ሐዋርያት (Apostles Fast)', nameAmharic: 'ጾመ ሐዋርያት', totalDays, currentDay: dayNum, rules: [
+      'ከእንስሳ ተዋጽኦ መራቅ — ሥጋ፣ ወተት፣ እንቁላል',
+      'የሐዋርያትን የሕይወት ታሪክ ማንበብ',
+      'ስብከትና ወንጌል ማካፈል — ሐዋርያት እንዳደረጉት',
+      'የሌሊት ጸሎት ማብዛት'
     ]};
   }
   
-  // Fixed fasts
+  // Fixed fasts (with specific rules per fast)
   for (const fast of FIXED_FASTS) {
     const fStart = { year: ethDate.year, month: fast.startMonth, day: fast.startDay };
     const fEnd = { year: ethDate.year, month: fast.endMonth, day: fast.endDay };
@@ -526,18 +550,38 @@ export function getFastingInfo(date = new Date()) {
       const endVal = fEnd.month * 30 + fEnd.day;
       const dayNum = ethVal - startVal + 1;
       const totalDays = endVal - startVal + 1;
-      return { active: true, name: fast.name, totalDays, currentDay: dayNum, rules: [
-        'ከእንስሳ ምርት መራቅ',
-        'ጸሎትና ትጋት ማብዛት'
-      ]};
+      
+      let rules = ['ከእንስሳ ተዋጽኦ ሙሉ በሙሉ መራቅ', 'ጸሎትና ስግደት ማብዛት'];
+      if (fast.name.includes('ፍልሰታ')) {
+        rules = [
+          'ከእንስሳ ተዋጽኦ ሙሉ በሙሉ መራቅ',
+          'ውዳሴ ማርያም በየቀኑ ማንበብ',
+          'ማኅሌት መዘመር — የእመቤታችንን ቅድስና ማሰብ',
+          'ንስሐ መግባትና ምሕረት መጠየቅ'
+        ];
+      } else if (fast.name.includes('ነቢያት')) {
+        rules = [
+          'ከእንስሳ ተዋጽኦ ሙሉ በሙሉ መራቅ',
+          'የነቢያትን መጻሕፍት ማንበብ — ኢሳይያስ፣ ኤርምያስ፣ ሕዝቅኤል',
+          'ለመሲሑ መምጣት ልብን ማዘጋጀት',
+          'ጸሎትና ስግደት ማብዛት'
+        ];
+      }
+      return { active: true, name: fast.name, nameAmharic: fast.name.split(' (')[0], totalDays, currentDay: dayNum, rules };
     }
   }
   
-  // Weekly fast check
+  // Weekly fast check (Wednesday = Judas betrayal, Friday = Crucifixion)
   const gDay = date.getDay();
   if (gDay === 3 || gDay === 5) {
-    return { active: true, name: gDay === 3 ? 'የረቡዕ ጾም' : 'የአርብ ጾም', totalDays: 1, currentDay: 1, rules: [
-      'ከእንስሳ ምርት መራቅ',
+    const wName = gDay === 3 ? 'የረቡዕ ጾም (Wednesday Fast)' : 'የዓርብ ጾም (Friday Fast)';
+    const wNameAm = gDay === 3 ? 'የረቡዕ ጾም' : 'የዓርብ ጾም';
+    const wReason = gDay === 3 
+      ? 'ረቡዕ — የይሁዳ ክህደት የሚታሰብበት ቀን'
+      : 'ዓርብ — የጌታችን ስቅለት የሚታሰብበት ቀን';
+    return { active: true, name: wName, nameAmharic: wNameAm, totalDays: 1, currentDay: 1, rules: [
+      'ከእንስሳ ተዋጽኦ መራቅ — ሥጋ፣ ወተት፣ እንቁላል፣ ቅቤ',
+      wReason,
       'ጸሎት ማብዛት'
     ]};
   }
@@ -617,14 +661,21 @@ export function getWeekCalendarData(startDate = new Date()) {
 // ─── Church History Topics ──────────────────────────────────────────────────
 
 export const CHURCH_HISTORY_TOPICS = [
-  { era: 'Aksumite Era', year: '340 AD', title: 'የአክሱም ወደ ክርስትና መመለስ', theme: 'The conversion of the Aksumite Kingdom to Christianity under King Ezana through the ministry of Frumentius (Abba Salama). Ethiopia became one of the first nations on earth to adopt Christianity as a state religion.' },
-  { era: '5th Century', year: '480 AD', title: 'ዘጠኙ ቅዱሳን (The Nine Saints)', theme: 'Nine monks from the Roman Empire who came to Ethiopia and established monasticism, translated scriptures into Ge\'ez, and spread Christianity to rural areas. They built churches that stand to this day.' },
-  { era: 'Zagwe Dynasty', year: '1200 AD', title: 'ላሊበላ — የአለት አብያተ ክርስቲያናት', theme: 'King Lalibela\'s divine vision to build a "New Jerusalem" — 11 rock-hewn churches carved from living rock, a feat of engineering and faith unmatched in human history.' },
-  { era: 'Solomonic Dynasty', year: '1270 AD', title: 'ከብረ ነገሥት — የንጉሦች ክብር', theme: 'The Kebra Nagast (Glory of Kings) — the foundational text of Ethiopian civilization tracing the Solomonic dynasty from King Solomon and the Queen of Sheba.' },
-  { era: 'Medieval', year: '1450 AD', title: 'ዘአማኑኤል — ቤተ ክርስቲያን ያደረገው ቅድስና', theme: 'The Council of Debre Mitmaq that resolved the Sabbath controversy, vindicating the teachings of Eustathius and establishing Saturday-Sunday dual observance.' },
-  { era: 'Golden Age', year: '6th Century', title: 'ቅዱስ ያሬድ — የዜማ አባት', theme: 'St. Yared invented the Ethiopian church music system (Zema) with its three modes: Ge\'ez, Ezel, and Araray — creating a musical tradition that has survived 1,500 years unchanged.' },
-  { era: 'Apostolic', year: '34 AD', title: 'ፊልጶስ እና ኢትዮጵያዊው ሹም', theme: 'The Ethiopian eunuch baptized by Philip the Evangelist (Acts 8) — making Ethiopia one of the earliest Christian nations, before Rome, before Constantinople.' },
-  { era: 'Modern', year: '1959 AD', title: 'የኢትዮጵያ ቤተ ክርስቲያን ነጻነት', theme: 'The Ethiopian Orthodox Tewahedo Church received its first native Patriarch (Abune Basilios), becoming autocephalous after centuries of Alexandrian appointment.' },
+  { era: 'ሐዋርያዊ ዘመን', year: '34 AD', title: 'ፊልጶስና ኢትዮጵያዊው ጃንደረባ', theme: 'The Ethiopian eunuch (ኢትዮጵያዊው ጃንደረባ) baptized by Philip the Evangelist on the road from Jerusalem to Gaza (Acts 8:26-39). He was reading Isaiah 53 and Philip explained: "This is about Jesus." Ethiopia thus became one of the earliest Christian nations — before Rome, before Constantinople, before most of Europe.', scripture: 'የሐዋ. ሥራ ፰፥፳፮-፴፱' },
+  { era: 'የአክሱም ዘመን', year: '330 AD', title: 'ንጉሥ ኢዛና — ክርስትናን ያቀፈ ንጉሥ', theme: 'King Ezana of Aksum embraced Christianity through the teaching of Frumentius (አባ ሰላማ — Father of Peace), a Syrian shipwreck survivor raised in the royal court. Ezana made Christianity the state religion, erected the famous Aksumite obelisks with the cross, and minted coins bearing the Christian symbol — the first ruler in the world to do so.', scripture: '' },
+  { era: 'ገዳማዊ ዘመን', year: '480 AD', title: 'ዘጠኙ ቅዱሳን — የገዳማት መሥራቾች', theme: 'Nine monks (ተሰዐቱ ቅዱሳን) arrived from the Roman Empire to Ethiopia: Abba Aregawi, Abba Pantalewon, Abba Garima, Abba Afse, Abba Guba, Abba Alef, Abba Yem\'ata, Abba Liqanos, and Abba Sehma. They translated the Bible into Ge\'ez, established great monasteries (including Debre Damo), and spread Christianity to the countryside. Their legacy endures 1,500 years later.', scripture: '' },
+  { era: 'ወርቃማ ዘመን', year: '6th Century', title: 'ቅዱስ ያሬድ — የኢትዮጵያ ዜማ አባት', theme: 'St. Yared (ቅዱስ ያሬድ) invented the entire Ethiopian church music system (ዜማ) with its three sacred modes: ግእዝ (solemn), እዝል (mournful), and አራራይ (joyful). He composed the Degwa, Tsome Degwa, Meraf, and Zimare. Legend says three birds from Paradise sang the melodies to him. His musical tradition has survived 1,500 years without change — the oldest living musical system on earth.', scripture: '' },
+  { era: 'የዛግዌ ሥርወ መንግሥት', year: '1181-1221 AD', title: 'ንጉሥ ላሊበላ — አዲሲቷ ኢየሩሳሌም', theme: 'King Lalibela received a divine vision from God commanding him to build a "New Jerusalem" (ሐዲስ ኢየሩሳሌም) in the highlands of Ethiopia. He carved 11 monolithic churches from living volcanic rock — including ቤተ ጊዮርጊስ (the cruciform church of St. George) — a feat of engineering and faith unmatched in human history. Angels are said to have worked alongside human laborers through the night.', scripture: '' },
+  { era: 'ሰሎሞናዊ ሥርወ መንግሥት', year: '1270 AD', title: 'ክብረ ነገሥት — የነገሥታት ክብር', theme: 'The Kebra Nagast (ክብረ ነገሥት — Glory of Kings) is the foundational text of Ethiopian civilization. It traces the lineage of Ethiopian monarchs from King Solomon and ንግሥተ ሳባ (Queen of Sheba), through their son Menelik I who brought the Ark of the Covenant to Aksum. It is the theological basis for the EOTC\'s claim as keeper of the Ark.', scripture: '፩ኛ ነገ. ፲፥፩-፲፫' },
+  { era: 'የመካከለኛው ዘመን', year: '1337 AD', title: 'አቡነ ኤዎስጣቴዎስ — የሰንበት ተከራካሪ', theme: 'Abune Ewostatewos (አቡነ ኤዎስጣቴዎስ) insisted on observing both Saturday (ሰንበት) and Sunday as holy days, based on the Fourth Commandment. The church establishment opposed him and he was exiled, traveling to Egypt, Cyprus, and Armenia. His movement grew until the Council of Debre Mitmaq (1450) vindicated him. He teaches: stand for truth even when the institution opposes you.', scripture: 'ዘጸ. ፳፥፰-፲፩' },
+  { era: 'የተሐድሶ ዘመን', year: '1450 AD', title: 'የደብረ ምጥማቅ ጉባኤ — የሰንበት ውሳኔ', theme: 'The Council of Debre Mitmaq (ጉባኤ ደብረ ምጥማቅ) finally resolved the Sabbath controversy after over a century of debate. It established the EOTC\'s distinctive dual Sabbath observance — honoring both Saturday (Old Covenant) and Sunday (New Covenant). This decision shaped EOTC identity forever and vindicated Ewostatewos\'s teaching.', scripture: '' },
+  { era: 'የአድባራት ዘመን', year: '14th Century', title: 'አቡነ ተክለ ሃይማኖት — የኢትዮጵያ ታላቅ ቅዱስ', theme: 'Abune Tekle Haymanot (አቡነ ተክለ ሃይማኖት — "Plant of the Faith") is Ethiopia\'s greatest native saint. He evangelized pagan regions, founded ደብረ ሊባኖስ monastery, and stood in prayer for 22 years on one leg — the other fell off, held by an angel. At his death, God granted him three sets of wings. He is the patron saint of Ethiopian Christianity.', scripture: '' },
+  { era: 'የጦርነት ዘመን', year: '1540 AD', title: 'የግራኝ ወረራና የቤተ ክርስቲያን ጽናት', theme: 'Ahmed ibn Ibrahim al-Ghazi (አሕመድ ግራኝ) led a devastating jihad that destroyed hundreds of churches and monasteries. Thousands of ancient manuscripts, icons, and sacred objects were lost forever. Yet the EOTC survived through the faith of hidden believers in caves and mountains. The Church\'s survival is considered miraculous — proof that "the gates of hell shall not prevail."', scripture: 'ማቴ. ፲፮፥፲፰' },
+  { era: 'ጎንደር ዘመን', year: '1636 AD', title: 'ፋሲለደስ — የጎንደር ቤተ መንግሥትና አብያተ ክርስቲያናት', theme: 'Emperor Fasiladas (ፋሲለደስ) established Gondar as the capital and built magnificent stone castles and churches. His reign marked a golden age of Ethiopian architecture, art, and theological scholarship. The ደብረ ብርሃን ሥላሴ church with its famous ceiling paintings remains one of the EOTC\'s greatest treasures.', scripture: '' },
+  { era: 'ዘመናዊ ዘመን', year: '1896 AD', title: 'አድዋ — እምነት ድልን አመጣ', theme: 'At the Battle of Adwa (የአድዋ ጦርነት), Emperor Menelik II carried the Tabot of ማርያም and ጊዮርጊስ into battle. Priests prayed and sang war hymns. Ethiopia defeated Italy\'s colonial army — the only African nation to successfully resist European colonization. The EOTC sees this as proof that faith in God brings victory over any enemy.', scripture: 'መዝ. ፳፥፯' },
+  { era: 'ዘመናዊ ዘመን', year: '1959 AD', title: 'የኢትዮጵያ ቤተ ክርስቲያን ነጻነት', theme: 'After 1,600 years of receiving its patriarch from the Coptic Church of Alexandria, the Ethiopian Orthodox Tewahedo Church received its first native Patriarch — አቡነ ባስልዮስ (Abune Basilios). This autocephaly was a milestone of spiritual independence, allowing the EOTC to govern itself fully while maintaining communion with the Oriental Orthodox family.', scripture: '' },
+  { era: 'ስደት ዘመን', year: '1974-1991 AD', title: 'ቤተ ክርስቲያን በደርግ ዘመን', theme: 'During the Derg communist regime, the EOTC faced severe persecution. Patriarch Abune Theophilos (አቡነ ቴዎፍሎስ) was secretly executed. Church lands were confiscated, monasteries were closed, and clergy were imprisoned. Yet the faith of ordinary believers deepened in adversity — attendance at secret prayer meetings soared. The blood of the martyrs became the seed of revival.', scripture: 'ራእ. ፲፪፥፲፩' },
+  { era: 'ጥንታዊ ዘመን', year: '4th Century', title: 'ኪዳነ ምሕረት — የምሕረት ቃል ኪዳን', theme: 'The Covenant of Mercy (ኪዳነ ምሕረት) is the theological foundation of EOTC Marian devotion. Tradition holds that the risen Christ appeared to His mother 40 days after the Resurrection and promised: "Whoever calls upon your name for mercy shall receive it; whoever commemorates your feast shall not perish." This is not worship of Mary but confidence in her maternal intercession.', scripture: 'ዮሐ. ፲፱፥፳፮-፳፯' },
 ];
 
 export { DAILY_COMMEMORATIONS };
