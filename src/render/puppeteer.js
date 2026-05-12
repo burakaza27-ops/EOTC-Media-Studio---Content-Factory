@@ -8,9 +8,47 @@ const __dirname = path.dirname(__filename);
 
 const PUPPETEER_EXEC_PATH = process.env.PUPPETEER_EXEC_PATH;
 const MAX_RETRIES = 2;
+const MAX_FILE_SIZE_BYTES = 9.5 * 1024 * 1024; // 9.5MB — safe margin under Telegram's 10MB limit
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * If a rendered PNG exceeds the Telegram size limit, re-screenshot as JPEG
+ * at progressive quality levels until the file fits.
+ * Returns the final output path (may switch extension to .jpg).
+ */
+async function compressIfNeeded(page, pngPath, clip) {
+  const stats = fs.statSync(pngPath);
+  if (stats.size <= MAX_FILE_SIZE_BYTES) return pngPath;
+
+  console.warn(`⚠️ PNG is ${(stats.size / 1024 / 1024).toFixed(1)}MB — compressing to JPEG...`);
+  const jpgPath = pngPath.replace(/\.png$/i, '.jpg');
+
+  for (const quality of [85, 75, 65]) {
+    await page.screenshot({
+      path: jpgPath,
+      type: 'jpeg',
+      quality,
+      fullPage: false,
+      clip,
+      captureBeyondViewport: false
+    });
+    const jpgStats = fs.statSync(jpgPath);
+    console.log(`  🗜️  JPEG quality ${quality}: ${(jpgStats.size / 1024 / 1024).toFixed(1)}MB`);
+    if (jpgStats.size <= MAX_FILE_SIZE_BYTES) {
+      // Remove oversized PNG, keep JPEG
+      try { fs.unlinkSync(pngPath); } catch {}
+      return jpgPath;
+    }
+  }
+
+  // Last resort: keep JPEG at quality 55
+  await page.screenshot({ path: jpgPath, type: 'jpeg', quality: 55, fullPage: false, clip, captureBeyondViewport: false });
+  try { fs.unlinkSync(pngPath); } catch {}
+  console.warn(`⚠️ Final JPEG size: ${(fs.statSync(jpgPath).size / 1024 / 1024).toFixed(1)}MB`);
+  return jpgPath;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -188,15 +226,19 @@ async function renderTemplate(page, htmlFile, variables, outputPath, options = {
   }
 
   const vp = page.viewport();
+  const clip = { x: 0, y: 0, width: vp.width, height: vp.height };
+
   await page.screenshot({
     path: outputPath,
     type: 'png',
     fullPage: false,
-    clip: { x: 0, y: 0, width: vp.width, height: vp.height },
+    clip,
     captureBeyondViewport: false
   });
 
-  return outputPath;
+  // Auto-compress if PNG exceeds Telegram's 10MB limit
+  const finalPath = await compressIfNeeded(page, outputPath, clip);
+  return finalPath;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -337,7 +379,7 @@ export async function renderSaintOfDay(saintData, outputPath) {
   let browser = null;
   try {
     console.log('🎨 Rendering Saint of the Day...');
-    browser = await launchBrowser(1080, 1080, 3);
+    browser = await launchBrowser(1080, 1080, 2);
     const page = await browser.newPage();
     
     await renderTemplate(page, 'saint_day.html', {
@@ -359,7 +401,7 @@ export async function renderFastingGuide(fastingData, outputPath) {
   let browser = null;
   try {
     console.log('🎨 Rendering Fasting Guide...');
-    browser = await launchBrowser(1080, 1350, 3);
+    browser = await launchBrowser(1080, 1350, 2);
     const page = await browser.newPage();
     
     await renderTemplate(page, 'fasting_guide.html', {
@@ -401,7 +443,7 @@ export async function renderHolyWeek(holyWeekData, outputPath) {
   let browser = null;
   try {
     console.log(`🎨 Rendering Holy Week: ${holyWeekData.dayName}...`);
-    browser = await launchBrowser(1080, 1350, 3);
+    browser = await launchBrowser(1080, 1350, 2);
     const page = await browser.newPage();
     
     await renderTemplate(page, 'holy_week.html', {
@@ -423,7 +465,7 @@ export async function renderChurchHistory(historyData, outputPath) {
   let browser = null;
   try {
     console.log('🎨 Rendering Church History...');
-    browser = await launchBrowser(1080, 1350, 3);
+    browser = await launchBrowser(1080, 1350, 2);
     const page = await browser.newPage();
     
     await renderTemplate(page, 'church_history.html', {
