@@ -365,15 +365,28 @@ const GEEZ_ONES = ['', '፩', '፪', '፫', '፬', '፭', '፮', '፯', '፰', '
 const GEEZ_TENS = ['', '፲', '፳', '፴', '፵', '፶', '፷', '፸', '፹', '፺'];
 
 export function toGeezNumerals(num) {
+  if (num === null || num === undefined || isNaN(num)) return '';
+  num = Math.floor(num);
   if (num === 0) return '';
   if (num < 0) return toGeezNumerals(-num);
+  // Single digits
   if (num < 10) return GEEZ_ONES[num];
-  if (num < 100) return GEEZ_TENS[Math.floor(num / 10)] + GEEZ_ONES[num % 10];
+  // Tens and tens+ones (10-99)
+  if (num < 100) return GEEZ_TENS[Math.floor(num / 10)] + (GEEZ_ONES[num % 10] || '');
+  // Hundreds (100-999)
+  if (num < 1000) {
+    const h = Math.floor(num / 100);
+    const rem = num % 100;
+    // GEEZ_ONES[1]='፩' but 1 hundred is just ፻
+    const hundredStr = h === 1 ? '፻' : toGeezNumerals(h) + '፻';
+    return hundredStr + (rem > 0 ? toGeezNumerals(rem) : '');
+  }
+  // Thousands (1000-9999) — e.g. 2018 = ፪፲፻፲፰
   if (num < 10000) {
-    const hundreds = Math.floor(num / 100);
-    const remainder = num % 100;
-    const hundredStr = hundreds === 1 ? '፻' : (GEEZ_ONES[hundreds] + '፻');
-    return hundredStr + (remainder > 0 ? toGeezNumerals(remainder) : '');
+    const th = Math.floor(num / 1000);
+    const rem = num % 1000;
+    const thousandStr = th === 1 ? '፲፻' : toGeezNumerals(th) + '፲፻';
+    return thousandStr + (rem > 0 ? toGeezNumerals(rem) : '');
   }
   return String(num); // Fallback for very large numbers
 }

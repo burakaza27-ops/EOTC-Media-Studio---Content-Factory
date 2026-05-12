@@ -234,63 +234,45 @@ export async function sendCarousel(imagePaths, caption = '') {
     throw new Error('No images to send');
   }
 
+  // Validate all files exist and check sizes
   for (const imagePath of imagePaths) {
     if (!fs.existsSync(imagePath)) {
       throw new Error(`Image not found: ${imagePath}`);
     }
+    const sz = fs.statSync(imagePath).size;
+    if (sz > MAX_FILE_SIZE) {
+      console.warn(`⚠️ Slide ${imagePath} is ${(sz/1024/1024).toFixed(1)}MB — may be rejected by Telegram`);
+    }
   }
 
+  // Read all image buffers
+  const imageBuffers = imagePaths.map(p => fs.readFileSync(p));
+
   try {
-    console.log(`📤 Sending carousel (${imagePaths.length} slides) to ${chatIds.length} groups...`);
+    console.log(`📤 Sending carousel album (${imagePaths.length} slides) to ${chatIds.length} group(s)...`);
     const results = [];
 
     for (const chatId of chatIds) {
-      console.log(`📤 Sending to group: ${chatId}`);
-      const messageIds = [];
-      let groupSuccess = true;
+      console.log(`📤 Sending album to group: ${chatId}`);
+      let sent = false;
 
-      for (let i = 0; i < imagePaths.length; i++) {
-        const imageBuffer = fs.readFileSync(imagePaths[i]);
-        
-        const slideCaption = i === 0 ? caption : undefined;
-        const parseMode = i === 0 ? 'HTML' : undefined;
-        
-        const fields = {
-          chat_id: chatId,
-          photo: imageBuffer
-        };
-        if (slideCaption) fields.caption = slideCaption;
-        if (parseMode) fields.parse_mode = parseMode;
-        
-        const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-        const body = buildCarouselSlideFormData(fields, boundary);
-        
-        let slideSent = false;
-        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-          try {
-            const response = await sendMediaGroupRequest(`/bot${token}/sendPhoto`, body, boundary);
-            messageIds.push(response.result.message_id);
-            slideSent = true;
-            break;
-          } catch (error) {
-            if (attempt === MAX_RETRIES - 1) {
-              console.error(`❌ Slide ${i + 1} failed for ${chatId}:`, error.message);
-              groupSuccess = false;
-            } else {
-              await sleep(1000 * Math.pow(2, attempt));
-            }
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          const response = await sendMediaGroupRequest(token, chatId, imageBuffers, caption);
+          console.log(`✅ Carousel album sent to ${chatId}: ${response.result.length} messages`);
+          results.push({ success: true, chatId, count: response.result.length });
+          sent = true;
+          break;
+        } catch (error) {
+          if (attempt === MAX_RETRIES - 1) {
+            console.error(`❌ Carousel failed for ${chatId}:`, error.message);
+            results.push({ success: false, chatId, error: error.message });
+          } else {
+            const delay = 1500 * Math.pow(2, attempt);
+            console.log(`⏳ Retrying carousel for ${chatId} in ${delay}ms...`);
+            await sleep(delay);
           }
         }
-        
-        if (!slideSent) break;
-        if (i < imagePaths.length - 1) await sleep(500);
-      }
-
-      if (groupSuccess) {
-        console.log(`✅ Carousel sent to ${chatId}: ${messageIds.length} slides`);
-        results.push({ success: true, chatId, message_ids: messageIds });
-      } else {
-        results.push({ success: false, chatId });
       }
     }
 
@@ -301,35 +283,51 @@ export async function sendCarousel(imagePaths, caption = '') {
   }
 }
 
-function buildCarouselSlideFormData(fields, boundary) {
-  let parts = [];
-  
-  for (const [key, value] of Object.entries(fields)) {
-    if (key === 'photo') {
+function sendMediaGroupRequest(token, chatId, imageBuffers, caption) {
+  return new Promise((resolve, reject) => {
+    const boundary = '----EOTCBoundary' + Date.now().toString(36);
+    
+    // Build media JSON array — first image gets the caption
+    const mediaArray = imageBuffers.map((buf, i) => ({
+      type: 'photo',
+      media: `attach://slide${i}`,
+      ...(i === 0 && caption ? { caption, parse_mode: 'HTML' } : {})
+    }));
+
+    // Build multipart body
+    const parts = [];
+
+    // chat_id field
+    parts.push(Buffer.from(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="chat_id"\r\n\r\n` +
+      `${chatId}\r\n`
+    ));
+
+    // media field (JSON)
+    parts.push(Buffer.from(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="media"\r\n\r\n` +
+      `${JSON.stringify(mediaArray)}\r\n`
+    ));
+
+    // Each image as attach://slideN
+    imageBuffers.forEach((buf, i) => {
       parts.push(Buffer.from(
         `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="photo"; filename="slide.png"\r\n` +
+        `Content-Disposition: form-data; name="slide${i}"; filename="slide${i}.png"\r\n` +
         `Content-Type: image/png\r\n\r\n`
       ));
-      parts.push(value);
+      parts.push(buf);
       parts.push(Buffer.from('\r\n'));
-    } else {
-      parts.push(Buffer.from(
-        `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="${key}"\r\n\r\n` +
-        `${value}\r\n`
-      ));
-    }
-  }
-  
-  return Buffer.concat([...parts, Buffer.from(`--${boundary}--\r\n`)]);
-}
+    });
 
-function sendMediaGroupRequest(path, body, boundary) {
-  return new Promise((resolve, reject) => {
+    parts.push(Buffer.from(`--${boundary}--\r\n`));
+    const body = Buffer.concat(parts);
+
     const options = {
       hostname: 'api.telegram.org',
-      path: path,
+      path: `/bot${token}/sendMediaGroup`,
       method: 'POST',
       headers: {
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
@@ -344,9 +342,9 @@ function sendMediaGroupRequest(path, body, boundary) {
         try {
           const response = JSON.parse(data);
           if (response.ok) resolve(response);
-          else reject(new Error(response.description));
+          else reject(new Error(`Telegram API: ${response.description}`));
         } catch (e) {
-          reject(e);
+          reject(new Error(`JSON parse error: ${e.message}`));
         }
       });
     });
