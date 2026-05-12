@@ -42,7 +42,7 @@ async function retryOperation(fn, retries = 3, delay = 1000) {
   }
 }
 
-export async function checkDuplicate(text) {
+export async function checkDuplicate(text, contentType = 'quote') {
   const db = getSupabase();
   
   if (!db) {
@@ -65,7 +65,7 @@ export async function checkDuplicate(text) {
 
     const isDuplicate = data?.length > 0;
     if (isDuplicate) {
-      console.log('🔄 Duplicate detected in database');
+      console.log(`🔄 Duplicate ${contentType} detected in database`);
     }
     return isDuplicate;
   } catch (error) {
@@ -74,7 +74,7 @@ export async function checkDuplicate(text) {
   }
 }
 
-export async function saveQuote(text) {
+export async function saveQuote(text, contentType = 'quote') {
   const db = getSupabase();
   
   if (!db) {
@@ -90,7 +90,8 @@ export async function saveQuote(text) {
           text, 
           created_at: new Date().toISOString(),
           source: 'openrouter',
-          model: process.env.AI_MODEL || 'gemini-2.0-flash'
+          model: process.env.AI_MODEL || 'gemini-2.5-flash',
+          content_type: contentType
         }])
         .select()
     );
@@ -100,13 +101,16 @@ export async function saveQuote(text) {
       return null;
     }
 
-    console.log('✅ Quote saved to database');
+    console.log(`✅ ${contentType} saved to database`);
     return data;
   } catch (error) {
     console.error('❌ Save failed:', error.message);
     return null;
   }
 }
+
+// Alias used by index.js
+export const recordContent = saveQuote;
 
 export async function getStats() {
   const db = getSupabase();
