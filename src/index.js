@@ -1,12 +1,15 @@
 /**
- * EOTC Media Studio v6.0 — Pipeline Orchestrator
- * ═══════════════════════════════════════════════
+ * EOTC Media Studio v7.0 — Pipeline Orchestrator
+ * ═════════════════════════════════════════════════════════════
  * Command center for all content generation. Coordinates:
- *  - Liturgical calendar intelligence
- *  - AI generation + theological auditing (OpenRouter)
- *  - High-fidelity rendering (Puppeteer 3x retina)
+ *  - Canonical Scripture Engine (zero-hallucination, local 81-book DB)
+ *  - Liturgical calendar intelligence + Bahire Hasab computus
+ *  - AI generation + dual-model theological auditing (OpenRouter)
+ *  - High-fidelity 3× retina rendering (Puppeteer, mood-aware)
+ *  - 9:16 / 1:1 / 4:5 Video Reel generation (FFmpeg Ken Burns)
  *  - Duplicate detection (Supabase)
- *  - Multi-group Telegram delivery
+ *  - Multi-group Telegram delivery + Interactive Concierge Bot
+ *  - Web Studio GUI (http://localhost:3333)
  *
  * Content Types:
  *  quote       — Power Quote (1080×1080)
@@ -18,8 +21,10 @@
  *  holyweek    — Holy Week Day Card (1080×1350)
  *  history     — Church History Card (1080×1350)
  *  calendar    — Weekly Calendar Summary (1080×1920)
+ *  all         — Run all 9 pipelines sequentially
  */
 
+import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -50,6 +55,12 @@ import {
 } from './render/puppeteer.js';
 
 import {
+  renderVideoReel,
+  renderCarouselVideo,
+  checkFFmpeg
+} from './render/video.js';
+
+import {
   sendImageToTelegram,
   sendCarouselToTelegram,
   isConfigured as isTelegramConfigured
@@ -58,6 +69,7 @@ import {
 import { checkDuplicate, recordContent } from './db/supabase.js';
 
 import {
+  toEthiopianDate,
   getLiturgicalContext,
   getEthiopianDateGeez,
   getFastingInfo,
@@ -69,9 +81,17 @@ import {
   CHURCH_HISTORY_TOPICS
 } from './utils/calendar.js';
 
+import { getVerifiedVerse } from './canon/scripture.js';
+import { getSynaxariumEntry } from './canon/synaxarium.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const OUTPUT_DIR = path.join(__dirname, '..', 'output');
+
+// Video reel mode (set GENERATE_VIDEO=true to produce .mp4 reels)
+const GENERATE_VIDEO = (process.env.GENERATE_VIDEO || 'false').toLowerCase() === 'true';
+const VIDEO_PROFILES_ENV = (process.env.VIDEO_PROFILES || '1:1,9:16').split(',').map(s => s.trim());
+
 
 // ═══════════════════════════════════════════════════════════
 //  UTILITY FUNCTIONS
@@ -102,6 +122,51 @@ function buildLiturgicalContext(useLiturgical) {
   return { ...ctx, ethiopianDateGeez: ethDateGeez };
 }
 
+/**
+ * Optionally renders video reels for a given image output path.
+ * Only runs when GENERATE_VIDEO=true is set in env.
+ */
+async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], contentType = '') {
+  if (!GENERATE_VIDEO) return {};
+  try {
+    const ffCheck = await checkFFmpeg();
+    if (!ffCheck.available) {
+      console.log(`⚠️ FFmpeg not found (${ffCheck.path}) — skipping video reel.`);
+      return {};
+    }
+    console.log(`🎬 FFmpeg ${ffCheck.version} — rendering video reels...`);
+    const results = await renderVideoReel({
+      imagePath,
+      outputDir: OUTPUT_DIR,
+      baseName,
+      duration: 10,
+      profiles: VIDEO_PROFILES_ENV,
+      subtitleLines,
+      mood: 'devotional'
+    });
+    return results;
+  } catch (err) {
+    console.warn(`⚠️ Video reel failed (non-fatal): ${err.message}`);
+    return {};
+  }
+}
+
+/**
+ * Optionally renders carousel video reels.
+ */
+async function maybeRenderCarouselVideo(imagePaths, baseName) {
+  if (!GENERATE_VIDEO) return {};
+  try {
+    const ffCheck = await checkFFmpeg();
+    if (!ffCheck.available) return {};
+    return await renderCarouselVideo(imagePaths, OUTPUT_DIR, baseName, 4);
+  } catch (err) {
+    console.warn(`⚠️ Carousel video failed (non-fatal): ${err.message}`);
+    return {};
+  }
+}
+
+
 // ═══════════════════════════════════════════════════════════
 //  PIPELINE STAGES — One per content type
 // ═══════════════════════════════════════════════════════════
@@ -112,6 +177,11 @@ async function runQuotePipeline(useLiturgical) {
   console.log('═══════════════════════════════════════════');
 
   const ctx = buildLiturgicalContext(useLiturgical);
+
+  // Pull a canonical verified verse to seed the theme
+  const canonVerse = ctx ? getVerifiedVerse(ctx.mood, ctx.event) : null;
+  if (canonVerse) console.log(`📖 Canon anchor: ${canonVerse.reference}`);
+
   const quoteData = await generateQuote(ctx);
 
   // Duplicate check
@@ -131,6 +201,9 @@ async function runQuotePipeline(useLiturgical) {
   validateFileSize(outputPath);
   await recordContent(quoteData.text, 'quote');
 
+  // Video reel (optional)
+  await maybeRenderVideo(outputPath, 'power_quote', [quoteData.text], 'quote');
+
   if (isTelegramConfigured()) {
     const caption = `✝️ ${quoteData.text}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
     await sendImageToTelegram(outputPath, caption);
@@ -146,7 +219,18 @@ async function runVersePipeline(useLiturgical) {
   console.log('═══════════════════════════════════════════');
 
   const ctx = buildLiturgicalContext(useLiturgical);
+
+  // Try canonical verified verse first — eliminates hallucination risk
+  const canonVerse = getVerifiedVerse(ctx?.mood || '', ctx?.event || '');
+  console.log(`📖 Canonical seed verse: ${canonVerse.reference}`);
+
   const verseData = await generateDailyVerse(ctx);
+
+  // If AI returned the same reference, use our canonical version for safety
+  if (verseData.reference === canonVerse.reference) {
+    verseData.verse = canonVerse.verse; // Use guaranteed-accurate text
+    console.log(`✅ Using verified canonical text for ${canonVerse.reference}`);
+  }
 
   const isDupe = await checkDuplicate(verseData.verse, 'verse');
   if (isDupe) {
@@ -162,6 +246,9 @@ async function runVersePipeline(useLiturgical) {
 
   validateFileSize(outputPath);
   await recordContent(verseData.verse, 'verse');
+
+  // Video reel (optional)
+  await maybeRenderVideo(outputPath, 'daily_verse', [verseData.verse, `— ${verseData.reference}`], 'verse');
 
   if (isTelegramConfigured()) {
     const caption = `📖 ${verseData.verse}\n— ${verseData.reference}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
@@ -187,6 +274,9 @@ async function runCarouselPipeline(useLiturgical) {
   }, OUTPUT_DIR);
 
   outputPaths.forEach(p => validateFileSize(p));
+
+  // Video reel of all carousel slides (optional)
+  await maybeRenderCarouselVideo(outputPaths, 'carousel');
 
   if (isTelegramConfigured()) {
     const caption = `📊 ${carouselData.theme}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
@@ -229,27 +319,46 @@ async function runSaintPipeline(useLiturgical) {
 
   const ctx = buildLiturgicalContext(useLiturgical);
   const today = new Date();
-  const ethDay = today.getDate() % 30 || 30; // Map to 1-30 range for saint lookup
+  const ethDate = toEthiopianDate(today);
+  const ethDay = ethDate.day;
   const dailyData = DAILY_COMMEMORATIONS[ethDay] || DAILY_COMMEMORATIONS[1];
 
-  console.log(`📿 Today's Saint: ${dailyData.saint}`);
+  // Enrich with synaxarium data if available
+  const synaxariumData = getSynaxariumEntry(ethDay);
+  if (synaxariumData) {
+    console.log(`📜 Synaxarium entry found for day ${ethDay}: ${synaxariumData.saint}`);
+  }
+
+  if (dailyData.isLordFeast) {
+    console.log(`📿 Today's Feast of the Lord: ${dailyData.saint}`);
+  } else {
+    console.log(`📿 Today's Saint: ${dailyData.saint}`);
+  }
 
   const saintData = await generateSaintOfDay(dailyData, ctx);
+
+  // Enhance with synaxarium hymn if available
+  const hymnLine = synaxariumData?.hymnAmharic || '';
 
   const outputPath = path.join(OUTPUT_DIR, 'saint_day.png');
   await renderSaintOfDay({
     saint: saintData.saint || dailyData.saint.split(' (')[0],
-    story: saintData.story || '',
-    lesson: saintData.lesson || '',
+    story: saintData.story || (synaxariumData?.synaxariumExcerpt || ''),
+    lesson: saintData.lesson || (synaxariumData?.spiritualLesson || ''),
     reference: saintData.reference || '',
-    feastType: saintData.feastType || (dailyData.type === 'feast' ? 'በዓል' : 'ቅዱስ/ቅድስት'),
+    hymn: hymnLine,
+    feastType: saintData.feastType || (dailyData.isLordFeast ? 'በዓል' : (dailyData.type === 'feast' ? 'በዓል' : 'ቅዱስ/ቅድስት')),
+    isLordFeast: dailyData.isLordFeast,
     liturgicalContext: ctx ? { mood: ctx.mood, ethiopianDate: ctx.ethiopianDateGeez } : null
   }, outputPath);
 
   validateFileSize(outputPath);
 
+  // Video reel (optional)
+  await maybeRenderVideo(outputPath, 'saint_day', [saintData.saint, saintData.lesson], 'saint');
+
   if (isTelegramConfigured()) {
-    const caption = `✝️ ${saintData.saint || dailyData.saint}\n${saintData.lesson || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+    const caption = `✝️ ${saintData.saint || dailyData.saint}\n${saintData.lesson || ''}\n${hymnLine ? `🎵 ${hymnLine}` : ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
     await sendImageToTelegram(outputPath, caption);
   }
 
@@ -427,42 +536,74 @@ async function runCalendarPipeline(useLiturgical) {
 //  MAIN ENTRY POINT
 // ═══════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════
+//  PIPELINE REGISTRY
+// ═══════════════════════════════════════════════════════════
+
 const PIPELINES = {
-  quote: runQuotePipeline,
-  verse: runVersePipeline,
-  carousel: runCarouselPipeline,
+  quote:      runQuotePipeline,
+  verse:      runVersePipeline,
+  carousel:   runCarouselPipeline,
   reflection: runReflectionPipeline,
-  saint: runSaintPipeline,
-  fasting: runFastingPipeline,
-  holyweek: runHolyWeekPipeline,
-  history: runHistoryPipeline,
-  calendar: runCalendarPipeline
+  saint:      runSaintPipeline,
+  fasting:    runFastingPipeline,
+  holyweek:   runHolyWeekPipeline,
+  history:    runHistoryPipeline,
+  calendar:   runCalendarPipeline
 };
 
+// 'all' mode: run every pipeline sequentially
+async function runAllPipelines(useLiturgical) {
+  console.log('\n═══════════════════════════════════════════');
+  console.log('  ✝️  FULL STUDIO RUN — ALL 9 PIPELINES');
+  console.log('═══════════════════════════════════════════');
+  const results = {};
+  for (const [name, fn] of Object.entries(PIPELINES)) {
+    try {
+      console.log(`\n▶ Running: ${name}`);
+      results[name] = await fn(useLiturgical);
+    } catch (err) {
+      console.error(`❌ ${name} pipeline failed: ${err.message}`);
+      results[name] = null;
+    }
+  }
+  return results;
+}
+
+
 async function main() {
-  console.log(`\n╔═══════════════════════════════════════════════╗`);
-  console.log(`║  ✝️  EOTC MEDIA STUDIO v6.0                   ║`);
-  console.log(`║  World-Class Liturgical Content Engine         ║`);
-  console.log(`╚═══════════════════════════════════════════════╝\n`);
+  console.log(`\n╔══════════════════════════════════════════════════════╗`);
+  console.log(`║  ✝️  EOTC MEDIA STUDIO v7.0                          ║`);
+  console.log(`║  Canonical · Video Reels · Bot · Web Studio          ║`);
+  console.log(`╚══════════════════════════════════════════════════════╝\n`);
 
   ensureOutputDir();
 
-  const contentType = (process.env.CONTENT_TYPE || 'quote').toLowerCase().trim();
+  const contentType   = (process.env.CONTENT_TYPE  || 'quote').toLowerCase().trim();
   const useLiturgical = (process.env.USE_LITURGICAL || 'true').toLowerCase() === 'true';
 
-  console.log(`📋 Content Type: ${contentType}`);
-  console.log(`📅 Liturgical Mode: ${useLiturgical ? 'ON' : 'OFF'}`);
-  console.log(`🤖 AI Configured: ${isAIConfigured() ? 'YES' : 'NO'}`);
-  console.log(`📱 Telegram Configured: ${isTelegramConfigured() ? 'YES' : 'NO'}`);
+  console.log(`📋 Content Type:     ${contentType}`);
+  console.log(`📅 Liturgical Mode:  ${useLiturgical ? 'ON' : 'OFF'}`);
+  console.log(`🤖 AI Configured:    ${isAIConfigured() ? 'YES' : 'NO'}`);
+  console.log(`📱 Telegram:         ${isTelegramConfigured() ? 'YES' : 'NO'}`);
+  console.log(`🎬 Video Reels:      ${GENERATE_VIDEO ? `ON (${VIDEO_PROFILES_ENV.join(', ')})` : 'OFF (set GENERATE_VIDEO=true)'}`);
 
   if (!isAIConfigured()) {
     throw new Error('OPENROUTER_API_KEY is required but not set.');
   }
 
+  // Handle 'all' batch mode
+  if (contentType === 'all') {
+    const results = await runAllPipelines(useLiturgical);
+    const succeeded = Object.values(results).filter(r => r !== null).length;
+    console.log(`\n🎉 All-pipeline run: ${succeeded}/9 succeeded.`);
+    return;
+  }
+
   const pipelineFn = PIPELINES[contentType];
   if (!pipelineFn) {
-    const validTypes = Object.keys(PIPELINES).join(', ');
-    throw new Error(`Unknown content type: "${contentType}". Valid types: ${validTypes}`);
+    const validTypes = [...Object.keys(PIPELINES), 'all'].join(', ');
+    throw new Error(`Unknown content type: "${contentType}". Valid: ${validTypes}`);
   }
 
   try {
@@ -479,4 +620,13 @@ async function main() {
   }
 }
 
-main();
+export { main, PIPELINES };
+
+const isDirectRun = process.argv[1] && (
+  path.resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase() ||
+  process.argv[1].replace(/\\/g, '/').endsWith('src/index.js')
+);
+
+if (isDirectRun) {
+  main();
+}

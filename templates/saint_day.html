@@ -159,6 +159,18 @@
       border: 1px solid rgba(255,255,255,0.06);
       padding: 6px 18px; border-radius: 16px;
     }
+
+    /* === TIBEB BORDER === */
+    .tibeb-top, .tibeb-bottom {
+      position: absolute; left: 0; right: 0; z-index: 8;
+      height: 48px; overflow: hidden; opacity: 0.55;
+    }
+    .tibeb-top    { top: 0; }
+    .tibeb-bottom { bottom: 0; transform: scaleY(-1); }
+    .tibeb-top img, .tibeb-bottom img { width: 100%; height: 48px; object-fit: cover; display: block; }
+    /* === LALIBELA CROSS BRAND === */
+    .brand-lalibela { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+    .brand-lalibela img { width: 44px; height: 44px; filter: drop-shadow(0 0 8px rgba(212,175,55,0.4)); }
   </style>
 </head>
 <body>
@@ -186,7 +198,7 @@
 
   <div class="footer">
     <div class="footer-line"></div>
-    <div class="footer-text">Saint of the Day • EOTC Youth</div>
+    <div class="footer-text" id="footer-text">Saint of the Day • EOTC Youth</div>
     <div class="footer-line"></div>
   </div>
 </body>

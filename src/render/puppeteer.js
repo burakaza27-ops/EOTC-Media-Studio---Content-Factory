@@ -6,7 +6,27 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PUPPETEER_EXEC_PATH = process.env.PUPPETEER_EXEC_PATH;
+function resolveExecutablePath() {
+  if (process.env.PUPPETEER_EXEC_PATH && fs.existsSync(process.env.PUPPETEER_EXEC_PATH)) {
+    return process.env.PUPPETEER_EXEC_PATH;
+  }
+  const candidates = [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe') : '',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+  ];
+  for (const c of candidates) {
+    if (c && fs.existsSync(c)) return c;
+  }
+  return undefined;
+}
+
+const PUPPETEER_EXEC_PATH = resolveExecutablePath();
 const MAX_RETRIES = 2;
 const MAX_FILE_SIZE_BYTES = 9.5 * 1024 * 1024; // 9.5MB — safe margin under Telegram's 10MB limit
 
@@ -228,6 +248,8 @@ async function renderTemplate(page, htmlFile, variables, outputPath, options = {
   const vp = page.viewport();
   const clip = { x: 0, y: 0, width: vp.width, height: vp.height };
 
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+
   await page.screenshot({
     path: outputPath,
     type: 'png',
@@ -378,16 +400,23 @@ export async function renderCarousel({ slides, theme, liturgicalContext }, outpu
 export async function renderSaintOfDay(saintData, outputPath) {
   let browser = null;
   try {
-    console.log('🎨 Rendering Saint of the Day...');
+    if (saintData.isLordFeast) {
+      console.log('🎨 Rendering Feast of the Lord...');
+    } else {
+      console.log('🎨 Rendering Saint of the Day...');
+    }
     browser = await launchBrowser(1080, 1080, 2);
     const page = await browser.newPage();
+    
+    const footerText = saintData.isLordFeast ? 'Feast of the Day • EOTC Youth' : 'Saint of the Day • EOTC Youth';
     
     await renderTemplate(page, 'saint_day.html', {
       'saint-name': saintData.saint,
       'saint-story': saintData.story,
       'saint-lesson': saintData.lesson,
-      'feast-type-badge': saintData.feastType || 'Saint',
-      'scripture-ref': saintData.reference || ''
+      'feast-type-badge': saintData.feastType || (saintData.isLordFeast ? 'በዓል' : 'Saint'),
+      'scripture-ref': saintData.reference || '',
+      'footer-text': footerText
     }, outputPath, { liturgicalContext: saintData.liturgicalContext });
     
     console.log(`✅ Rendered: ${outputPath}`);

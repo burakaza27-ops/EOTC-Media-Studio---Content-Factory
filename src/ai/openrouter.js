@@ -366,7 +366,7 @@ async function retryWithBackoff(fn, retries = MAX_RETRIES) {
 }
 
 const PRIMARY_MODEL = 'google/gemini-2.5-flash';
-const FALLBACK_MODELS = ['google/gemini-2.0-flash-001', 'anthropic/claude-sonnet-4.6'];
+const FALLBACK_MODELS = ['google/gemini-2.5-flash-lite', 'google/gemini-3.5-flash-lite'];
 
 async function callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode) {
   const response = await axios.post(
@@ -441,8 +441,8 @@ async function verifyAndCorrect(data, jsonMode = true) {
   const apiKey = OPENROUTER_API_KEY();
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
 
-  // We explicitly use gemini-2.0-flash-001 as the auditor for extreme stability
-  const auditorModel = 'google/gemini-2.0-flash-001';
+  // We use gemini-2.5-flash as the theological auditor
+  const auditorModel = 'google/gemini-2.5-flash';
   const payload = jsonMode ? JSON.stringify(data, null, 2) : data;
   
   console.log(`\n🔍 Proofreading with Theological Auditor (${auditorModel})...`);
@@ -561,8 +561,18 @@ export async function generateWeeklyReflection(liturgicalContext = null) {
 
 export async function generateSaintOfDay(saintData, liturgicalContext = null) {
   const contextPrompt = formatContextForPrompt(liturgicalContext);
-  console.log(`🧠 AI Saint: ${saintData.saint}`);
-  const content = await callAI(SAINT_SYSTEM_PROMPT, `Saint: ${saintData.saint}\nDescription: ${saintData.theme}${contextPrompt}`, true);
+  if (saintData.isLordFeast) {
+    console.log(`🧠 AI Lord's Feast: ${saintData.saint}`);
+  } else {
+    console.log(`🧠 AI Saint: ${saintData.saint}`);
+  }
+  
+  let userPrompt = `Saint: ${saintData.saint}\nDescription: ${saintData.theme}${contextPrompt}`;
+  if (saintData.isLordFeast) {
+    userPrompt += `\n\n⚠️ THEOLOGICAL COMMAND (MANDATORY): Note that ${saintData.saint.split(' (')[0]} is GOD (the Lord Jesus Christ / the Holy Trinity), NOT a saint or mere human. He is holy and perfect man and perfect God (Tewahedo doctrine). Make sure the generated story and lesson reflect His deity and perfect humanity, and NEVER refer to Him as a saint or a mere human. The feastType MUST be returned as "በዓል" (Feast) and never "ቅዱስ/ቅድስት" (Saint).`;
+  }
+
+  const content = await callAI(SAINT_SYSTEM_PROMPT, userPrompt, true);
   const rawData = extractJSON(content);
   const auditedData = await verifyAndCorrect(rawData, true);
   return { ...auditedData, liturgicalEvent: liturgicalContext?.event || null };

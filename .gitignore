@@ -7,7 +7,12 @@ node_modules/
 
 # Output
 temp/
-output.png
+output/
+*.png
+*.jpg
+*.jpeg
+*.mp4
+!assets/**
 
 # Logs
 *.log

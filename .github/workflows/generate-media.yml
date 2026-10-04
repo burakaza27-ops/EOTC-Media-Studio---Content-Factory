@@ -1,4 +1,4 @@
-name: "✝️ EOTC Media Studio — Generate Content"
+name: "✝️ EOTC Media Studio v7 — Generate Content"
 
 on:
   workflow_dispatch:
@@ -17,27 +17,41 @@ on:
           - holyweek
           - history
           - calendar
+          - all
         default: 'quote'
       use_liturgical:
         description: 'Use liturgical calendar context'
         required: true
         type: boolean
         default: true
+      generate_video:
+        description: 'Generate video reels (9:16 + 1:1) with FFmpeg'
+        required: false
+        type: boolean
+        default: false
+      video_profiles:
+        description: 'Video aspect ratios (comma-separated: 1:1,4:5,9:16)'
+        required: false
+        default: '1:1,9:16'
+
+  schedule:
+    # Daily 06:00 AM EAT (03:00 UTC) — auto-generates daily quote
+    - cron: '0 3 * * *'
 
 permissions:
   contents: read
 
 jobs:
   generate:
-    name: "✝️ Generate ${{ github.event.inputs.content_type }}"
+    name: "✝️ Generate ${{ github.event.inputs.content_type || 'quote' }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js
+      - name: 🟢 Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -46,24 +60,36 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm ci
 
+      - name: 🎬 Install FFmpeg (for video reels)
+        if: ${{ github.event.inputs.generate_video == 'true' }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -1
+
       - name: 🎨 Generate Content
         env:
-          CONTENT_TYPE: ${{ github.event.inputs.content_type }}
-          USE_LITURGICAL: ${{ github.event.inputs.use_liturgical }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          AI_MODEL: ${{ secrets.AI_MODEL }}
-          PUPPETEER_EXEC_PATH: /usr/bin/google-chrome-stable
+          CONTENT_TYPE:          ${{ github.event.inputs.content_type || 'quote' }}
+          USE_LITURGICAL:        ${{ github.event.inputs.use_liturgical || 'true' }}
+          GENERATE_VIDEO:        ${{ github.event.inputs.generate_video || 'false' }}
+          VIDEO_PROFILES:        ${{ github.event.inputs.video_profiles || '1:1,9:16' }}
+          OPENROUTER_API_KEY:    ${{ secrets.OPENROUTER_API_KEY }}
+          GOOGLE_AI_STUDIO_API:  ${{ secrets.GOOGLE_AI_STUDIO_API }}
+          TELEGRAM_BOT_TOKEN:    ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:      ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_ADMIN_IDS:    ${{ secrets.TELEGRAM_ADMIN_IDS }}
+          SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:          ${{ secrets.SUPABASE_KEY }}
+          AI_MODEL:              ${{ secrets.AI_MODEL || 'google/gemini-2.5-flash' }}
+          PUPPETEER_EXEC_PATH:   /usr/bin/google-chrome-stable
+          FFMPEG_PATH:           /usr/bin/ffmpeg
         run: node src/index.js
 
-      - name: 📤 Upload Artifacts
+      - name: 📤 Upload Generated Media
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eotc-media-${{ github.event.inputs.content_type }}-${{ github.run_number }}
+          name: eotc-media-${{ github.event.inputs.content_type || 'quote' }}-${{ github.run_number }}
           path: output/
           retention-days: 30
           if-no-files-found: warn

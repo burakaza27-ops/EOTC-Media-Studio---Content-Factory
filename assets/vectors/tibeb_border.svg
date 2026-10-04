@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 48" width="100%" height="48">
+  <defs>
+    <linearGradient id="tibebGold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8a7122"/>
+      <stop offset="25%" stop-color="#d4af37"/>
+      <stop offset="50%" stop-color="#fff1b8"/>
+      <stop offset="75%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#8a7122"/>
+    </linearGradient>
+    <pattern id="tibebUnit" width="80" height="48" patternUnits="userSpaceOnUse">
+      <!-- Upper border line -->
+      <line x1="0" y1="4" x2="80" y2="4" stroke="url(#tibebGold)" stroke-width="2"/>
+      <line x1="0" y1="8" x2="80" y2="8" stroke="url(#tibebGold)" stroke-width="1" stroke-dasharray="2,2"/>
+      
+      <!-- Central Ethiopian Cross & Diamond Knot -->
+      <polygon points="40,10 54,24 40,38 26,24" fill="none" stroke="url(#tibebGold)" stroke-width="2"/>
+      <polygon points="40,16 48,24 40,32 32,24" fill="url(#tibebGold)" fill-opacity="0.3"/>
+      <circle cx="40" cy="24" r="3" fill="url(#tibebGold)"/>
+      
+      <!-- Chevron Side Teeth (ጥልፍ) -->
+      <path d="M 0,24 L 14,10 L 22,10 L 8,24 L 22,38 L 14,38 Z" fill="url(#tibebGold)" fill-opacity="0.6"/>
+      <path d="M 80,24 L 66,10 L 58,10 L 72,24 L 58,38 L 66,38 Z" fill="url(#tibebGold)" fill-opacity="0.6"/>
+
+      <!-- Lower border line -->
+      <line x1="0" y1="40" x2="80" y2="40" stroke="url(#tibebGold)" stroke-width="1" stroke-dasharray="2,2"/>
+      <line x1="0" y1="44" x2="80" y2="44" stroke="url(#tibebGold)" stroke-width="2"/>
+    </pattern>
+  </defs>
+  
+  <rect width="100%" height="48" fill="url(#tibebUnit)"/>
+</svg>

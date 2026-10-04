@@ -1,49 +1,49 @@
 {
   "name": "eotc-media-studio",
-  "version": "6.0.0",
-  "description": "EOTC Media Studio — World-class automated liturgical content engine with 9 content types",
+  "version": "7.0.0",
+  "description": "EOTC Media Studio — World-class automated liturgical content engine: 9 content types, video reels, interactive bot, Web Studio GUI, canonical scripture engine",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "quote": "cross-env CONTENT_TYPE=quote USE_LITURGICAL=true node src/index.js",
-    "verse": "cross-env CONTENT_TYPE=verse USE_LITURGICAL=true node src/index.js",
-    "carousel": "cross-env CONTENT_TYPE=carousel USE_LITURGICAL=true node src/index.js",
-    "reflection": "cross-env CONTENT_TYPE=reflection USE_LITURGICAL=true node src/index.js",
-    "saint": "cross-env CONTENT_TYPE=saint USE_LITURGICAL=true node src/index.js",
-    "fasting": "cross-env CONTENT_TYPE=fasting USE_LITURGICAL=true node src/index.js",
-    "holyweek": "cross-env CONTENT_TYPE=holyweek USE_LITURGICAL=true node src/index.js",
-    "history": "cross-env CONTENT_TYPE=history USE_LITURGICAL=true node src/index.js",
-    "calendar": "cross-env CONTENT_TYPE=calendar USE_LITURGICAL=true node src/index.js",
-    "dev": "node --watch src/index.js",
-    "test": "node --test src/**/*.test.js",
-    "lint": "eslint src/",
-    "format": "prettier --write src/"
+    "start":       "node src/index.js",
+    "quote":       "cross-env CONTENT_TYPE=quote USE_LITURGICAL=true node src/index.js",
+    "verse":       "cross-env CONTENT_TYPE=verse USE_LITURGICAL=true node src/index.js",
+    "carousel":    "cross-env CONTENT_TYPE=carousel USE_LITURGICAL=true node src/index.js",
+    "reflection":  "cross-env CONTENT_TYPE=reflection USE_LITURGICAL=true node src/index.js",
+    "saint":       "cross-env CONTENT_TYPE=saint USE_LITURGICAL=true node src/index.js",
+    "fasting":     "cross-env CONTENT_TYPE=fasting USE_LITURGICAL=true node src/index.js",
+    "holyweek":    "cross-env CONTENT_TYPE=holyweek USE_LITURGICAL=true node src/index.js",
+    "history":     "cross-env CONTENT_TYPE=history USE_LITURGICAL=true node src/index.js",
+    "calendar":    "cross-env CONTENT_TYPE=calendar USE_LITURGICAL=true node src/index.js",
+    "studio":      "node src/studio/server.js",
+    "bot":         "node src/telegram/concierge.js",
+    "all":         "cross-env CONTENT_TYPE=all USE_LITURGICAL=true node src/index.js",
+    "dev":         "node --watch src/index.js",
+    "test":        "node test.mjs",
+    "lint":        "eslint src/",
+    "format":      "prettier --write src/"
   },
   "keywords": [
-    "eotc",
-    "amharic",
-    "content-generation",
-    "puppeteer",
-    "automation",
-    "orthodox",
-    "liturgical"
+    "eotc", "amharic", "content-generation", "puppeteer",
+    "automation", "orthodox", "liturgical", "video-reel", "telegram-bot"
   ],
   "author": "EOTC Media Studio",
   "license": "MIT",
-  "engines": {
-    "node": ">=18.0.0"
-  },
+  "engines": { "node": ">=18.0.0" },
   "dependencies": {
-    "@supabase/supabase-js": "^2.48.1",
-    "axios": "^1.7.9",
-    "dotenv": "^16.4.7",
+    "@supabase/supabase-js":   "^2.48.1",
+    "axios":                   "^1.7.9",
+    "dotenv":                  "^16.4.7",
     "ethiopian-calendar-date-converter": "^2.1.6",
-    "puppeteer": "^24.0.0"
+    "express":                 "^4.21.2",
+    "puppeteer":               "^24.0.0"
+  },
+  "optionalDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
-    "eslint": "^9.18.0",
-    "prettier": "^3.4.2"
+    "eslint":    "^9.18.0",
+    "prettier":  "^3.4.2"
   }
 }

@@ -1,142 +1,200 @@
-# ✝️ EOTC Media Studio v6.0
+# ✝️ EOTC Media Studio v7.0
 
-**The most comprehensive automated liturgical content engine for the Ethiopian Orthodox Tewahedo Church.**
+**The definitive, broadcast-grade multimedia content factory for the Ethiopian Orthodox Tewahedo Church.**
 
-Generates stunning, broadcast-ready images across **9 content types** — powered by dual-AI generation with theological auditing, liturgical calendar intelligence with Bahire Hasab computus, mood-based dynamic styling, and instant multi-group Telegram delivery.
+Operates as a **100% free ($0 / zero-cost)** automated media publishing empire:
+- **9 Specialized Liturgical Pipelines** (Quotes, Verses, Carousels, Reflections, Saints, Fasting, Holy Week, Church History, Calendar)
+- **Zero-Cost Video Reel Engine** (Vertical 9:16 Shorts/Reels & 1:1 Square MP4s with cinematic Ken Burns camera motion & vignette overlays via FFmpeg)
+- **Canonical Scripture & Synaxarium Engine** (Zero-hallucination local 1962 81-book EOTC Bible repository + Patristic Synaxarium archive)
+- **Sacred Ecclesiastical Visual Kit** (Vector Lalibela Crosses, woven Tibeb borders, 3× Retina rendering, mood-based dynamic styling)
+- **Interactive 2-Way Telegram Concierge Bot** (Spiritual guide with `/today`, `/saint`, `/verse`, `/fasting`, `/calendar`, `/computus`, `/search`)
+- **Live Local Web Studio GUI** (Visual dashboard at `http://localhost:3333` with live media preview, batch generation, and one-click download)
+- **Dual-Model Theological Auditing** (AI synthesis proofread by patristic dogmatic guidelines before rendering)
 
 ---
 
-## 🎯 Content Types (9 Total)
+## 🚀 Quick Start
 
-| Type | Command | Output | Description |
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Run system health check (57 tests)
+npm test
+
+# 3. Generate a Power Quote
+npm run quote
+
+# 4. Generate all 9 pipelines in batch
+npm run all
+
+# 5. Launch the Web Studio GUI
+npm run studio
+# 🌐 Opens http://localhost:3333
+
+# 6. Launch the Interactive Telegram Bot
+npm run bot
+```
+
+---
+
+## 🎯 Content Pipelines (9 Formats + Batch)
+
+| Format | Command | Resolution | Description |
 |---|---|---|---|
-| **Power Quote** | `npm run quote` | 1080×1080 | AI-generated poetic Amharic spiritual quote |
-| **Daily Verse** | `npm run verse` | 1080×1080 | Literal 1962 EOTC Bible verse with sacred geometry |
-| **Carousel** | `npm run carousel` | 5× 1080×1350 | 5-slide progressive teaching series |
-| **Reflection** | `npm run reflection` | 1080×1920 | Multi-paragraph priestly teaching + prayer |
-| **Saint of the Day** | `npm run saint` | 1080×1080 | Daily saint commemoration with story + lesson |
-| **Fasting Guide** | `npm run fasting` | 1080×1350 | Current fast progress, rules, encouragement |
-| **Holy Week** | `npm run holyweek` | 1080×1350 | Day-specific Passion Week teaching |
-| **Church History** | `npm run history` | 1080×1350 | Key events in EOTC history (8 topics) |
-| **Weekly Calendar** | `npm run calendar` | 1080×1920 | 7-day liturgical calendar with saints & moods |
-
-Every piece of content passes through: **Generation → Theological Auditing → Mood-Based Rendering → Delivery**
-
----
-
-## 🎨 Dynamic Mood System
-
-Templates automatically shift their entire color palette based on the liturgical context:
-
-| Mood | Colors | When Active |
-|---|---|---|
-| 🟡 **Joyful** | Warm gold + amber glow | Feasts, celebrations |
-| ⚡ **Triumphant** | Bright gold + white radiance | Easter, Ascension, Meskel |
-| 🟣 **Penitential** | Deep purple + muted silver | Lent, Good Friday, fasting |
-| 🔵 **Contemplative** | Cool blue + soft silver | Ordinary days, reflections |
-| 🟢 **Celebratory** | Rich gold + emerald accents | Timkat, Christmas, saint days |
-| ✝️ **Devotional** | Classic gold + dark warmth | Default daily context |
-
-Every generated image also carries an **Ethiopian date watermark** in Ge'ez numerals (e.g., "ግንቦት ፬ ፳፻፲፰").
+| **Power Quote** | `npm run quote` | 1080×1080 | Poetic Amharic spiritual quote with patristic weight |
+| **Daily Verse** | `npm run verse` | 1080×1080 | Verified 1962 EOTC Bible verse with strict Ge'ez numerals |
+| **Deep Dive Carousel** | `npm run carousel` | 5× 1080×1350 | 5-slide progressive theological masterclass |
+| **Weekly Reflection** | `npm run reflection` | 1080×1920 | Multi-paragraph homily + pastoral prayer |
+| **Saint of the Day** | `npm run saint` | 1080×1080 | Synaxarium hagiography, Ge'ez hymn, and life lesson |
+| **Fasting Guide** | `npm run fasting` | 1080×1350 | Active fast tracker, day countdown, rules & encouragement |
+| **Holy Week** | `npm run holyweek` | 1080×1350 | Passion Week day-by-day liturgical card |
+| **Church History** | `npm run history` | 1080×1350 | Milestone moments in Ethiopian Church history |
+| **Calendar Summary** | `npm run calendar` | 1080×1920 | 7-day liturgical week overview with commemorations |
+| **All-in-One Batch** | `npm run all` | All formats | Generates the entire daily bundle sequentially |
 
 ---
 
-## 📅 Liturgical Intelligence
+## 🎬 Zero-Cost Video Reel Engine
 
-The calendar engine (`src/utils/calendar.js`) provides:
+Convert any rendered graphic into dynamic short-form video reels for **YouTube Shorts, TikTok, and Instagram Reels** at zero API cost:
 
-- **Ethiopian Calendar Conversion** — Gregorian → Ethiopian date with Ge'ez numerals
-- **Bahire Hasab (Computus)** — Mathematically computes all moveable feasts
-- **30 Daily Saint Commemorations** — Every day 1-30 has a patron saint with deep context
-- **20+ Major Fixed Feasts** — Meskel, Genna, Timkat, Filseta, etc.
-- **Fasting Seasons** — Great Lent, Nineveh, Apostles, Prophets, Assumption, weekly
-- **Fasting Progress Tracker** — Current day / total days with progress percentage
-- **Holy Week Detection** — Precise 7-day Passion week identification
-- **Pagume Detection** — 13th month with New Year countdown
-- **Zemene (Seasons)** — Tsige, Keremt, Bega, Sebket
-- **Lenten Week Themes** — 8 named Sundays of Great Lent
-- **8 Church History Topics** — From Aksumite conversion to modern autocephaly
+- **Aspect Ratios**: 9:16 (1080×1920 vertical), 1:1 (1080×1080 square), 4:5 (1080×1350 portrait)
+- **Camera Work**: Cinematic Ken Burns slow-pan & zoom presets tailored to liturgical reverence
+- **Aesthetic Overlays**: Subtle radial golden vignette, cinematic black cross-fades
+- **Multi-Slide Carousel Animation**: 5-slide carousel smoothly transitioned into an animated video deck
 
----
-
-## 🏗️ Architecture
-
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Liturgical   │────▶│  AI Engine   │────▶│  Theological │────▶│  Puppeteer   │
-│  Calendar     │     │  (OpenRouter) │     │  Auditor     │     │  Renderer    │
-│  + Bahire     │     │  + 9 Prompts │     │  (Proofreader)│     │  (3x Retina) │
-│  Hasab Engine │     │              │     │              │     │  + Mood CSS  │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────┬───────┘
-                                                                       │
-                                          ┌──────────────┐     ┌──────────────┐
-                                          │  Supabase    │◀────│  Telegram    │
-                                          │  (Dedup DB)  │     │  Multi-Group │
-                                          └──────────────┘     └──────────────┘
+**Enable Video Generation**:
+```bash
+# In your .env file or command line:
+GENERATE_VIDEO=true npm run quote
 ```
 
 ---
 
-## 🔧 Environment Variables
+## 📖 Canonical Scripture & Synaxarium Engine
 
-| Variable | Required | Description |
-|---|---|---|
-| `OPENROUTER_API_KEY` | ✅ | AI model access via OpenRouter |
-| `TELEGRAM_BOT_TOKEN` | ✅ | Telegram bot for delivery |
-| `TELEGRAM_CHAT_ID` | ✅ | Comma-separated chat/group IDs |
-| `SUPABASE_URL` | Optional | Duplicate detection database |
-| `SUPABASE_KEY` | Optional | Supabase service key |
-| `AI_MODEL` | Optional | Default: `google/gemini-2.5-flash` |
-| `PUPPETEER_EXEC_PATH` | Optional | Chrome path (auto-detected locally) |
-| `CONTENT_TYPE` | Optional | Which content type to generate |
-| `USE_LITURGICAL` | Optional | Enable liturgical context (default: true) |
+To eradicate AI hallucination of biblical verses and historical dates, v7.0 includes local canonical databases:
+
+1. **`src/canon/scripture.js`**:
+   - Curated verses from the 1962 Haile Selassie EOTC 81-book Bible.
+   - Exact Ethiopian chapter:verse punctuation (`፥`) and Ge'ez numerals (`፭፥፰`).
+   - Keyword & theme matching (`getVerifiedVerse('ፍቅር')`).
+   - Automatic reference sanitizer (`sanitizeReference('ዮሐንስ 3:16')`).
+
+2. **`src/canon/synaxarium.js`**:
+   - Full 30-day monthly commemoration cycle (መጽሐፈ ስንክሳር).
+   - Patristic excerpts, Ge'ez hymns (`ምልጣን / አቡን`), Amharic translations, and moral lessons.
 
 ---
 
-## 📁 Project Structure
+## 📱 Interactive Telegram Concierge Bot
+
+Run `npm run bot` to activate the 2-way spiritual companion:
+
+| Command | Action |
+|---|---|
+| `/today` | Complete liturgical brief: date, daily saint, fast state, mood |
+| `/saint` | Full Synaxarium story & moral lesson for today's commemoration |
+| `/saint [1-30]` | Look up any monthly commemoration by day (e.g. `/saint 24`) |
+| `/verse` | Canonical scripture verse of the day |
+| `/fasting` | Active fasting status, progress bar, canonical rules |
+| `/calendar` | Current 7-day week schedule with patron feasts |
+| `/computus [year]` | Bahire Hasab mathematical calculation for Easter and movable feasts |
+| `/search [keyword]` | Search canonical scripture repository |
+| `/generate [type]` | (Admin only) Trigger content generation and broadcast remotely |
+
+---
+
+## 🖥️ Local Web Studio GUI
+
+Run `npm run studio` and open `http://localhost:3333`:
+
+- **Real-Time Visual Grid**: Browse all rendered PNGs and MP4 reels
+- **One-Click Generator**: Trigger any of the 9 pipelines with liturgical toggle
+- **Full-Screen Lightbox**: Inspect 3× Retina details and typography
+- **One-Click Download**: Download images or videos directly to your device
+- **Console Log Stream**: Live output and status indicators
+
+---
+
+## 🎨 Sacred Design Architecture
+
+- **Noto Sans Ethiopic Typography**: Optimized letter-spacing and hierarchy for Amharic script.
+- **Ecclesiastical Vectors**: Embedded SVG Lalibela Cross and woven Tibeb borders (`assets/vectors/`).
+- **Dynamic Liturgical Moods**:
+  - 🟡 **Joyful** (Warm gold + amber glow) — Major feasts
+  - ⚡ **Triumphant** (Bright gold + white radiance) — Easter, Meskel, Timkat
+  - 🟣 **Penitential** (Deep purple + muted silver) — Lent, fasting seasons
+  - 🔵 **Contemplative** (Cool blue + soft silver) — Weekly reflections
+  - 🟢 **Celebratory** (Rich gold + emerald accents) — Saint commemorations
+  - ✝️ **Devotional** (Classic dark gold) — Daily default
+
+---
+
+## 🔧 Environment Configuration
+
+Edit `.env` (or see `.env.example`):
+
+```ini
+# AI Configuration
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxx
+AI_MODEL=google/gemini-2.5-flash
+
+# Video Reel Generation
+GENERATE_VIDEO=false
+VIDEO_PROFILES=1:1,9:16
+FFMPEG_PATH=
+
+# Web Studio Port
+STUDIO_PORT=3333
+
+# Telegram Delivery & Bot
+TELEGRAM_BOT_TOKEN=1234567890:ABCdef...
+TELEGRAM_CHAT_ID=-1001234567890
+
+# Liturgical Mode
+USE_LITURGICAL=true
+LOG_LEVEL=INFO
+```
+
+---
+
+## 📁 Repository Structure
 
 ```
 eotc-media-studio/
+├── .github/workflows/
+│   └── generate-media.yml     # Automated GitHub Actions workflow (v7 with video & bot)
+├── assets/
+│   └── vectors/               # Lalibela cross and Tibeb border SVGs
 ├── src/
-│   ├── index.js                 # v6.0 Pipeline orchestrator (9 pipelines)
+│   ├── index.js               # Master pipeline orchestrator (9 pipelines + batch)
 │   ├── ai/
-│   │   └── openrouter.js        # 11 AI prompts + theological auditor
+│   │   └── openrouter.js      # Dual-AI engine & theological proofreader
+│   ├── canon/
+│   │   ├── scripture.js       # Canonical 81-book scripture engine (zero hallucination)
+│   │   └── synaxarium.js      # 30-day Synaxarium hagiography archive
 │   ├── db/
-│   │   └── supabase.js          # Duplicate detection + content memory
+│   │   └── supabase.js        # Content deduplication and storage
 │   ├── render/
-│   │   └── puppeteer.js         # Mood-aware 3x retina renderer (9 renderers)
+│   │   ├── puppeteer.js       # 3× Retina Chromium renderer with mood theming
+│   │   └── video.js           # FFmpeg Ken Burns video reel generator (9:16, 1:1, 4:5)
+│   ├── studio/
+│   │   └── server.js          # Web Studio GUI server (http://localhost:3333)
 │   ├── telegram/
-│   │   └── bot.js               # Multi-group Telegram delivery
+│   │   ├── bot.js             # High-resolution media publisher
+│   │   └── concierge.js       # Interactive 2-way Telegram concierge bot
 │   └── utils/
-│       └── calendar.js          # Full EOTC liturgical calendar engine
-├── templates/
-│   ├── power_quote.html         # Glassmorphic dark card + mood colors
-│   ├── daily_verse.html         # Sacred geometry + golden halo
-│   ├── deep_dive.html           # Carousel slide with progress
-│   ├── weekly_reflection.html   # Parchment-style long-form
-│   ├── saint_day.html           # Saint halo + feast badge
-│   ├── fasting_guide.html       # Progress bar + rules + encouragement
-│   ├── holy_week.html           # Crimson cross + Passion atmosphere
-│   ├── church_history.html      # Sepia narrative + significance box
-│   └── calendar_summary.html    # 7-day grid with mood indicators
-├── .github/
-│   └── workflows/
-│       └── generate-media.yml   # Manual dispatch (9 content types)
-└── package.json                 # v6.0.0
+│       └── calendar.js        # Bahire Hasab computus & liturgical calendar engine
+├── templates/                 # 9 production HTML/CSS templates
+├── test.mjs                   # 57-check automated test suite
+├── .env.example               # Full v7.0 environment configuration
+└── package.json
 ```
-
----
-
-## 🚀 GitHub Actions Usage
-
-1. Go to **Actions** → **"✝️ EOTC Media Studio — Generate Content"**
-2. Click **"Run workflow"**
-3. Select content type from dropdown (9 options)
-4. Toggle liturgical context on/off
-5. Content generates, renders, and delivers to Telegram automatically
 
 ---
 
 ## 📜 License
 
-MIT — Built for the glory of God and the Ethiopian Orthodox Tewahedo Church.
+MIT License. Designed and maintained for the Ethiopian Orthodox Tewahedo Church media ministry.
