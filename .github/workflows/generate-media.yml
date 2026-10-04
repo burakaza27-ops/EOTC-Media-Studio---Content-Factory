@@ -67,6 +67,12 @@ jobs:
           sudo apt-get install -y ffmpeg
           ffmpeg -version | head -1
 
+      - name: 🔤 Install Ethiopian Fonts & System Packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-core
+          fc-cache -f -v || true
+
       - name: 🎨 Generate Content
         env:
           CONTENT_TYPE:          ${{ github.event.inputs.content_type || 'quote' }}
@@ -81,7 +87,7 @@ jobs:
           SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY:          ${{ secrets.SUPABASE_KEY }}
           AI_MODEL:              ${{ secrets.AI_MODEL || 'google/gemini-2.5-flash' }}
-          PUPPETEER_EXEC_PATH:   /usr/bin/google-chrome-stable
+          PUPPETEER_EXEC_PATH:   /usr/bin/google-chrome
           FFMPEG_PATH:           /usr/bin/ffmpeg
         run: node src/index.js
 

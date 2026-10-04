@@ -4,7 +4,9 @@ import { formatContextForPrompt } from '../utils/calendar.js';
 const getEnv = (key) => process.env[key];
 
 const OPENROUTER_API_KEY = () => getEnv('OPENROUTER_API_KEY');
+const GOOGLE_AI_STUDIO_API = () => getEnv('GOOGLE_AI_STUDIO_API') || getEnv('GEMINI_API_KEY');
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+const GOOGLE_AI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
 const QUOTE_SYSTEM_PROMPT = `You are a master poet and theologian of the Ethiopian Orthodox Tewahedo Church (ኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን), specializing in Amharic spiritual literature.
 
@@ -368,6 +370,43 @@ async function retryWithBackoff(fn, retries = MAX_RETRIES) {
 const PRIMARY_MODEL = 'google/gemini-2.5-flash';
 const FALLBACK_MODELS = ['google/gemini-2.5-flash-lite', 'google/gemini-3.5-flash-lite'];
 
+async function callGoogleAIStudio(apiKey, model, systemPrompt, userPrompt, jsonMode) {
+  let geminiModel = (model || 'gemini-2.5-flash').replace(/^google\//, '');
+  if (!geminiModel.startsWith('gemini-')) {
+    geminiModel = 'gemini-2.5-flash';
+  }
+
+  const endpoint = `${GOOGLE_AI_BASE_URL}/models/${geminiModel}:generateContent?key=${apiKey}`;
+  const response = await axios.post(
+    endpoint,
+    {
+      system_instruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: userPrompt }]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.9,
+        maxOutputTokens: jsonMode ? 2048 : 500,
+        responseMimeType: jsonMode ? 'application/json' : 'text/plain'
+      }
+    },
+    {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 60000
+    }
+  );
+
+  const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  if (!text) throw new Error('Empty response from Google AI Studio API');
+  return text;
+}
+
 async function callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode) {
   const response = await axios.post(
     `${OPENROUTER_BASE_URL}/chat/completions`,
@@ -394,24 +433,47 @@ async function callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode)
   );
 
   const content = response.data?.choices?.[0]?.message?.content?.trim();
-  if (!content) throw new Error('Empty response from AI API');
+  if (!content) throw new Error('Empty response from OpenRouter API');
   
   return content;
 }
 
 async function callAI(systemPrompt, userPrompt, jsonMode = false) {
-  const apiKey = OPENROUTER_API_KEY();
-  if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
+  const orKey = OPENROUTER_API_KEY();
+  const googleKey = GOOGLE_AI_STUDIO_API();
 
-  const modelId = process.env.AI_MODEL || PRIMARY_MODEL;
-  const modelsToTry = [modelId, ...FALLBACK_MODELS.filter(m => m !== modelId)];
+  if (!orKey && !googleKey) {
+    throw new Error('Neither OPENROUTER_API_KEY nor GOOGLE_AI_STUDIO_API is configured');
+  }
+
+  const configuredModel = process.env.AI_MODEL || PRIMARY_MODEL;
+  const strategies = [];
+
+  // If OpenRouter is configured, try configured model and fallbacks
+  if (orKey) {
+    const orModels = [configuredModel, ...FALLBACK_MODELS.filter(m => m !== configuredModel)];
+    for (const m of orModels) {
+      strategies.push({ provider: 'openrouter', key: orKey, model: m });
+    }
+  }
+
+  // If Google AI Studio is configured, add direct Gemini endpoints
+  if (googleKey) {
+    strategies.push({ provider: 'google', key: googleKey, model: 'gemini-2.5-flash' });
+    strategies.push({ provider: 'google', key: googleKey, model: 'gemini-1.5-flash' });
+  }
 
   return retryWithBackoff(async () => {
     let lastError = null;
-    for (const model of modelsToTry) {
+    for (const strat of strategies) {
       try {
-        console.log(`🧪 Trying model: ${model}`);
-        const content = await callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode);
+        console.log(`🧪 Trying AI [${strat.provider}]: ${strat.model}`);
+        let content = '';
+        if (strat.provider === 'google') {
+          content = await callGoogleAIStudio(strat.key, strat.model, systemPrompt, userPrompt, jsonMode);
+        } else {
+          content = await callOpenRouter(strat.key, strat.model, systemPrompt, userPrompt, jsonMode);
+        }
         
         // If it's JSON mode, verify it's valid JSON before returning
         if (jsonMode) {
@@ -419,8 +481,8 @@ async function callAI(systemPrompt, userPrompt, jsonMode = false) {
             extractJSON(content); // Just to verify it's parseable
             return content;
           } catch (e) {
-            console.warn(`⚠️ Model ${model} returned invalid JSON, trying next...`);
-            lastError = new Error(`Invalid JSON from ${model}`);
+            console.warn(`⚠️ Model [${strat.provider}/${strat.model}] returned invalid JSON, trying next...`);
+            lastError = new Error(`Invalid JSON from ${strat.model}`);
             continue;
           }
         }
@@ -429,27 +491,43 @@ async function callAI(systemPrompt, userPrompt, jsonMode = false) {
         lastError = err;
         const status = err.response?.status;
         const msg = err.response?.data?.error?.message || err.message;
-        console.error(`❌ Model ${model} failed (${status || 'Err'}): ${msg}`);
+        console.error(`❌ AI [${strat.provider}/${strat.model}] failed (${status || 'Err'}): ${msg}`);
         continue;
       }
     }
-    throw lastError || new Error('All models failed');
+    throw lastError || new Error('All AI models and providers failed');
   });
 }
 
 async function verifyAndCorrect(data, jsonMode = true) {
-  const apiKey = OPENROUTER_API_KEY();
-  if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
+  const orKey = OPENROUTER_API_KEY();
+  const googleKey = GOOGLE_AI_STUDIO_API();
 
-  // We use gemini-2.5-flash as the theological auditor
-  const auditorModel = 'google/gemini-2.5-flash';
+  if (!orKey && !googleKey) {
+    return data; // Demo mode fallback
+  }
+
   const payload = jsonMode ? JSON.stringify(data, null, 2) : data;
-  
-  console.log(`\n🔍 Proofreading with Theological Auditor (${auditorModel})...`);
+  console.log(`\n🔍 Proofreading with Theological Auditor...`);
   
   return retryWithBackoff(async () => {
     try {
-      const content = await callOpenRouter(apiKey, auditorModel, AUDITOR_SYSTEM_PROMPT, `Please audit and correct the following content according to guidelines:\n\n${payload}`, jsonMode);
+      let content = '';
+      if (orKey) {
+        try {
+          content = await callOpenRouter(orKey, 'google/gemini-2.5-flash', AUDITOR_SYSTEM_PROMPT, `Please audit and correct the following content according to guidelines:\n\n${payload}`, jsonMode);
+        } catch (orErr) {
+          if (googleKey) {
+            console.warn(`⚠️ OpenRouter auditor failed (${orErr.message}), falling back to Google AI Studio auditor...`);
+            content = await callGoogleAIStudio(googleKey, 'gemini-2.5-flash', AUDITOR_SYSTEM_PROMPT, `Please audit and correct the following content according to guidelines:\n\n${payload}`, jsonMode);
+          } else {
+            throw orErr;
+          }
+        }
+      } else if (googleKey) {
+        content = await callGoogleAIStudio(googleKey, 'gemini-2.5-flash', AUDITOR_SYSTEM_PROMPT, `Please audit and correct the following content according to guidelines:\n\n${payload}`, jsonMode);
+      }
+
       if (jsonMode) {
         return extractJSON(content);
       }
@@ -612,5 +690,5 @@ export async function translateToEnglish(amharicText) {
 }
 
 export function isConfigured() {
-  return !!OPENROUTER_API_KEY();
+  return !!(OPENROUTER_API_KEY() || GOOGLE_AI_STUDIO_API());
 }

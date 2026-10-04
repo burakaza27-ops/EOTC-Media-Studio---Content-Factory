@@ -51,10 +51,13 @@ function buildMultipartFormData(fields, boundary) {
   
   for (const [key, value] of Object.entries(fields)) {
     if (value instanceof Buffer) {
+      const isVideo = key === 'video' || (typeof key === 'string' && key.endsWith('.mp4'));
+      const filename = isVideo ? 'reel.mp4' : 'quote.png';
+      const contentType = isVideo ? 'video/mp4' : 'image/png';
       parts.push(Buffer.from(
         `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="${key}"; filename="quote.png"\r\n` +
-        `Content-Type: image/png\r\n\r\n`
+        `Content-Disposition: form-data; name="${key}"; filename="${filename}"\r\n` +
+        `Content-Type: ${contentType}\r\n\r\n`
       ));
       parts.push(value);
       parts.push(Buffer.from('\r\n'));
@@ -353,6 +356,63 @@ function sendMediaGroupRequest(token, chatId, imageBuffers, caption) {
     req.write(body);
     req.end();
   });
+}
+
+export async function sendVideoToTelegram(videoPath, caption = '') {
+  const token = TELEGRAM_BOT_TOKEN();
+  const chatIds = TELEGRAM_CHAT_IDS();
+  
+  if (!token || chatIds.length === 0) {
+    console.log('📋 Telegram not configured — skipping video notification');
+    return { skipped: true, reason: 'not_configured' };
+  }
+
+  if (!fs.existsSync(videoPath)) {
+    throw new Error(`Video file not found: ${videoPath}`);
+  }
+
+  const stats = fs.statSync(videoPath);
+  if (stats.size > 50 * 1024 * 1024) {
+    console.warn(`⚠️ Video too large for Telegram bot API: ${(stats.size / 1024 / 1024).toFixed(1)}MB (max 50MB)`);
+    return { skipped: true, reason: 'too_large' };
+  }
+
+  try {
+    console.log(`📤 Sending video to Telegram (${(stats.size / 1024 / 1024).toFixed(2)}MB)...`);
+    const results = [];
+    
+    for (const chatId of chatIds) {
+      for (let i = 0; i < MAX_RETRIES; i++) {
+        try {
+          const response = await httpsMultipartRequest(
+            `/bot${token}/sendVideo`,
+            {
+              chat_id: chatId,
+              video: fs.readFileSync(videoPath),
+              caption: caption,
+              parse_mode: 'HTML',
+              supports_streaming: 'true'
+            }
+          );
+          console.log(`✅ Video sent to ${chatId}, message_id:`, response.result?.message_id);
+          results.push({ success: true, chatId, message_id: response.result?.message_id });
+          break;
+        } catch (error) {
+          if (i === MAX_RETRIES - 1) {
+            console.error(`❌ Failed to send video to ${chatId}:`, error.message);
+            results.push({ success: false, chatId, error: error.message });
+          } else {
+            const delay = 1000 * Math.pow(2, i);
+            await sleep(delay);
+          }
+        }
+      }
+    }
+    return { success: results.some(r => r.success), results };
+  } catch (error) {
+    console.error('❌ Telegram video broadcast failed:', error.message);
+    return { success: false, error: error.message };
+  }
 }
 
 // ─── Named Export Aliases (used by index.js) ────────────────────────────────

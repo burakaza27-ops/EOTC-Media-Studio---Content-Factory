@@ -63,6 +63,7 @@ import {
 import {
   sendImageToTelegram,
   sendCarouselToTelegram,
+  sendVideoToTelegram,
   isConfigured as isTelegramConfigured
 } from './telegram/bot.js';
 
@@ -144,6 +145,16 @@ async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], content
       subtitleLines,
       mood: 'devotional'
     });
+
+    if (isTelegramConfigured() && results) {
+      for (const [profile, videoPath] of Object.entries(results)) {
+        if (videoPath && fs.existsSync(videoPath)) {
+          const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${subtitleLines[0] || ''}`;
+          await sendVideoToTelegram(videoPath, caption).catch(e => console.warn(`Telegram reel delivery notice: ${e.message}`));
+        }
+      }
+    }
+
     return results;
   } catch (err) {
     console.warn(`⚠️ Video reel failed (non-fatal): ${err.message}`);
@@ -159,7 +170,14 @@ async function maybeRenderCarouselVideo(imagePaths, baseName) {
   try {
     const ffCheck = await checkFFmpeg();
     if (!ffCheck.available) return {};
-    return await renderCarouselVideo(imagePaths, OUTPUT_DIR, baseName, 4);
+    const videoPath = await renderCarouselVideo(imagePaths, OUTPUT_DIR, baseName, 4);
+
+    if (isTelegramConfigured() && videoPath && fs.existsSync(videoPath)) {
+      const caption = `🎬 <b>EOTC Teaching Carousel Reel</b>`;
+      await sendVideoToTelegram(videoPath, caption).catch(e => console.warn(`Telegram carousel reel delivery notice: ${e.message}`));
+    }
+
+    return videoPath;
   } catch (err) {
     console.warn(`⚠️ Carousel video failed (non-fatal): ${err.message}`);
     return {};
@@ -589,7 +607,7 @@ async function main() {
   console.log(`🎬 Video Reels:      ${GENERATE_VIDEO ? `ON (${VIDEO_PROFILES_ENV.join(', ')})` : 'OFF (set GENERATE_VIDEO=true)'}`);
 
   if (!isAIConfigured()) {
-    throw new Error('OPENROUTER_API_KEY is required but not set.');
+    throw new Error('AI API key is required but not set. Please configure OPENROUTER_API_KEY or GOOGLE_AI_STUDIO_API.');
   }
 
   // Handle 'all' batch mode

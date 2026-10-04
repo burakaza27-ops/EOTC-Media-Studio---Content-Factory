@@ -17,6 +17,7 @@
  *  /start / /help — Welcome message and command list
  */
 
+import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
