@@ -189,7 +189,7 @@ function offsetEthDate(eDate, days) {
   return { year: newYear, month: newMonth, day: newDay };
 }
 
-function calculateMoveableFeasts(ethYear) {
+export function calculateMoveableFeasts(ethYear) {
   const gYear = ethYear + 8; // Safely approximate the Gregorian year for Easter
   
   // Julian Easter (Meeus/Jones/Butcher algorithm)
@@ -217,6 +217,39 @@ function calculateMoveableFeasts(ethYear) {
     erget: offsetEthDate(fasika, +39),
     perakletos: offsetEthDate(fasika, +49),
     tsomeHawariatStart: offsetEthDate(fasika, +50)
+  };
+}
+
+export function getComputusData(ethYear) {
+  const EVANGELISTS = ['ዮሐንስ', 'ማቴዎስ', 'ማርቆስ', 'ሉቃስ'];
+  const evIndex = (ethYear + 5500) % 4;
+  const evangelist = EVANGELISTS[evIndex];
+  const isLeap = evIndex === 3; // Luke has 6 Pagume days before John
+
+  const moveables = calculateMoveableFeasts(ethYear);
+
+  const formatMDate = (d) => {
+    const mName = ETHIOPIAN_MONTHS_AMHARIC[d.month] || '';
+    return `${mName} ${toGeezNumerals(d.day)} (${d.day})`;
+  };
+
+  return {
+    year: ethYear,
+    yearGeez: toGeezNumerals(ethYear),
+    evangelist: `ዘመነ ${evangelist}`,
+    pagumeDays: isLeap ? 6 : 5,
+    feasts: [
+      { name: 'ጾመ ነነዌ (Fast of Nineveh)', date: formatMDate(moveables.nenewe), raw: moveables.nenewe },
+      { name: 'ዐቢይ ጾም (Great Lent begins)', date: formatMDate(moveables.abiyTsomStart), raw: moveables.abiyTsomStart },
+      { name: 'ደብረ ዘይት (Debre Zeit)', date: formatMDate(moveables.debreZeit), raw: moveables.debreZeit },
+      { name: 'ሆሣዕና (Palm Sunday)', date: formatMDate(moveables.hosanna), raw: moveables.hosanna },
+      { name: 'ጸሎተ ሐሙስ (Maundy Thursday)', date: formatMDate(moveables.hqmuss), raw: moveables.hqmuss },
+      { name: 'ስቅለት (Good Friday)', date: formatMDate(moveables.siklet), raw: moveables.siklet },
+      { name: 'ትንሣኤ / ፋሲካ (Holy Easter / Fasika)', date: formatMDate(moveables.fasika), raw: moveables.fasika },
+      { name: 'ዕርገት (Ascension)', date: formatMDate(moveables.erget), raw: moveables.erget },
+      { name: 'ጰራቅሊጦስ (Pentecost)', date: formatMDate(moveables.perakletos), raw: moveables.perakletos },
+      { name: 'ጾመ ሐዋርያት (Apostles Fast begins)', date: formatMDate(moveables.tsomeHawariatStart), raw: moveables.tsomeHawariatStart }
+    ]
   };
 }
 

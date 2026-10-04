@@ -17,9 +17,12 @@
     "calendar":    "cross-env CONTENT_TYPE=calendar USE_LITURGICAL=true node src/index.js",
     "studio":      "node src/studio/server.js",
     "bot":         "node src/telegram/concierge.js",
+    "reel":        "cross-env GENERATE_VIDEO=true node src/index.js",
+    "dispatch":    "node src/index.js --dispatch",
     "all":         "cross-env CONTENT_TYPE=all USE_LITURGICAL=true node src/index.js",
     "dev":         "node --watch src/index.js",
     "test":        "node test.mjs",
+    "health":      "node test.mjs",
     "lint":        "eslint src/",
     "format":      "prettier --write src/"
   },

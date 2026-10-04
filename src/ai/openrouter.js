@@ -689,6 +689,44 @@ export async function translateToEnglish(amharicText) {
   return translation.trim();
 }
 
+export async function testAIConnection() {
+  const orKey = OPENROUTER_API_KEY();
+  const googleKey = GOOGLE_AI_STUDIO_API();
+  const configuredModel = process.env.AI_MODEL || PRIMARY_MODEL;
+
+  const result = {
+    configured: !!(orKey || googleKey),
+    openRouterConfigured: !!orKey,
+    googleAIStudioConfigured: !!googleKey,
+    model: configuredModel,
+    connected: false,
+    latencyMs: 0
+  };
+
+  if (!result.configured) return result;
+
+  const start = Date.now();
+  try {
+    const testPrompt = 'Write the word "ሰላም"';
+    let reply = '';
+    if (googleKey) {
+      reply = await callGoogleAIStudio(googleKey, 'gemini-2.5-flash', 'You are a test assistant.', testPrompt, false);
+      result.activeProvider = 'Google AI Studio (Gemini 2.5 Flash)';
+    } else if (orKey) {
+      reply = await callOpenRouter(orKey, configuredModel, 'You are a test assistant.', testPrompt, false);
+      result.activeProvider = `OpenRouter (${configuredModel})`;
+    }
+    result.connected = !!reply;
+    result.latencyMs = Date.now() - start;
+    return result;
+  } catch (err) {
+    result.connected = false;
+    result.error = err.message;
+    result.latencyMs = Date.now() - start;
+    return result;
+  }
+}
+
 export function isConfigured() {
   return !!(OPENROUTER_API_KEY() || GOOGLE_AI_STUDIO_API());
 }

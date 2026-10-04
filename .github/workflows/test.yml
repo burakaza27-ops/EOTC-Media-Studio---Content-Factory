@@ -1,0 +1,51 @@
+name: "🧪 EOTC Media Studio — CI Test Suite"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: "🧪 Run Full System Health Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🎬 Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+
+      - name: 🔤 Install Ethiopian Fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-core fonts-noto-extra fonts-sil-abyssinica
+          fc-cache -f -v || true
+
+      - name: 🧪 Execute Health Check & Test Suite
+        env:
+          OPENROUTER_API_KEY:    ${{ secrets.OPENROUTER_API_KEY }}
+          GOOGLE_AI_STUDIO_API:  ${{ secrets.GOOGLE_AI_STUDIO_API }}
+          TELEGRAM_BOT_TOKEN:    ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:      ${{ secrets.TELEGRAM_CHAT_ID }}
+          SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:          ${{ secrets.SUPABASE_KEY }}
+        run: node test.mjs

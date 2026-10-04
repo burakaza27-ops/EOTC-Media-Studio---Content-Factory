@@ -141,19 +141,31 @@ export async function renderVideoReel(opts = {}) {
     // Combine filters
     const filterChain = `[0:v]${scaleFilter},${vignetteFilter},${fadeFilter},format=yuv420p[vout]`;
 
+    const customAudio = path.join(__dirname, '../../assets/audio/ambient.mp3');
+    const hasCustomAudio = fs.existsSync(customAudio);
+
+    const inputArgs = ['-y', '-loop', '1', '-i', imagePath];
+    if (hasCustomAudio) {
+      inputArgs.push('-stream_loop', '-1', '-i', customAudio);
+    } else {
+      inputArgs.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100');
+    }
+
     const args = [
-      '-y',
-      '-loop', '1',
-      '-i', imagePath,
+      ...inputArgs,
       '-t', String(duration),
       '-filter_complex', filterChain,
       '-map', '[vout]',
+      '-map', '1:a',
       '-c:v', 'libx264',
+      '-c:a', 'aac',
+      '-b:a', '128k',
       '-preset', 'fast',
       '-crf', '18',
       '-pix_fmt', 'yuv420p',
       '-movflags', '+faststart',
       '-r', String(fps),
+      '-shortest',
       outPath
     ];
 

@@ -1,15 +1,17 @@
-# ✝️ EOTC Media Studio v7.0
+# ✝️ EOTC Media Studio v7.0 — Broadcast-Grade Content Factory
 
-**The definitive, broadcast-grade multimedia content factory for the Ethiopian Orthodox Tewahedo Church.**
+**The definitive, broadcast-grade multimedia publishing and automation empire for the Ethiopian Orthodox Tewahedo Church (የኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን).**
 
-Operates as a **100% free ($0 / zero-cost)** automated media publishing empire:
-- **9 Specialized Liturgical Pipelines** (Quotes, Verses, Carousels, Reflections, Saints, Fasting, Holy Week, Church History, Calendar)
-- **Zero-Cost Video Reel Engine** (Vertical 9:16 Shorts/Reels & 1:1 Square MP4s with cinematic Ken Burns camera motion & vignette overlays via FFmpeg)
-- **Canonical Scripture & Synaxarium Engine** (Zero-hallucination local 1962 81-book EOTC Bible repository + Patristic Synaxarium archive)
-- **Sacred Ecclesiastical Visual Kit** (Vector Lalibela Crosses, woven Tibeb borders, 3× Retina rendering, mood-based dynamic styling)
-- **Interactive 2-Way Telegram Concierge Bot** (Spiritual guide with `/today`, `/saint`, `/verse`, `/fasting`, `/calendar`, `/computus`, `/search`)
-- **Live Local Web Studio GUI** (Visual dashboard at `http://localhost:3333` with live media preview, batch generation, and one-click download)
-- **Dual-Model Theological Auditing** (AI synthesis proofread by patristic dogmatic guidelines before rendering)
+Operates as a **100% free ($0 / zero-cost)** automated media publishing engine:
+- **9 Specialized Liturgical Pipelines**: Quotes, Daily Verses, 5-Slide Carousels, Weekly Reflections, Saints of the Day, Fasting Guides, Holy Week, Church History, and Weekly Calendars.
+- **Interactive Telegram Concierge Command Center**: Complete remote command center featuring multi-level inline keyboard menus, step-by-step interactive wizard, and direct file delivery.
+- **Bi-Directional GitHub Actions Cloud Control**: Dispatch workflows, monitor live runs, inspect logs, re-run, or cancel directly from Telegram or CLI.
+- **Zero-Cost Video Reel Engine**: Vertical 9:16 Shorts/Reels & 1:1 Square MP4s with cinematic Ken Burns camera motion & vignette overlays via FFmpeg.
+- **Dual-Model AI Resilience**: High-availability synthesis via OpenRouter with automatic zero-configuration fallback to Google AI Studio (Gemini 2.5 Flash), accompanied by patristic theological auditing.
+- **Zero-Hallucination Canonical Scripture & Synaxarium**: Local repository of verified 1962 81-book EOTC Bible verses with strict Ge'ez numerals, plus a complete 30-day patristic Synaxarium archive.
+- **Accurate Bahire Hasab Computus Engine**: Full mathematical calculations for Easter (Fasika), Nineveh, Great Lent, Hosanna, Siklet, Ascension, Pentecost, and Evangelist cycles for any Ethiopian year.
+- **Sacred Ecclesiastical Visual Kit**: Vector Lalibela Crosses, woven Tibeb borders, 3× Retina rendering, mood-based dynamic styling.
+- **Live Local Web Studio GUI**: Visual dashboard at `http://localhost:3333` with live media preview, batch generation, and one-click download.
 
 ---
 
@@ -19,28 +21,73 @@ Operates as a **100% free ($0 / zero-cost)** automated media publishing empire:
 # 1. Install dependencies
 npm install
 
-# 2. Run system health check (57 tests)
+# 2. Run complete system health check (65 automated tests)
 npm test
 
 # 3. Generate a Power Quote
 npm run quote
 
-# 4. Generate all 9 pipelines in batch
-npm run all
+# 4. Generate with 9:16 Video Reel
+npm run reel
 
-# 5. Launch the Web Studio GUI
+# 5. Launch the Interactive Telegram Command Center
+npm run bot
+
+# 6. Launch the Local Web Studio GUI
 npm run studio
 # 🌐 Opens http://localhost:3333
 
-# 6. Launch the Interactive Telegram Bot
-npm run bot
+# 7. Dispatch workflow to GitHub Actions Cloud
+npm run dispatch -- quote
 ```
+
+---
+
+## 📱 Interactive Telegram Command Center
+
+The Telegram bot (`src/telegram/concierge.js`) provides complete interactive control over the entire factory:
+
+| Command | Action |
+|---|---|
+| `/menu` | Interactive multi-level inline keyboard command center |
+| `/wizard` | Step-by-step interactive generation wizard (Type → Video/Image → Theme → Delivery) |
+| `/today` | Complete liturgical brief: date, daily saint, fast state, mood |
+| `/quote [theme]` | Generate an immediate 1080×1080 power quote card |
+| `/verse [ref]` | Generate a verified 1962 EOTC scripture verse card |
+| `/carousel [theme]` | Generate a 5-slide progressive theological masterclass album |
+| `/reflection [theme]` | Generate a multi-paragraph pastoral homily & prayer |
+| `/saint [1-30]` | Full Synaxarium story, Ge'ez hymn, moral lesson, and saint card |
+| `/fasting` | Active fasting status, day countdown, rules & encouragement |
+| `/calendar` | Current 7-day week schedule with commemorations |
+| `/reel [type]` | Generate 9:16 vertical video reel with Ken Burns pan/zoom |
+| `/all` | Sequentially generate all 9 content pipelines |
+| `/dispatch [type]` | Dispatch workflow to GitHub Actions cloud runners |
+| `/ghstatus` | Check live status of GitHub Actions workflow runs |
+| `/computus [year]` | Bahire Hasab table: Evangelist cycle, Pagume days, 10 moveable feasts |
+| `/search [term]` | Canonical search across 81-book Bible & 30-day Synaxarium |
+| `/recent` | Browse and download recently generated media directly into chat |
+| `/status` / `/health` | Full system health diagnostics (AI, DB, FFmpeg, GitHub, memory) |
+
+---
+
+## ☁️ GitHub Actions Integration
+
+The studio integrates with GitHub Actions for cloud-based headless rendering:
+
+1. **Workflow Dispatch from Telegram or CLI**:
+   - Trigger `.github/workflows/generate-media.yml` directly from Telegram bot buttons or CLI (`node src/index.js --dispatch quote --video`).
+2. **Font Accuracy in CI/CD**:
+   - Workflows automatically install `fonts-noto-core`, `fonts-noto-extra`, and `fonts-sil-abyssinica` on Ubuntu runners to guarantee 100% complete Ge'ez glyph rendering without missing boxes.
+3. **Automated Continuous Integration**:
+   - `.github/workflows/test.yml` automatically validates the 65-test health check suite on every push and pull request.
+4. **Artifact Management**:
+   - Output images and video reels are saved in GitHub Artifacts with 30-day retention and broadcasted to Telegram channels.
 
 ---
 
 ## 🎯 Content Pipelines (9 Formats + Batch)
 
-| Format | Command | Resolution | Description |
+| Format | CLI Command | Resolution | Description |
 |---|---|---|---|
 | **Power Quote** | `npm run quote` | 1080×1080 | Poetic Amharic spiritual quote with patristic weight |
 | **Daily Verse** | `npm run verse` | 1080×1080 | Verified 1962 EOTC Bible verse with strict Ge'ez numerals |
@@ -68,13 +115,15 @@ Convert any rendered graphic into dynamic short-form video reels for **YouTube S
 ```bash
 # In your .env file or command line:
 GENERATE_VIDEO=true npm run quote
+# Or via CLI flag:
+node src/index.js quote --video
 ```
 
 ---
 
 ## 📖 Canonical Scripture & Synaxarium Engine
 
-To eradicate AI hallucination of biblical verses and historical dates, v7.0 includes local canonical databases:
+To eradicate AI hallucination of biblical verses and historical dates:
 
 1. **`src/canon/scripture.js`**:
    - Curated verses from the 1962 Haile Selassie EOTC 81-book Bible.
@@ -86,49 +135,8 @@ To eradicate AI hallucination of biblical verses and historical dates, v7.0 incl
    - Full 30-day monthly commemoration cycle (መጽሐፈ ስንክሳር).
    - Patristic excerpts, Ge'ez hymns (`ምልጣን / አቡን`), Amharic translations, and moral lessons.
 
----
-
-## 📱 Interactive Telegram Concierge Bot
-
-Run `npm run bot` to activate the 2-way spiritual companion:
-
-| Command | Action |
-|---|---|
-| `/today` | Complete liturgical brief: date, daily saint, fast state, mood |
-| `/saint` | Full Synaxarium story & moral lesson for today's commemoration |
-| `/saint [1-30]` | Look up any monthly commemoration by day (e.g. `/saint 24`) |
-| `/verse` | Canonical scripture verse of the day |
-| `/fasting` | Active fasting status, progress bar, canonical rules |
-| `/calendar` | Current 7-day week schedule with patron feasts |
-| `/computus [year]` | Bahire Hasab mathematical calculation for Easter and movable feasts |
-| `/search [keyword]` | Search canonical scripture repository |
-| `/generate [type]` | (Admin only) Trigger content generation and broadcast remotely |
-
----
-
-## 🖥️ Local Web Studio GUI
-
-Run `npm run studio` and open `http://localhost:3333`:
-
-- **Real-Time Visual Grid**: Browse all rendered PNGs and MP4 reels
-- **One-Click Generator**: Trigger any of the 9 pipelines with liturgical toggle
-- **Full-Screen Lightbox**: Inspect 3× Retina details and typography
-- **One-Click Download**: Download images or videos directly to your device
-- **Console Log Stream**: Live output and status indicators
-
----
-
-## 🎨 Sacred Design Architecture
-
-- **Noto Sans Ethiopic Typography**: Optimized letter-spacing and hierarchy for Amharic script.
-- **Ecclesiastical Vectors**: Embedded SVG Lalibela Cross and woven Tibeb borders (`assets/vectors/`).
-- **Dynamic Liturgical Moods**:
-  - 🟡 **Joyful** (Warm gold + amber glow) — Major feasts
-  - ⚡ **Triumphant** (Bright gold + white radiance) — Easter, Meskel, Timkat
-  - 🟣 **Penitential** (Deep purple + muted silver) — Lent, fasting seasons
-  - 🔵 **Contemplative** (Cool blue + soft silver) — Weekly reflections
-  - 🟢 **Celebratory** (Rich gold + emerald accents) — Saint commemorations
-  - ✝️ **Devotional** (Classic dark gold) — Daily default
+3. **`src/utils/calendar.js`**:
+   - Full Computus (`getComputusData(year)`) calculating moveable feasts, fasts, and evangelist cycles.
 
 ---
 
@@ -137,9 +145,14 @@ Run `npm run studio` and open `http://localhost:3333`:
 Edit `.env` (or see `.env.example`):
 
 ```ini
-# AI Configuration
+# AI Configuration (Dual-Provider Resilience)
 OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxx
+GOOGLE_AI_STUDIO_API=AIzaSy...
 AI_MODEL=google/gemini-2.5-flash
+
+# GitHub Cloud Dispatch & Actions Monitoring
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+GITHUB_REPOSITORY=burakaza27-ops/EOTC-Media-Studio---Content-Factory
 
 # Video Reel Generation
 GENERATE_VIDEO=false
@@ -165,30 +178,32 @@ LOG_LEVEL=INFO
 ```
 eotc-media-studio/
 ├── .github/workflows/
-│   └── generate-media.yml     # Automated GitHub Actions workflow (v7 with video & bot)
+│   ├── generate-media.yml     # Automated GitHub Actions workflow (with custom theme & Ethiopic fonts)
+│   └── test.yml               # Automated CI continuous integration test suite
 ├── assets/
 │   └── vectors/               # Lalibela cross and Tibeb border SVGs
 ├── src/
-│   ├── index.js               # Master pipeline orchestrator (9 pipelines + batch)
+│   ├── index.js               # Master pipeline orchestrator (CLI args + cloud dispatch)
 │   ├── ai/
-│   │   └── openrouter.js      # Dual-AI engine & theological proofreader
+│   │   └── openrouter.js      # Dual-AI engine (OpenRouter + Google AI Studio fallback)
 │   ├── canon/
 │   │   ├── scripture.js       # Canonical 81-book scripture engine (zero hallucination)
 │   │   └── synaxarium.js      # 30-day Synaxarium hagiography archive
 │   ├── db/
-│   │   └── supabase.js        # Content deduplication and storage
+│   │   └── supabase.js        # Content deduplication and storage with offline fallback
 │   ├── render/
-│   │   ├── puppeteer.js       # 3× Retina Chromium renderer with mood theming
+│   │   ├── puppeteer.js       # 3× Retina Chromium renderer with mood theming & compression
 │   │   └── video.js           # FFmpeg Ken Burns video reel generator (9:16, 1:1, 4:5)
 │   ├── studio/
 │   │   └── server.js          # Web Studio GUI server (http://localhost:3333)
 │   ├── telegram/
-│   │   ├── bot.js             # High-resolution media publisher
-│   │   └── concierge.js       # Interactive 2-way Telegram concierge bot
+│   │   ├── bot.js             # High-resolution media publisher & safe-caption delivery
+│   │   └── concierge.js       # Interactive 2-way Telegram concierge bot & command center
 │   └── utils/
-│       └── calendar.js        # Bahire Hasab computus & liturgical calendar engine
+│       ├── calendar.js        # Bahire Hasab computus & liturgical calendar engine
+│       └── github.js          # GitHub Actions cloud integration engine
 ├── templates/                 # 9 production HTML/CSS templates
-├── test.mjs                   # 57-check automated test suite
+├── test.mjs                   # 65-check automated test suite
 ├── .env.example               # Full v7.0 environment configuration
 └── package.json
 ```

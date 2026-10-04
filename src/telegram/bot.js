@@ -3,27 +3,31 @@ import https from 'https';
 
 const getEnv = (key) => process.env[key];
 
-const TELEGRAM_BOT_TOKEN = () => getEnv('TELEGRAM_BOT_TOKEN');
-const TELEGRAM_CHAT_IDS = () => {
+export const TELEGRAM_BOT_TOKEN = () => getEnv('TELEGRAM_BOT_TOKEN');
+export const TELEGRAM_CHAT_IDS = () => {
   const ids = getEnv('TELEGRAM_CHAT_ID');
   if (!ids) return [];
   return ids.split(',').map(id => id.trim()).filter(id => id.length > 0);
 };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 const MAX_RETRIES = 3;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function httpsRequest(path, body = null) {
+export function httpsRequest(path, body = null) {
   return new Promise((resolve, reject) => {
+    const payload = body ? JSON.stringify(body) : null;
     const options = {
       hostname: 'api.telegram.org',
       path: path,
-      method: body ? 'POST' : 'GET',
-      headers: body ? { 'Content-Type': 'application/json' } : {}
+      method: payload ? 'POST' : 'GET',
+      headers: payload
+        ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+        : {}
     };
 
     const req = https.request(options, (res) => {
@@ -33,7 +37,7 @@ function httpsRequest(path, body = null) {
         try {
           const response = JSON.parse(data);
           if (response.ok) resolve(response);
-          else reject(new Error(response.description));
+          else reject(new Error(response.description || 'Telegram API request failed'));
         } catch (e) {
           reject(e);
         }
@@ -41,7 +45,7 @@ function httpsRequest(path, body = null) {
     });
 
     req.on('error', reject);
-    if (body) req.write(JSON.stringify(body));
+    if (payload) req.write(payload);
     req.end();
   });
 }
@@ -61,7 +65,7 @@ function buildMultipartFormData(fields, boundary) {
       ));
       parts.push(value);
       parts.push(Buffer.from('\r\n'));
-    } else {
+    } else if (value !== undefined && value !== null) {
       parts.push(Buffer.from(
         `--${boundary}\r\n` +
         `Content-Disposition: form-data; name="${key}"\r\n\r\n` +
@@ -73,7 +77,7 @@ function buildMultipartFormData(fields, boundary) {
   return Buffer.concat([...parts, Buffer.from(`--${boundary}--\r\n`)]);
 }
 
-function httpsMultipartRequest(path, fields) {
+export function httpsMultipartRequest(path, fields) {
   return new Promise((resolve, reject) => {
     const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
     const body = buildMultipartFormData(fields, boundary);
@@ -95,7 +99,7 @@ function httpsMultipartRequest(path, fields) {
         try {
           const response = JSON.parse(data);
           if (response.ok) resolve(response);
-          else reject(new Error(response.description));
+          else reject(new Error(response.description || 'Telegram multipart failed'));
         } catch (e) {
           reject(e);
         }
@@ -108,6 +112,129 @@ function httpsMultipartRequest(path, fields) {
   });
 }
 
+// ─── Single Chat Delivery Helpers ──────────────────────────────────────────
+
+function safeCaption(caption, maxLen = 1000) {
+  if (!caption) return '';
+  if (caption.length <= maxLen) return caption;
+  return caption.substring(0, maxLen - 3) + '...';
+}
+
+export async function sendPhotoToChat(chatId, imagePath, caption = '') {
+  const token = TELEGRAM_BOT_TOKEN();
+  if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not configured');
+  if (!fs.existsSync(imagePath)) throw new Error(`Image not found: ${imagePath}`);
+
+  const stats = fs.statSync(imagePath);
+  if (stats.size > MAX_FILE_SIZE) {
+    throw new Error(`Image too large: ${(stats.size / 1024 / 1024).toFixed(1)}MB (max: 10MB)`);
+  }
+
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    try {
+      const response = await httpsMultipartRequest(
+        `/bot${token}/sendPhoto`,
+        {
+          chat_id: chatId,
+          photo: fs.readFileSync(imagePath),
+          caption: safeCaption(caption),
+          parse_mode: 'HTML'
+        }
+      );
+      return { success: true, chatId, message_id: response.result?.message_id };
+    } catch (error) {
+      if (i === MAX_RETRIES - 1) throw error;
+      await sleep(1000 * Math.pow(2, i));
+    }
+  }
+}
+
+export async function sendVideoToChat(chatId, videoPath, caption = '') {
+  const token = TELEGRAM_BOT_TOKEN();
+  if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not configured');
+  if (!fs.existsSync(videoPath)) throw new Error(`Video file not found: ${videoPath}`);
+
+  const stats = fs.statSync(videoPath);
+  if (stats.size > MAX_VIDEO_SIZE) {
+    throw new Error(`Video too large: ${(stats.size / 1024 / 1024).toFixed(1)}MB (max 50MB)`);
+  }
+
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    try {
+      const response = await httpsMultipartRequest(
+        `/bot${token}/sendVideo`,
+        {
+          chat_id: chatId,
+          video: fs.readFileSync(videoPath),
+          caption: safeCaption(caption),
+          parse_mode: 'HTML',
+          supports_streaming: 'true'
+        }
+      );
+      return { success: true, chatId, message_id: response.result?.message_id };
+    } catch (error) {
+      if (i === MAX_RETRIES - 1) throw error;
+      await sleep(1000 * Math.pow(2, i));
+    }
+  }
+}
+
+export async function sendDocumentToChat(chatId, filePath, caption = '') {
+  const token = TELEGRAM_BOT_TOKEN();
+  if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not configured');
+  if (!fs.existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
+
+  const fileName = path.basename(filePath);
+  return await httpsMultipartRequest(
+    `/bot${token}/sendDocument`,
+    {
+      chat_id: chatId,
+      document: fs.readFileSync(filePath),
+      caption: safeCaption(caption),
+      parse_mode: 'HTML'
+    }
+  );
+}
+
+export async function sendMediaGroupToChat(chatId, imagePaths, caption = '') {
+  const token = TELEGRAM_BOT_TOKEN();
+  if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not configured');
+  if (!imagePaths || imagePaths.length === 0) throw new Error('No images provided for album');
+
+  for (const img of imagePaths) {
+    if (!fs.existsSync(img)) throw new Error(`Image not found: ${img}`);
+  }
+
+  const imageBuffers = imagePaths.map(p => fs.readFileSync(p));
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const response = await sendMediaGroupRequest(token, chatId, imageBuffers, caption);
+      return { success: true, chatId, count: response.result?.length || 0 };
+    } catch (error) {
+      if (attempt === MAX_RETRIES - 1) throw error;
+      await sleep(1500 * Math.pow(2, attempt));
+    }
+  }
+}
+
+export async function sendMessageToChat(chatId, text, options = {}) {
+  const token = TELEGRAM_BOT_TOKEN();
+  if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not configured');
+
+  const body = {
+    chat_id: chatId,
+    text: text,
+    parse_mode: options.parse_mode || 'HTML',
+    disable_web_page_preview: options.disable_web_page_preview !== false
+  };
+  if (options.reply_markup) body.reply_markup = options.reply_markup;
+
+  return await httpsRequest(`/bot${token}/sendMessage`, body);
+}
+
+// ─── Broadcast Delivery Functions ──────────────────────────────────────────
+
 export async function sendToTelegram(imagePath, caption) {
   const token = TELEGRAM_BOT_TOKEN();
   const chatIds = TELEGRAM_CHAT_IDS();
@@ -117,111 +244,43 @@ export async function sendToTelegram(imagePath, caption) {
     return { skipped: true, reason: 'not_configured' };
   }
 
-  if (!fs.existsSync(imagePath)) {
-    throw new Error(`Image file not found: ${imagePath}`);
-  }
-
-  const stats = fs.statSync(imagePath);
-  if (stats.size > MAX_FILE_SIZE) {
-    throw new Error(`Image too large: ${(stats.size / 1024 / 1024).toFixed(1)}MB (max: 10MB)`);
-  }
-
-  try {
-    console.log(`📤 Sending to Telegram (${(stats.size / 1024 / 1024).toFixed(2)}MB)...`);
-    const results = [];
-    
-    for (const chatId of chatIds) {
-      console.log(`📤 Sending to group: ${chatId}`);
-      let sent = false;
-      for (let i = 0; i < MAX_RETRIES; i++) {
-        try {
-          const response = await httpsMultipartRequest(
-            `/bot${token}/sendPhoto`,
-            {
-              chat_id: chatId,
-              photo: fs.readFileSync(imagePath),
-              caption: caption,
-              parse_mode: 'HTML'
-            }
-          );
-          console.log(`✅ Sent to ${chatId}, message_id:`, response.result.message_id);
-          results.push({ success: true, chatId, message_id: response.result.message_id });
-          sent = true;
-          break;
-        } catch (error) {
-          if (i === MAX_RETRIES - 1) {
-            console.error(`❌ Failed to send to ${chatId}:`, error.message);
-            results.push({ success: false, chatId, error: error.message });
-          } else {
-            const delay = 1000 * Math.pow(2, i);
-            console.log(`⏳ Telegram retry for ${chatId} in ${delay}ms... (${error.message})`);
-            await sleep(delay);
-          }
-        }
-      }
+  console.log(`📤 Broadcasting photo to ${chatIds.length} target(s)...`);
+  const results = [];
+  for (const chatId of chatIds) {
+    try {
+      const res = await sendPhotoToChat(chatId, imagePath, caption);
+      console.log(`✅ Sent photo to ${chatId}, message_id:`, res.message_id);
+      results.push(res);
+    } catch (error) {
+      console.error(`❌ Failed to send photo to ${chatId}:`, error.message);
+      results.push({ success: false, chatId, error: error.message });
     }
-    return { success: results.some(r => r.success), results };
-  } catch (error) {
-    console.error('❌ Telegram broadcast failed:', error.message);
-    return { success: false, error: error.message };
   }
+  return { success: results.some(r => r.success), results };
 }
 
-export async function sendMessage(text, parseMode = 'HTML') {
+export async function sendVideoToTelegram(videoPath, caption = '') {
   const token = TELEGRAM_BOT_TOKEN();
   const chatIds = TELEGRAM_CHAT_IDS();
   
   if (!token || chatIds.length === 0) {
-    return { skipped: true };
+    console.log('📋 Telegram not configured — skipping video notification');
+    return { skipped: true, reason: 'not_configured' };
   }
 
+  console.log(`📤 Broadcasting video reel to ${chatIds.length} target(s)...`);
   const results = [];
-  try {
-    for (const chatId of chatIds) {
-      for (let i = 0; i < MAX_RETRIES; i++) {
-        try {
-          const response = await httpsRequest(
-            `/bot${token}/sendMessage`,
-            {
-              chat_id: chatId,
-              text: text,
-              parse_mode: parseMode
-            }
-          );
-          results.push({ success: true, chatId, message_id: response.result.message_id });
-          break;
-        } catch (error) {
-          if (i === MAX_RETRIES - 1) {
-            results.push({ success: false, chatId, error: error.message });
-          } else {
-            await sleep(1000 * Math.pow(2, i));
-          }
-        }
-      }
+  for (const chatId of chatIds) {
+    try {
+      const res = await sendVideoToChat(chatId, videoPath, caption);
+      console.log(`✅ Sent video to ${chatId}, message_id:`, res.message_id);
+      results.push(res);
+    } catch (error) {
+      console.error(`❌ Failed to send video to ${chatId}:`, error.message);
+      results.push({ success: false, chatId, error: error.message });
     }
-    return { success: results.some(r => r.success), results };
-  } catch (error) {
-    console.error('❌ Telegram message broadcast failed:', error.message);
-    return { success: false, error: error.message };
   }
-}
-
-export async function testConnection() {
-  const token = TELEGRAM_BOT_TOKEN();
-  if (!token) {
-    return { configured: false };
-  }
-
-  try {
-    const response = await httpsRequest(`/bot${token}/getMe`);
-    return { configured: true, bot: response.result, username: response.result.username };
-  } catch (error) {
-    return { configured: false, error: error.message };
-  }
-}
-
-export function isConfigured() {
-  return !!(TELEGRAM_BOT_TOKEN() && TELEGRAM_CHAT_IDS().length > 0);
+  return { success: results.some(r => r.success), results };
 }
 
 export async function sendCarousel(imagePaths, caption = '') {
@@ -233,94 +292,66 @@ export async function sendCarousel(imagePaths, caption = '') {
     return { skipped: true };
   }
 
-  if (!imagePaths || imagePaths.length === 0) {
-    throw new Error('No images to send');
-  }
-
-  // Validate all files exist and check sizes
-  for (const imagePath of imagePaths) {
-    if (!fs.existsSync(imagePath)) {
-      throw new Error(`Image not found: ${imagePath}`);
-    }
-    const sz = fs.statSync(imagePath).size;
-    if (sz > MAX_FILE_SIZE) {
-      console.warn(`⚠️ Slide ${imagePath} is ${(sz/1024/1024).toFixed(1)}MB — may be rejected by Telegram`);
+  console.log(`📤 Broadcasting carousel album to ${chatIds.length} target(s)...`);
+  const results = [];
+  for (const chatId of chatIds) {
+    try {
+      const res = await sendMediaGroupToChat(chatId, imagePaths, caption);
+      console.log(`✅ Sent album to ${chatId}: ${res.count} messages`);
+      results.push(res);
+    } catch (error) {
+      console.error(`❌ Carousel failed for ${chatId}:`, error.message);
+      results.push({ success: false, chatId, error: error.message });
     }
   }
+  return { success: results.some(r => r.success), results };
+}
 
-  // Read all image buffers
-  const imageBuffers = imagePaths.map(p => fs.readFileSync(p));
+export async function sendMessage(text, parseMode = 'HTML') {
+  const token = TELEGRAM_BOT_TOKEN();
+  const chatIds = TELEGRAM_CHAT_IDS();
+  if (!token || chatIds.length === 0) return { skipped: true };
 
-  try {
-    console.log(`📤 Sending carousel album (${imagePaths.length} slides) to ${chatIds.length} group(s)...`);
-    const results = [];
-
-    for (const chatId of chatIds) {
-      console.log(`📤 Sending album to group: ${chatId}`);
-      let sent = false;
-
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-          const response = await sendMediaGroupRequest(token, chatId, imageBuffers, caption);
-          console.log(`✅ Carousel album sent to ${chatId}: ${response.result.length} messages`);
-          results.push({ success: true, chatId, count: response.result.length });
-          sent = true;
-          break;
-        } catch (error) {
-          if (attempt === MAX_RETRIES - 1) {
-            console.error(`❌ Carousel failed for ${chatId}:`, error.message);
-            results.push({ success: false, chatId, error: error.message });
-          } else {
-            const delay = 1500 * Math.pow(2, attempt);
-            console.log(`⏳ Retrying carousel for ${chatId} in ${delay}ms...`);
-            await sleep(delay);
-          }
-        }
-      }
+  const results = [];
+  for (const chatId of chatIds) {
+    try {
+      const res = await sendMessageToChat(chatId, text, { parse_mode: parseMode });
+      results.push({ success: true, chatId, message_id: res.result?.message_id });
+    } catch (error) {
+      results.push({ success: false, chatId, error: error.message });
     }
-
-    return { success: results.some(r => r.success), results };
-  } catch (error) {
-    console.error('❌ Carousel broadcast failed:', error.message);
-    return { success: false, error: error.message };
   }
+  return { success: results.some(r => r.success), results };
 }
 
 function sendMediaGroupRequest(token, chatId, imageBuffers, caption) {
   return new Promise((resolve, reject) => {
     const boundary = '----EOTCBoundary' + Date.now().toString(36);
     
-    // Build media JSON array — first image gets the caption
     const mediaArray = imageBuffers.map((buf, i) => ({
       type: 'photo',
       media: `attach://slide${i}`,
       ...(i === 0 && caption ? { caption, parse_mode: 'HTML' } : {})
     }));
 
-    // Build multipart body
-    const parts = [];
-
-    // chat_id field
-    parts.push(Buffer.from(
+    const preHeader = Buffer.from(
       `--${boundary}\r\n` +
       `Content-Disposition: form-data; name="chat_id"\r\n\r\n` +
-      `${chatId}\r\n`
-    ));
-
-    // media field (JSON)
-    parts.push(Buffer.from(
+      `${chatId}\r\n` +
       `--${boundary}\r\n` +
       `Content-Disposition: form-data; name="media"\r\n\r\n` +
       `${JSON.stringify(mediaArray)}\r\n`
-    ));
+    );
 
-    // Each image as attach://slideN
+    const parts = [preHeader];
+
     imageBuffers.forEach((buf, i) => {
-      parts.push(Buffer.from(
+      const partHeader = Buffer.from(
         `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="slide${i}"; filename="slide${i}.png"\r\n` +
+        `Content-Disposition: form-data; name="slide${i}"; filename="slide_${i + 1}.png"\r\n` +
         `Content-Type: image/png\r\n\r\n`
-      ));
+      );
+      parts.push(partHeader);
       parts.push(buf);
       parts.push(Buffer.from('\r\n'));
     });
@@ -358,63 +389,22 @@ function sendMediaGroupRequest(token, chatId, imageBuffers, caption) {
   });
 }
 
-export async function sendVideoToTelegram(videoPath, caption = '') {
+export async function testConnection() {
   const token = TELEGRAM_BOT_TOKEN();
-  const chatIds = TELEGRAM_CHAT_IDS();
-  
-  if (!token || chatIds.length === 0) {
-    console.log('📋 Telegram not configured — skipping video notification');
-    return { skipped: true, reason: 'not_configured' };
-  }
-
-  if (!fs.existsSync(videoPath)) {
-    throw new Error(`Video file not found: ${videoPath}`);
-  }
-
-  const stats = fs.statSync(videoPath);
-  if (stats.size > 50 * 1024 * 1024) {
-    console.warn(`⚠️ Video too large for Telegram bot API: ${(stats.size / 1024 / 1024).toFixed(1)}MB (max 50MB)`);
-    return { skipped: true, reason: 'too_large' };
-  }
+  if (!token) return { configured: false };
 
   try {
-    console.log(`📤 Sending video to Telegram (${(stats.size / 1024 / 1024).toFixed(2)}MB)...`);
-    const results = [];
-    
-    for (const chatId of chatIds) {
-      for (let i = 0; i < MAX_RETRIES; i++) {
-        try {
-          const response = await httpsMultipartRequest(
-            `/bot${token}/sendVideo`,
-            {
-              chat_id: chatId,
-              video: fs.readFileSync(videoPath),
-              caption: caption,
-              parse_mode: 'HTML',
-              supports_streaming: 'true'
-            }
-          );
-          console.log(`✅ Video sent to ${chatId}, message_id:`, response.result?.message_id);
-          results.push({ success: true, chatId, message_id: response.result?.message_id });
-          break;
-        } catch (error) {
-          if (i === MAX_RETRIES - 1) {
-            console.error(`❌ Failed to send video to ${chatId}:`, error.message);
-            results.push({ success: false, chatId, error: error.message });
-          } else {
-            const delay = 1000 * Math.pow(2, i);
-            await sleep(delay);
-          }
-        }
-      }
-    }
-    return { success: results.some(r => r.success), results };
+    const response = await httpsRequest(`/bot${token}/getMe`);
+    return { configured: true, bot: response.result, username: response.result?.username };
   } catch (error) {
-    console.error('❌ Telegram video broadcast failed:', error.message);
-    return { success: false, error: error.message };
+    return { configured: false, error: error.message };
   }
 }
 
-// ─── Named Export Aliases (used by index.js) ────────────────────────────────
+export function isConfigured() {
+  return !!(TELEGRAM_BOT_TOKEN() && TELEGRAM_CHAT_IDS().length > 0);
+}
+
+// ─── Named Export Aliases ──────────────────────────────────────────────────
 export const sendImageToTelegram = sendToTelegram;
 export const sendCarouselToTelegram = sendCarousel;

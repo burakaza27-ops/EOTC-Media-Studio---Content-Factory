@@ -37,6 +37,15 @@ export const VERIFIED_SCRIPTURES = [
     verseNum: 26,
     keywords: ['እምነት', 'ሥራ', 'ተዋሕዶ']
   },
+  {
+    theme: 'ሃይማኖት እና እምነት',
+    verse: 'አንድ ጌታ አንድ ሃይማኖት አንዲት ጥምቀት፤ ከሁሉ በላይ የሚሆን በሁሉም የሚሠራ በሁሉም የሚኖር አንድ አምላክ የሁሉም አባት አለ።',
+    reference: 'ኤፌሶን ፬፥፭-፮',
+    book: 'ኤፌሶን',
+    chapter: 4,
+    verseNum: 5,
+    keywords: ['አንድ', 'ሃይማኖት', 'ጥምቀት', 'አምላክ']
+  },
 
   // ── Love & Spiritual Virtues (መንፈሳዊ ፍቅርና በጎነት) ──
   {
@@ -58,6 +67,15 @@ export const VERIFIED_SCRIPTURES = [
     keywords: ['ፍቅር', 'መስዋዕት', 'ሕይወት']
   },
   {
+    theme: 'መንፈሳዊ ፍቅር',
+    verse: 'ፍቅር ይታገሣል፥ ቸርነትንም ያደርጋል፤ ፍቅር አይቀናም፤ ፍቅር አይመካም፥ አይታበይም፤ የማይገባውን አያደርግም፥ የራሱንም አይፈልግም፥ አይበሳጭም፥ በደልን አይቆጥርም።',
+    reference: '፩ኛ ቆሮንቶስ ፲፫፥፬-፭',
+    book: '፩ኛ ቆሮንቶስ',
+    chapter: 13,
+    verseNum: 4,
+    keywords: ['ፍቅር', 'ትዕግሥት', 'ቸርነት']
+  },
+  {
     theme: 'ትሕትና',
     verse: 'እግዚአብሔር ትዕቢተኞችን ይቃወማል፥ ለትሑታን ግን ጸጋን ይሰጣል።',
     reference: '፩ኛ ጴጥሮስ ፭፥፭',
@@ -74,6 +92,24 @@ export const VERIFIED_SCRIPTURES = [
     chapter: 12,
     verseNum: 12,
     keywords: ['መከራ', 'ጸሎት', 'ተስፋ', 'ትዕግሥት']
+  },
+  {
+    theme: 'የልብ ንጽሕና',
+    verse: 'ልበ ንጹሖች ብፁዓን ናቸው፥ እግዚአብሔርን ያዩታልና።',
+    reference: 'ማቴዎስ ፭፥፰',
+    book: 'ማቴዎስ',
+    chapter: 5,
+    verseNum: 8,
+    keywords: ['ንጽሕና', 'ብፁዓን', 'ልብ', 'ማየት']
+  },
+  {
+    theme: 'ምስጋና',
+    verse: 'ሁልጊዜ ደስ ይበላችሁ፤ ሳታቋርጡ ጸልዩ፤ በሁሉ አመስግኑ፤ ይህ የእግዚአብሔር ፈቃድ በክርስቶስ ኢየሱስ ወደ እናንተ ነውና።',
+    reference: '፩ኛ ተሰሎንቄ ፭፥፲፮-፲፰',
+    book: '፩ኛ ተሰሎንቄ',
+    chapter: 5,
+    verseNum: 16,
+    keywords: ['ደስታ', 'ጸሎት', 'ምስጋና']
   },
 
   // ── Repentance & Fasting (ንስሐና ጾም) ──
@@ -104,6 +140,15 @@ export const VERIFIED_SCRIPTURES = [
     verseNum: 21,
     keywords: ['ጸሎት', 'ጾም', 'ኃይል']
   },
+  {
+    theme: 'የጾም እና የጸሎት ኃይል',
+    verse: 'ስትጾሙም እንደ ግብዞች አትጠውልጉ፤ ለሰዎች እንደ ጾሙ ሊታዩ ፊታቸውን ያጠፋሉና፤ እውነት እላችኋለሁ፥ ዋጋቸውን ተቀብለዋል።',
+    reference: 'ማቴዎስ ፮፥፲፮',
+    book: 'ማቴዎስ',
+    chapter: 6,
+    verseNum: 16,
+    keywords: ['ጾም', 'መንፈሳዊነት', 'ትሕትና']
+  },
 
   // ── Incarnation & Salvation (ምሥጢረ ሥጋዌና ድኅነት) ──
   {
@@ -133,6 +178,15 @@ export const VERIFIED_SCRIPTURES = [
     verseNum: 18,
     keywords: ['መስቀል', 'ኃይል', 'ደህንነት']
   },
+  {
+    theme: 'ትንሣኤ ሙታን',
+    verse: 'ኢየሱስም፦ ትንሣኤና ሕይወት እኔ ነኝ፤ የሚያምንብኝ ቢሞት እንኳ ሕያው ይሆናል፤ ሕያው የሆነም የሚያምንብኝም ሁሉ ለዘላለም አይሞትም፤ ይህን ታምኛለሽን? አላት።',
+    reference: 'ዮሐንስ ፲፩፥፳፭-፳፮',
+    book: 'ዮሐንስ',
+    chapter: 11,
+    verseNum: 25,
+    keywords: ['ትንሣኤ', 'ሕይወት', 'እምነት']
+  },
 
   // ── The Holy Eucharist & Sacraments (ምሥጢረ ቁርባን) ──
   {
@@ -143,6 +197,15 @@ export const VERIFIED_SCRIPTURES = [
     chapter: 6,
     verseNum: 54,
     keywords: ['ቁርባን', 'ሥጋ', 'ደም', 'ትንሣኤ']
+  },
+  {
+    theme: 'ምሥጢረ ቁርባን',
+    verse: 'ሥጋዬ እውነተኛ መብል ደሜም እውነተኛ መጠጥ ነውና። ሥጋዬን የሚበላ ደሜንም የሚጠጣ በእኔ ይኖራል እኔም በእርሱ እኖራለሁ።',
+    reference: 'ዮሐንስ ፮፥፶፭-፶፮',
+    book: 'ዮሐንስ',
+    chapter: 6,
+    verseNum: 55,
+    keywords: ['ቁርባን', 'መብል', 'መጠጥ', 'ሕይወት']
   },
 
   // ── The Holy Theotokos & Intercession (ወላዲተ አምላክና አማላጅነት) ──
@@ -164,6 +227,24 @@ export const VERIFIED_SCRIPTURES = [
     verseNum: 42,
     keywords: ['በረከት', 'ድንግል', 'ማኅፀን']
   },
+  {
+    theme: 'ቅድስት ድንግል ማርያም',
+    verse: 'እነሆ፥ ድንግል ትፀንሳለች ወንድ ልጅም ትወልዳለች፥ ስሙንም አማኑኤል ይሉታል፤ ትርጓሜውም፦ እግዚአብሔር ከእኛ ጋር የሚል ነው።',
+    reference: 'ኢሳይያስ ፯፥፲፬',
+    book: 'ኢሳይያስ',
+    chapter: 7,
+    verseNum: 14,
+    keywords: ['ድንግል', 'አማኑኤል', 'ትንቢት']
+  },
+  {
+    theme: 'ቅድስት ድንግል ማርያም',
+    verse: 'ኢየሱስም እናቱን ይወደው የነበረውንም ደቀ መዝሙር በአጠገቡ ቆሞ ባየ ጊዜ እናቱን፦ አንቺ ሴት፥ እነሆ ልጅሽ አላት። ከዚህ በኋላ ደቀ መዝሙሩን፦ እናትህ እነኋት አለው።',
+    reference: 'ዮሐንስ ፲፱፥፳፮-፳፯',
+    book: 'ዮሐንስ',
+    chapter: 19,
+    verseNum: 26,
+    keywords: ['እናት', 'መስቀል', 'አደራ', 'ማርያም']
+  },
 
   // ── Psalms & Spiritual Praise (መዝሙረ ዳዊት) ──
   {
@@ -182,16 +263,16 @@ export const VERIFIED_SCRIPTURES = [
     book: 'መዝሙረ ዳዊት',
     chapter: 134,
     verseNum: 2,
-    keywords: ['ሌሊት', 'ጸሎት', 'መቅደስ', 'ምስጋና']
+    keywords: ['ሌሊት', 'ጸሎት', 'መቅደስ']
   },
   {
-    theme: 'ምስጋና',
-    verse: 'እግዚአብሔርን ሁልጊዜ እባርከዋለሁ፥ ምስጋናውም ዘወትር በአፌ ነው።',
-    reference: 'መዝሙረ ዳዊት ፴፫፥፩',
+    theme: 'የእግዚአብሔር ጸጋ',
+    verse: 'እግዚአብሔር ብርሃኔና መድኃኒቴ ነው፤ የሚያስፈራኝ ማን ነው? እግዚአብሔር የሕይወቴ መታመኛዋ ነው፤ የሚያስደነግጠኝ ማን ነው?',
+    reference: 'መዝሙረ ዳዊት ፳፮፥፩',
     book: 'መዝሙረ ዳዊት',
-    chapter: 34,
+    chapter: 27,
     verseNum: 1,
-    keywords: ['ምስጋና', 'ማመስገን', 'ዘወትር']
+    keywords: ['ብርሃን', 'መድኃኒት', 'ሕይወት', 'መታመን']
   },
   {
     theme: 'ሕያው የእግዚአብሔር ቃል',
@@ -200,53 +281,96 @@ export const VERIFIED_SCRIPTURES = [
     book: 'መዝሙረ ዳዊት',
     chapter: 119,
     verseNum: 105,
-    keywords: ['ሕግ', 'መብራት', 'ብርሃን']
+    keywords: ['ሕግ', 'መብራት', 'ብርሃን', 'ቃል']
   },
-
-  // ── Archangels & Spiritual Warfare ──
   {
-    theme: 'ቅዱስ ሚካኤል',
-    verse: 'የእግዚአብሔር መልአክ በሚፈሩት ሰዎች ዙሪያ ይሰፍራል፥ ያድናቸውማል።',
-    reference: 'መዝሙረ ዳዊት ፴፫፥፯',
+    theme: 'ምስጋና',
+    verse: 'እግዚአብሔርን ሁልጊዜ እባርከዋለሁ፥ ምስጋናውም ዘወትር በአፌ ነው።',
+    reference: 'መዝሙረ ዳዊት ፴፫፥፩',
     book: 'መዝሙረ ዳዊት',
     chapter: 34,
-    verseNum: 7,
-    keywords: ['መልአክ', 'ማዳን', 'መከለል', 'ሚካኤል']
-  },
-  {
-    theme: 'ቅዱስ ዑራኤል',
-    verse: 'ስሙ ዑራኤል የተባለው ወደ እኔ የተላከው መልአክ መለሰልኝ፤ የልዑልን የጌትነቱን ምክር ታገኝ ዘንድ ልቡናህ ማድነቅን አደነቀን? አለኝ።',
-    reference: 'ዕዝራ ሱቱኤል ፪፥፩-፪',
-    book: 'ዕዝራ ሱቱኤል',
-    chapter: 2,
     verseNum: 1,
-    keywords: ['ዑራኤል', 'ዕዝራ', 'ብርሃን']
+    keywords: ['ምስጋና', 'ዘወትር', 'መባረክ']
+  },
+
+  // ── Wisdom & Guidance (ጥበብና መመሪያ) ──
+  {
+    theme: 'ሰሎሞን — ጥበብና ማስተዋል',
+    verse: 'የጥበብ መጀመሪያ እግዚአብሔርን መፍራት ነው፤ ቅዱሱንም ማወቅ ማስተዋል ነው።',
+    reference: 'ምሳሌ ፱፥፲',
+    book: 'ምሳሌ',
+    chapter: 9,
+    verseNum: 10,
+    keywords: ['ጥበብ', 'ፍርሃት', 'ማስተዋል']
   },
   {
-    theme: 'ትንሣኤ ሙታን',
-    verse: 'ትንሣኤና ሕይወት እኔ ነኝ፤ የሚያምንብኝ ቢሞት እንኳ ሕያው ይሆናል።',
-    reference: 'ዮሐንስ ፲፩፥፳፭',
-    book: 'ዮሐንስ',
-    chapter: 11,
-    verseNum: 25,
-    keywords: ['ትንሣኤ', 'ሕይወት', 'እምነት']
+    theme: 'ሰሎሞን — ጥበብና ማስተዋል',
+    verse: 'በፍጹም ልብህ በእግዚአብሔር ታመን፥ በራስህም ማስተዋል አትደገፍ፤ በመንገድህ ሁሉ እርሱን እወቅ፥ እርሱም ጎዳናህን ያቀናልሃል።',
+    reference: 'ምሳሌ ፫፥፭-፮',
+    book: 'ምሳሌ',
+    chapter: 3,
+    verseNum: 5,
+    keywords: ['ልብ', 'መታመን', 'ጎዳና']
+  },
+  {
+    theme: 'የዕለት እንጀራችን',
+    verse: 'ነገር ግን አስቀድማችሁ የእግዚአብሔርን መንግሥት ጽድቁንም ፈልጉ፥ ይህም ሁሉ ይጨመርላችኋል።',
+    reference: 'ማቴዎስ ፮፥፴፫',
+    book: 'ማቴዎስ',
+    chapter: 6,
+    verseNum: 33,
+    keywords: ['መንግሥት', 'ጽድቅ', 'ፍለጋ']
+  },
+  {
+    theme: 'ክርስቲያናዊ አንድነት',
+    verse: 'ወንድሞች በኅብረት ቢቀመጡ እነሆ፥ መልካም ነው፥ እነሆም፥ ያማረ ነው።',
+    reference: 'መዝሙረ ዳዊት ፻፴፪፥፩',
+    book: 'መዝሙረ ዳዊት',
+    chapter: 133,
+    verseNum: 1,
+    keywords: ['አንድነት', 'ኅብረት', 'ወንድሞች']
+  },
+  {
+    theme: 'ቅድስት ቤተ ክርስቲያን',
+    verse: 'እኔም እልሃለሁ፥ አንተ ጴጥሮስ ነህ፥ በዚችም ዓለት ላይ ቤተ ክርስቲያኔን እሠራለሁ፥ የገሃነም ደጆችም አይችሉአትም።',
+    reference: 'ማቴዎስ ፲፮፥፲፰',
+    book: 'ማቴዎስ',
+    chapter: 16,
+    verseNum: 18,
+    keywords: ['ቤተ ክርስቲያን', 'ዓለት', 'ድል']
+  },
+  {
+    theme: 'ቅድስት ቤተ ክርስቲያን',
+    verse: 'የእውነት ዓምድና መሠረት የሆነችው ሕያው የእግዚአብሔር ቤተ ክርስቲያን ናት።',
+    reference: '፩ኛ ጢሞቴዎስ ፫፥፲፭',
+    book: '፩ኛ ጢሞቴዎስ',
+    chapter: 3,
+    verseNum: 15,
+    keywords: ['እውነት', 'ዓምድ', 'መሠረት', 'ቤተ ክርስቲያን']
   }
 ];
 
 /**
- * Retrieves an authentic canonical verse matching the given theme or liturgical event.
- * Falls back to an inspiring core verse if no exact match is found.
+ * Returns a verified scripture matching a theme or mood,
+ * or falls back to a deterministic, zero-hallucination pick.
  */
-export function getVerifiedVerse(theme = '', liturgicalEvent = '') {
-  const searchTerm = (liturgicalEvent || theme || '').toLowerCase();
+export function getVerifiedVerse(themeOrMood = '', keyword = '') {
+  const qTheme = (themeOrMood || '').toLowerCase();
+  const qKey = (keyword || '').toLowerCase();
 
-  // 1. Direct theme or keyword match
-  const match = VERIFIED_SCRIPTURES.find(s => {
-    if (s.theme.toLowerCase().includes(searchTerm)) return true;
-    return s.keywords.some(k => searchTerm.includes(k.toLowerCase()));
+  // 1. Try to find an exact thematic match
+  const matches = VERIFIED_SCRIPTURES.filter(s => {
+    if (qTheme && (s.theme.toLowerCase().includes(qTheme) || qTheme.includes(s.theme.toLowerCase()))) {
+      return true;
+    }
+    if (qKey && s.keywords.some(k => k.toLowerCase().includes(qKey) || qKey.includes(k.toLowerCase()))) {
+      return true;
+    }
+    return false;
   });
 
-  if (match) {
+  if (matches.length > 0) {
+    const match = matches[Math.floor(Math.random() * matches.length)];
     return {
       verse: match.verse,
       reference: match.reference,
@@ -267,7 +391,7 @@ export function getVerifiedVerse(theme = '', liturgicalEvent = '') {
 
 /**
  * Validates and standardizes a scripture reference string into strict Ge'ez numerals.
- * e.g., "መዝሙር 23:1" -> "መዝሙረ ዳዊት ፳፫፥፩"
+ * e.g., "ማቴዎስ 5:8" -> "ማቴዎስ ፭፥፰"
  */
 export function sanitizeReference(refStr = '') {
   if (!refStr) return '';

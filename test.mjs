@@ -146,6 +146,33 @@ check('Video: FFmpeg check callable', typeof ffmpegInfo.available === 'boolean',
 const { PIPELINES } = await import('./src/index.js');
 check('Pipelines: all 9 registered in orchestrator', Object.keys(PIPELINES).length === 9, Object.keys(PIPELINES).join(', '));
 
+// 12. Bahire Hasab Computus Algorithm Verification
+const { getComputusData, calculateMoveableFeasts } = await import('./src/utils/calendar.js');
+const computus2019 = getComputusData(2019);
+check('Computus: getComputusData returns Evangelist & feasts', !!(computus2019.evangelist && computus2019.feasts.length === 10), `${computus2019.evangelist}, ${computus2019.feasts.length} moveable feasts`);
+const moveables = calculateMoveableFeasts(2019);
+check('Computus: calculateMoveableFeasts returns Fasika & Lent', !!(moveables.fasika && moveables.abiyTsomStart), `Fasika Month: ${moveables.fasika.month}, Day: ${moveables.fasika.day}`);
+
+// 13. GitHub Actions Cloud Integration Engine
+const { getRepoInfo, testGitHubConnection, listWorkflowRuns } = await import('./src/utils/github.js');
+const repo = getRepoInfo();
+check('GitHub: getRepoInfo identifies repository', repo && repo.owner && repo.repo, `${repo.owner}/${repo.repo}`);
+const ghConn = await testGitHubConnection();
+check('GitHub: API connection test callable', typeof ghConn.status === 'string', `Status: ${ghConn.status}, Repo: ${ghConn.repo}`);
+
+// 14. Telegram Bot API & Delivery Engine
+const { sendPhotoToChat, sendVideoToChat, sendDocumentToChat, isConfigured: isTgConfigured } = await import('./src/telegram/bot.js');
+check('Telegram: sendDocumentToChat & safeCaption exported', typeof sendDocumentToChat === 'function' && typeof sendPhotoToChat === 'function');
+check('Telegram: isConfigured reports status', typeof isTgConfigured() === 'boolean', `Configured: ${isTgConfigured()}`);
+
+// 15. Telegram Concierge Bot & Full Command Center
+const { getMainMenuKeyboard, getGitHubSubmenuKeyboard, isBotConfigured } = await import('./src/telegram/concierge.js');
+const mainKb = getMainMenuKeyboard();
+check('Concierge: getMainMenuKeyboard provides interactive grid', mainKb && Array.isArray(mainKb.inline_keyboard) && mainKb.inline_keyboard.length >= 5);
+const ghKb = getGitHubSubmenuKeyboard();
+check('Concierge: getGitHubSubmenuKeyboard provides cloud actions', ghKb && Array.isArray(ghKb.inline_keyboard) && ghKb.inline_keyboard.length >= 3);
+
+
 // Summary
 log('');
 log('════════════════════════════════════════════════════════');

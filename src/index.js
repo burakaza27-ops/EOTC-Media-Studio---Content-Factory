@@ -4,10 +4,10 @@
  * Command center for all content generation. Coordinates:
  *  - Canonical Scripture Engine (zero-hallucination, local 81-book DB)
  *  - Liturgical calendar intelligence + Bahire Hasab computus
- *  - AI generation + dual-model theological auditing (OpenRouter)
+ *  - AI generation + dual-model theological auditing (OpenRouter + Google AI Studio)
  *  - High-fidelity 3× retina rendering (Puppeteer, mood-aware)
- *  - 9:16 / 1:1 / 4:5 Video Reel generation (FFmpeg Ken Burns)
- *  - Duplicate detection (Supabase)
+ *  - 9:16 / 1:1 / 4:5 Video Reel generation (FFmpeg Ken Burns + audio)
+ *  - Duplicate detection (Supabase + local fallback)
  *  - Multi-group Telegram delivery + Interactive Concierge Bot
  *  - Web Studio GUI (http://localhost:3333)
  *
@@ -61,9 +61,16 @@ import {
 } from './render/video.js';
 
 import {
+  dispatchWorkflow
+} from './utils/github.js';
+
+import {
   sendImageToTelegram,
   sendCarouselToTelegram,
   sendVideoToTelegram,
+  sendPhotoToChat,
+  sendVideoToChat,
+  sendMediaGroupToChat,
   isConfigured as isTelegramConfigured
 } from './telegram/bot.js';
 
@@ -125,10 +132,11 @@ function buildLiturgicalContext(useLiturgical) {
 
 /**
  * Optionally renders video reels for a given image output path.
- * Only runs when GENERATE_VIDEO=true is set in env.
  */
-async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], contentType = '') {
-  if (!GENERATE_VIDEO) return {};
+async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], contentType = '', options = {}) {
+  const wantVideo = options.generateVideo !== undefined ? options.generateVideo : GENERATE_VIDEO;
+  if (!wantVideo) return {};
+
   try {
     const ffCheck = await checkFFmpeg();
     if (!ffCheck.available) {
@@ -146,7 +154,14 @@ async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], content
       mood: 'devotional'
     });
 
-    if (isTelegramConfigured() && results) {
+    if (options.targetChatId && results) {
+      for (const [profile, videoPath] of Object.entries(results)) {
+        if (videoPath && fs.existsSync(videoPath)) {
+          const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${subtitleLines[0] || ''}`;
+          await sendVideoToChat(options.targetChatId, videoPath, caption).catch(e => console.warn(`Chat reel delivery notice: ${e.message}`));
+        }
+      }
+    } else if (isTelegramConfigured() && results) {
       for (const [profile, videoPath] of Object.entries(results)) {
         if (videoPath && fs.existsSync(videoPath)) {
           const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${subtitleLines[0] || ''}`;
@@ -165,14 +180,19 @@ async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], content
 /**
  * Optionally renders carousel video reels.
  */
-async function maybeRenderCarouselVideo(imagePaths, baseName) {
-  if (!GENERATE_VIDEO) return {};
+async function maybeRenderCarouselVideo(imagePaths, baseName, options = {}) {
+  const wantVideo = options.generateVideo !== undefined ? options.generateVideo : GENERATE_VIDEO;
+  if (!wantVideo) return {};
+
   try {
     const ffCheck = await checkFFmpeg();
     if (!ffCheck.available) return {};
     const videoPath = await renderCarouselVideo(imagePaths, OUTPUT_DIR, baseName, 4);
 
-    if (isTelegramConfigured() && videoPath && fs.existsSync(videoPath)) {
+    if (options.targetChatId && videoPath && fs.existsSync(videoPath)) {
+      const caption = `🎬 <b>EOTC Teaching Carousel Reel</b>`;
+      await sendVideoToChat(options.targetChatId, videoPath, caption).catch(e => console.warn(`Chat carousel reel delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured() && videoPath && fs.existsSync(videoPath)) {
       const caption = `🎬 <b>EOTC Teaching Carousel Reel</b>`;
       await sendVideoToTelegram(videoPath, caption).catch(e => console.warn(`Telegram carousel reel delivery notice: ${e.message}`));
     }
@@ -189,12 +209,16 @@ async function maybeRenderCarouselVideo(imagePaths, baseName) {
 //  PIPELINE STAGES — One per content type
 // ═══════════════════════════════════════════════════════════
 
-async function runQuotePipeline(useLiturgical) {
+export async function runQuotePipeline(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  ✝️  POWER QUOTE PIPELINE');
   console.log('═══════════════════════════════════════════');
 
+  const customTheme = options.customTheme || process.env.CUSTOM_THEME || null;
   const ctx = buildLiturgicalContext(useLiturgical);
+  if (customTheme && ctx) {
+    ctx.event = customTheme;
+  }
 
   // Pull a canonical verified verse to seed the theme
   const canonVerse = ctx ? getVerifiedVerse(ctx.mood, ctx.event) : null;
@@ -204,9 +228,9 @@ async function runQuotePipeline(useLiturgical) {
 
   // Duplicate check
   const isDupe = await checkDuplicate(quoteData.text, 'quote');
-  if (isDupe) {
+  if (isDupe && !customTheme) {
     console.log('⚠️ Duplicate detected. Regenerating...');
-    return runQuotePipeline(useLiturgical);
+    return runQuotePipeline(useLiturgical, options);
   }
 
   const outputPath = path.join(OUTPUT_DIR, 'power_quote.png');
@@ -219,27 +243,34 @@ async function runQuotePipeline(useLiturgical) {
   validateFileSize(outputPath);
   await recordContent(quoteData.text, 'quote');
 
-  // Video reel (optional)
-  await maybeRenderVideo(outputPath, 'power_quote', [quoteData.text], 'quote');
+  const caption = `✝️ ${quoteData.text}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (isTelegramConfigured()) {
-    const caption = `✝️ ${quoteData.text}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+  if (options.targetChatId) {
+    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+  } else if (isTelegramConfigured()) {
     await sendImageToTelegram(outputPath, caption);
   }
+
+  // Video reel (optional)
+  await maybeRenderVideo(outputPath, 'power_quote', [quoteData.text], 'quote', options);
 
   console.log('✅ Quote pipeline complete.');
   return outputPath;
 }
 
-async function runVersePipeline(useLiturgical) {
+export async function runVersePipeline(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  📖 DAILY VERSE PIPELINE');
   console.log('═══════════════════════════════════════════');
 
+  const customTheme = options.customTheme || process.env.CUSTOM_THEME || null;
   const ctx = buildLiturgicalContext(useLiturgical);
+  if (customTheme && ctx) {
+    ctx.event = customTheme;
+  }
 
   // Try canonical verified verse first — eliminates hallucination risk
-  const canonVerse = getVerifiedVerse(ctx?.mood || '', ctx?.event || '');
+  const canonVerse = getVerifiedVerse(customTheme || ctx?.mood || '', ctx?.event || '');
   console.log(`📖 Canonical seed verse: ${canonVerse.reference}`);
 
   const verseData = await generateDailyVerse(ctx);
@@ -251,9 +282,9 @@ async function runVersePipeline(useLiturgical) {
   }
 
   const isDupe = await checkDuplicate(verseData.verse, 'verse');
-  if (isDupe) {
+  if (isDupe && !customTheme) {
     console.log('⚠️ Duplicate verse. Regenerating...');
-    return runVersePipeline(useLiturgical);
+    return runVersePipeline(useLiturgical, options);
   }
 
   const outputPath = path.join(OUTPUT_DIR, 'daily_verse.png');
@@ -265,25 +296,29 @@ async function runVersePipeline(useLiturgical) {
   validateFileSize(outputPath);
   await recordContent(verseData.verse, 'verse');
 
-  // Video reel (optional)
-  await maybeRenderVideo(outputPath, 'daily_verse', [verseData.verse, `— ${verseData.reference}`], 'verse');
+  const caption = `📖 ${verseData.verse}\n— ${verseData.reference}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (isTelegramConfigured()) {
-    const caption = `📖 ${verseData.verse}\n— ${verseData.reference}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+  if (options.targetChatId) {
+    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+  } else if (isTelegramConfigured()) {
     await sendImageToTelegram(outputPath, caption);
   }
+
+  // Video reel (optional)
+  await maybeRenderVideo(outputPath, 'daily_verse', [verseData.verse, `— ${verseData.reference}`], 'verse', options);
 
   console.log('✅ Verse pipeline complete.');
   return outputPath;
 }
 
-async function runCarouselPipeline(useLiturgical) {
+export async function runCarouselPipeline(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  📊 CAROUSEL PIPELINE');
   console.log('═══════════════════════════════════════════');
 
+  const customTheme = options.customTheme || process.env.CUSTOM_THEME || null;
   const ctx = buildLiturgicalContext(useLiturgical);
-  const carouselData = await generateCarousel(null, ctx);
+  const carouselData = await generateCarousel(customTheme, ctx);
 
   const outputPaths = await renderCarousel({
     slides: carouselData.slides,
@@ -293,24 +328,32 @@ async function runCarouselPipeline(useLiturgical) {
 
   outputPaths.forEach(p => validateFileSize(p));
 
-  // Video reel of all carousel slides (optional)
-  await maybeRenderCarouselVideo(outputPaths, 'carousel');
+  const caption = `📊 <b>${carouselData.theme}</b>\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (isTelegramConfigured()) {
-    const caption = `📊 ${carouselData.theme}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+  if (options.targetChatId) {
+    await sendMediaGroupToChat(options.targetChatId, outputPaths, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+  } else if (isTelegramConfigured()) {
     await sendCarouselToTelegram(outputPaths, caption);
   }
+
+  // Video reel of all carousel slides (optional)
+  await maybeRenderCarouselVideo(outputPaths, 'carousel', options);
 
   console.log('✅ Carousel pipeline complete.');
   return outputPaths;
 }
 
-async function runReflectionPipeline(useLiturgical) {
+export async function runReflectionPipeline(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  🕊️ WEEKLY REFLECTION PIPELINE');
   console.log('═══════════════════════════════════════════');
 
+  const customTheme = options.customTheme || process.env.CUSTOM_THEME || null;
   const ctx = buildLiturgicalContext(useLiturgical);
+  if (customTheme && ctx) {
+    ctx.event = customTheme;
+  }
+
   const reflectionData = await generateWeeklyReflection(ctx);
 
   const outputPath = path.join(OUTPUT_DIR, 'weekly_reflection.png');
@@ -321,8 +364,11 @@ async function runReflectionPipeline(useLiturgical) {
 
   validateFileSize(outputPath);
 
-  if (isTelegramConfigured()) {
-    const caption = `🕊️ ${reflectionData.title}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+  const caption = `🕊️ <b>${reflectionData.title}</b>\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+
+  if (options.targetChatId) {
+    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+  } else if (isTelegramConfigured()) {
     await sendImageToTelegram(outputPath, caption);
   }
 
@@ -330,7 +376,7 @@ async function runReflectionPipeline(useLiturgical) {
   return outputPath;
 }
 
-async function runSaintPipeline(useLiturgical) {
+export async function runSaintPipeline(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  ✝️ SAINT OF THE DAY PIPELINE');
   console.log('═══════════════════════════════════════════');
@@ -338,7 +384,8 @@ async function runSaintPipeline(useLiturgical) {
   const ctx = buildLiturgicalContext(useLiturgical);
   const today = new Date();
   const ethDate = toEthiopianDate(today);
-  const ethDay = ethDate.day;
+  const requestedDay = options.day ? parseInt(options.day, 10) : ethDate.day;
+  const ethDay = (requestedDay >= 1 && requestedDay <= 30) ? requestedDay : ethDate.day;
   const dailyData = DAILY_COMMEMORATIONS[ethDay] || DAILY_COMMEMORATIONS[1];
 
   // Enrich with synaxarium data if available
@@ -347,15 +394,7 @@ async function runSaintPipeline(useLiturgical) {
     console.log(`📜 Synaxarium entry found for day ${ethDay}: ${synaxariumData.saint}`);
   }
 
-  if (dailyData.isLordFeast) {
-    console.log(`📿 Today's Feast of the Lord: ${dailyData.saint}`);
-  } else {
-    console.log(`📿 Today's Saint: ${dailyData.saint}`);
-  }
-
   const saintData = await generateSaintOfDay(dailyData, ctx);
-
-  // Enhance with synaxarium hymn if available
   const hymnLine = synaxariumData?.hymnAmharic || '';
 
   const outputPath = path.join(OUTPUT_DIR, 'saint_day.png');
@@ -372,36 +411,48 @@ async function runSaintPipeline(useLiturgical) {
 
   validateFileSize(outputPath);
 
-  // Video reel (optional)
-  await maybeRenderVideo(outputPath, 'saint_day', [saintData.saint, saintData.lesson], 'saint');
+  const caption = `✝️ <b>${saintData.saint || dailyData.saint}</b>\n\n${saintData.lesson || ''}\n${hymnLine ? `🎵 ${hymnLine}\n` : ''}\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (isTelegramConfigured()) {
-    const caption = `✝️ ${saintData.saint || dailyData.saint}\n${saintData.lesson || ''}\n${hymnLine ? `🎵 ${hymnLine}` : ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+  if (options.targetChatId) {
+    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+  } else if (isTelegramConfigured()) {
     await sendImageToTelegram(outputPath, caption);
   }
+
+  // Video reel (optional)
+  await maybeRenderVideo(outputPath, 'saint_day', [saintData.saint, saintData.lesson], 'saint', options);
 
   console.log('✅ Saint pipeline complete.');
   return outputPath;
 }
 
-async function runFastingPipeline(useLiturgical) {
+export async function runFastingPipeline(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  🍽️ FASTING GUIDE PIPELINE');
   console.log('═══════════════════════════════════════════');
 
   const ctx = buildLiturgicalContext(useLiturgical);
-  const fastingInfo = getFastingInfo();
+  let fastingInfo = getFastingInfo();
 
-  if (!fastingInfo.active) {
+  if (!fastingInfo.active && !options.targetChatId && !process.env.CUSTOM_THEME) {
     console.log('ℹ️ No active fasting season today. Skipping fasting guide.');
     return null;
   }
 
-  console.log(`📿 Current Fast: ${fastingInfo.name} — Day ${fastingInfo.currentDay}/${fastingInfo.totalDays}`);
+  // Fallback to Wednesday/Friday or Great Lent guide if requested explicitly
+  if (!fastingInfo.active) {
+    fastingInfo = {
+      name: 'ጾመ ድኅነት (ረቡዕና ዓርብ)',
+      currentDay: 1,
+      totalDays: 2,
+      rules: ['ከእንስሳት ተዋጽኦ (ሥጋ፣ ወተት፣ ቅቤ) መከልከል', 'እስከ ፱ ሰዓት መጾም', 'በጸሎትና በንስሐ መትጋት']
+    };
+  }
+
+  console.log(`📿 Fasting Guide: ${fastingInfo.name}`);
 
   const guideData = await generateFastingGuide(fastingInfo, ctx);
   const progressPercent = Math.round((fastingInfo.currentDay / fastingInfo.totalDays) * 100);
-
   const rulesHtml = fastingInfo.rules.map(r => `<li>${r}</li>`).join('');
 
   const outputPath = path.join(OUTPUT_DIR, 'fasting_guide.png');
@@ -417,8 +468,11 @@ async function runFastingPipeline(useLiturgical) {
 
   validateFileSize(outputPath);
 
-  if (isTelegramConfigured()) {
-    const caption = `🍽️ ${fastingInfo.name}\nDay ${fastingInfo.currentDay}/${fastingInfo.totalDays}\n\n${guideData.encouragement || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+  const caption = `🍽️ <b>${fastingInfo.name}</b>\nDay ${fastingInfo.currentDay}/${fastingInfo.totalDays}\n\n${guideData.encouragement || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+
+  if (options.targetChatId) {
+    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+  } else if (isTelegramConfigured()) {
     await sendImageToTelegram(outputPath, caption);
   }
 
@@ -426,17 +480,27 @@ async function runFastingPipeline(useLiturgical) {
   return outputPath;
 }
 
-async function runHolyWeekPipeline(useLiturgical) {
+export async function runHolyWeekPipeline(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  ✝️ HOLY WEEK PIPELINE');
   console.log('═══════════════════════════════════════════');
 
   const ctx = buildLiturgicalContext(useLiturgical);
-  const holyWeekDay = getHolyWeekDay();
+  let holyWeekDay = getHolyWeekDay();
 
-  if (!holyWeekDay.isHolyWeek) {
+  if (!holyWeekDay.isHolyWeek && !options.targetChatId && !process.env.CUSTOM_THEME) {
     console.log('ℹ️ Not Holy Week today. Skipping.');
     return null;
+  }
+
+  // Fallback to Good Friday (ዐርብ - ስቅለት) if requested on demand
+  if (!holyWeekDay.isHolyWeek) {
+    holyWeekDay = {
+      isHolyWeek: true,
+      amharic: 'ዓርብ (ስቅለት)',
+      english: 'Good Friday (The Crucifixion of Christ)',
+      theme: 'The Crucifixion and death of Christ for the salvation of the world'
+    };
   }
 
   console.log(`✝️ Holy Week Day: ${holyWeekDay.amharic} — ${holyWeekDay.english}`);
@@ -455,8 +519,11 @@ async function runHolyWeekPipeline(useLiturgical) {
 
   validateFileSize(outputPath);
 
-  if (isTelegramConfigured()) {
-    const caption = `✝️ ሰሙነ ሕማማት — ${content.dayName}\n${content.subtitle}\n\n${content.teaching || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+  const caption = `✝️ <b>ሰሙነ ሕማማት — ${content.dayName}</b>\n${content.subtitle}\n\n${content.teaching || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+
+  if (options.targetChatId) {
+    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+  } else if (isTelegramConfigured()) {
     await sendImageToTelegram(outputPath, caption);
   }
 
@@ -464,16 +531,21 @@ async function runHolyWeekPipeline(useLiturgical) {
   return outputPath;
 }
 
-async function runHistoryPipeline(useLiturgical) {
+export async function runHistoryPipeline(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  📜 CHURCH HISTORY PIPELINE');
   console.log('═══════════════════════════════════════════');
 
+  const customTheme = options.customTheme || process.env.CUSTOM_THEME || null;
   const ctx = buildLiturgicalContext(useLiturgical);
 
-  // Pick a random history topic
-  const topicIndex = Math.floor(Math.random() * CHURCH_HISTORY_TOPICS.length);
-  const topic = CHURCH_HISTORY_TOPICS[topicIndex];
+  let topic = null;
+  if (customTheme) {
+    topic = { title: customTheme, era: 'የኢትዮጵያ ቤተ ክርስቲያን ታሪክ', year: '፪ሺህ ዓመታት', theme: customTheme };
+  } else {
+    const topicIndex = Math.floor(Math.random() * CHURCH_HISTORY_TOPICS.length);
+    topic = CHURCH_HISTORY_TOPICS[topicIndex];
+  }
   console.log(`📜 History Topic: ${topic.title} (${topic.era})`);
 
   const historyData = await generateChurchHistory(topic, ctx);
@@ -490,8 +562,11 @@ async function runHistoryPipeline(useLiturgical) {
 
   validateFileSize(outputPath);
 
-  if (isTelegramConfigured()) {
-    const caption = `📜 ${historyData.title || topic.title}\n${topic.era} • ${topic.year}\n\n${historyData.significance || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+  const caption = `📜 <b>${historyData.title || topic.title}</b>\n${topic.era} • ${topic.year}\n\n${historyData.significance || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+
+  if (options.targetChatId) {
+    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+  } else if (isTelegramConfigured()) {
     await sendImageToTelegram(outputPath, caption);
   }
 
@@ -499,7 +574,7 @@ async function runHistoryPipeline(useLiturgical) {
   return outputPath;
 }
 
-async function runCalendarPipeline(useLiturgical) {
+export async function runCalendarPipeline(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  📅 WEEKLY CALENDAR PIPELINE');
   console.log('═══════════════════════════════════════════');
@@ -507,7 +582,6 @@ async function runCalendarPipeline(useLiturgical) {
   const ctx = buildLiturgicalContext(useLiturgical);
   const weekData = getWeekCalendarData();
 
-  // Build HTML grid for the template
   let gridHtml = '';
   for (const day of weekData) {
     const moodClass = `mood-${day.mood}`;
@@ -541,8 +615,11 @@ async function runCalendarPipeline(useLiturgical) {
 
   validateFileSize(outputPath);
 
-  if (isTelegramConfigured()) {
-    const caption = `📅 የሳምንቱ መርሃ ግብር — ${weekTitle}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+  const caption = `📅 <b>የሳምንቱ መርሃ ግብር — ${weekTitle}</b>\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
+
+  if (options.targetChatId) {
+    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+  } else if (isTelegramConfigured()) {
     await sendImageToTelegram(outputPath, caption);
   }
 
@@ -551,14 +628,10 @@ async function runCalendarPipeline(useLiturgical) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  MAIN ENTRY POINT
-// ═══════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════
 //  PIPELINE REGISTRY
 // ═══════════════════════════════════════════════════════════
 
-const PIPELINES = {
+export const PIPELINES = {
   quote:      runQuotePipeline,
   verse:      runVersePipeline,
   carousel:   runCarouselPipeline,
@@ -571,7 +644,7 @@ const PIPELINES = {
 };
 
 // 'all' mode: run every pipeline sequentially
-async function runAllPipelines(useLiturgical) {
+export async function runAllPipelines(useLiturgical = true, options = {}) {
   console.log('\n═══════════════════════════════════════════');
   console.log('  ✝️  FULL STUDIO RUN — ALL 9 PIPELINES');
   console.log('═══════════════════════════════════════════');
@@ -579,7 +652,7 @@ async function runAllPipelines(useLiturgical) {
   for (const [name, fn] of Object.entries(PIPELINES)) {
     try {
       console.log(`\n▶ Running: ${name}`);
-      results[name] = await fn(useLiturgical);
+      results[name] = await fn(useLiturgical, options);
     } catch (err) {
       console.error(`❌ ${name} pipeline failed: ${err.message}`);
       results[name] = null;
@@ -588,8 +661,40 @@ async function runAllPipelines(useLiturgical) {
   return results;
 }
 
+function parseCliArgs() {
+  const args = process.argv.slice(2);
+  const options = {
+    contentType: (process.env.CONTENT_TYPE || 'quote').toLowerCase().trim(),
+    useLiturgical: (process.env.USE_LITURGICAL || 'true').toLowerCase() === 'true',
+    generateVideo: (process.env.GENERATE_VIDEO || 'false').toLowerCase() === 'true',
+    customTheme: process.env.CUSTOM_THEME || null,
+    dispatchCloud: false
+  };
 
-async function main() {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--dispatch') {
+      options.dispatchCloud = true;
+      if (args[i + 1] && !args[i + 1].startsWith('-')) {
+        options.contentType = args[++i].toLowerCase();
+      }
+    } else if (arg === '--type' || arg === '-t') {
+      if (args[i + 1]) options.contentType = args[++i].toLowerCase();
+    } else if (arg === '--theme') {
+      if (args[i + 1]) options.customTheme = args[++i];
+    } else if (arg === '--video' || arg === '-v') {
+      options.generateVideo = true;
+    } else if (arg === '--no-liturgical') {
+      options.useLiturgical = false;
+    } else if (!arg.startsWith('-') && i === 0) {
+      options.contentType = arg.toLowerCase();
+    }
+  }
+
+  return options;
+}
+
+export async function main() {
   console.log(`\n╔══════════════════════════════════════════════════════╗`);
   console.log(`║  ✝️  EOTC MEDIA STUDIO v7.0                          ║`);
   console.log(`║  Canonical · Video Reels · Bot · Web Studio          ║`);
@@ -597,14 +702,36 @@ async function main() {
 
   ensureOutputDir();
 
-  const contentType   = (process.env.CONTENT_TYPE  || 'quote').toLowerCase().trim();
-  const useLiturgical = (process.env.USE_LITURGICAL || 'true').toLowerCase() === 'true';
+  const cliOptions = parseCliArgs();
+  const contentType   = cliOptions.contentType;
+  const useLiturgical = cliOptions.useLiturgical;
+  const customTheme   = cliOptions.customTheme;
+  const wantVideo     = cliOptions.generateVideo;
 
   console.log(`📋 Content Type:     ${contentType}`);
   console.log(`📅 Liturgical Mode:  ${useLiturgical ? 'ON' : 'OFF'}`);
+  if (customTheme) console.log(`🎯 Custom Theme:     ${customTheme}`);
   console.log(`🤖 AI Configured:    ${isAIConfigured() ? 'YES' : 'NO'}`);
   console.log(`📱 Telegram:         ${isTelegramConfigured() ? 'YES' : 'NO'}`);
-  console.log(`🎬 Video Reels:      ${GENERATE_VIDEO ? `ON (${VIDEO_PROFILES_ENV.join(', ')})` : 'OFF (set GENERATE_VIDEO=true)'}`);
+  console.log(`🎬 Video Reels:      ${wantVideo ? `ON (${VIDEO_PROFILES_ENV.join(', ')})` : 'OFF'}`);
+
+  // Handle remote GitHub Actions dispatch
+  if (cliOptions.dispatchCloud) {
+    console.log(`\n🚀 Dispatching GitHub Action workflow for "${contentType}" (video: ${wantVideo})...`);
+    try {
+      const res = await dispatchWorkflow('generate-media.yml', {
+        content_type: contentType,
+        use_liturgical: useLiturgical ? 'true' : 'false',
+        generate_video: wantVideo ? 'true' : 'false',
+        video_profiles: VIDEO_PROFILES_ENV.join(',')
+      });
+      console.log(`✅ Workflow successfully dispatched to GitHub Actions! Ref: ${res.ref}`);
+      return res;
+    } catch (err) {
+      console.error(`❌ GitHub dispatch failed: ${err.message}`);
+      process.exit(1);
+    }
+  }
 
   if (!isAIConfigured()) {
     throw new Error('AI API key is required but not set. Please configure OPENROUTER_API_KEY or GOOGLE_AI_STUDIO_API.');
@@ -612,7 +739,7 @@ async function main() {
 
   // Handle 'all' batch mode
   if (contentType === 'all') {
-    const results = await runAllPipelines(useLiturgical);
+    const results = await runAllPipelines(useLiturgical, { customTheme, generateVideo: wantVideo });
     const succeeded = Object.values(results).filter(r => r !== null).length;
     console.log(`\n🎉 All-pipeline run: ${succeeded}/9 succeeded.`);
     return;
@@ -625,7 +752,7 @@ async function main() {
   }
 
   try {
-    const result = await pipelineFn(useLiturgical);
+    const result = await pipelineFn(useLiturgical, { customTheme, generateVideo: wantVideo });
     if (result === null) {
       console.log('\nℹ️ Pipeline completed with no output (condition not met today).');
     } else {
@@ -637,8 +764,6 @@ async function main() {
     process.exit(1);
   }
 }
-
-export { main, PIPELINES };
 
 const isDirectRun = process.argv[1] && (
   path.resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase() ||
