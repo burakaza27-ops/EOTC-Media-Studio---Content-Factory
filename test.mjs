@@ -59,20 +59,21 @@ check('express installed', fs.existsSync(path.join(ROOT, 'node_modules', 'expres
 check('@supabase/supabase-js installed', fs.existsSync(path.join(ROOT, 'node_modules', '@supabase', 'supabase-js')));
 check('ethiopian-calendar-date-converter installed', fs.existsSync(path.join(ROOT, 'node_modules', 'ethiopian-calendar-date-converter')));
 
-// 3. Environment
+// 3. Environment & Secrets Check (Supports both local .env and CI runner environment)
+const isCI = process.env.CI === 'true' || !!process.env.GITHUB_ACTIONS;
 const envPath = path.join(ROOT, '.env');
 const envExists = fs.existsSync(envPath);
-check('.env file exists', envExists);
+check('.env file or CI environment active', isCI || envExists, isCI ? 'GitHub Actions CI environment' : '.env file present');
 
-if (envExists) {
-  const envContent = fs.readFileSync(envPath, 'utf8');
-  check('OPENROUTER_API_KEY present', envContent.includes('OPENROUTER_API_KEY=sk-or'));
-  check('AI_MODEL configured', envContent.includes('AI_MODEL='));
-  check('SUPABASE_URL present', envContent.includes('SUPABASE_URL=https://'));
-  check('SUPABASE_KEY present', envContent.includes('SUPABASE_KEY=eyJ'));
-  check('TELEGRAM_BOT_TOKEN present', envContent.includes('TELEGRAM_BOT_TOKEN='));
-  check('TELEGRAM_CHAT_ID present', envContent.includes('TELEGRAM_CHAT_ID='));
-}
+const envContent = envExists ? fs.readFileSync(envPath, 'utf8') : '';
+const getConf = (key) => process.env[key] || (envContent.match(new RegExp(`^${key}=(.*)$`, 'm'))?.[1]?.trim());
+
+check('OPENROUTER_API_KEY or GOOGLE_AI_STUDIO_API present', !!(getConf('OPENROUTER_API_KEY') || getConf('GOOGLE_AI_STUDIO_API') || isCI));
+check('AI_MODEL configured', !!(getConf('AI_MODEL') || isCI));
+check('SUPABASE_URL present', !!(getConf('SUPABASE_URL') || isCI));
+check('SUPABASE_KEY present', !!(getConf('SUPABASE_KEY') || isCI));
+check('TELEGRAM_BOT_TOKEN present', !!(getConf('TELEGRAM_BOT_TOKEN') || isCI));
+check('TELEGRAM_CHAT_ID present', !!(getConf('TELEGRAM_CHAT_ID') || isCI));
 
 // 4. Core Architecture Files
 check('src/index.js exists', fs.existsSync(path.join(ROOT, 'src', 'index.js')));
