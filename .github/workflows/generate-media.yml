@@ -1,10 +1,10 @@
-name: "✝️ EOTC Media Studio v7 — Generate Content"
+name: "✝️ EOTC Media Studio — Generate Content"
 
 on:
   workflow_dispatch:
     inputs:
       content_type:
-        description: 'Content type to generate'
+        description: '📋 What content to generate'
         required: true
         type: choice
         options:
@@ -19,34 +19,31 @@ on:
           - calendar
           - all
         default: 'quote'
+
+      output_format:
+        description: '📐 Output format — image only, or image + video reel'
+        required: true
+        type: choice
+        options:
+          - 'Image — Square 1:1 (1080×1080)'
+          - 'Image — Vertical 9:16 (1080×1920)'
+          - 'Image — Portrait 4:5 (1080×1350)'
+          - 'Image + Video Reel — Square 1:1'
+          - 'Image + Video Reel — Vertical 9:16'
+          - 'Image + Video Reel — Square AND Vertical (both)'
+        default: 'Image — Square 1:1 (1080×1080)'
+
       custom_theme:
-        description: 'Optional custom topic or scripture reference (leave empty for daily liturgical theme)'
+        description: '✏️  Custom topic / scripture (leave empty for daily liturgical theme)'
         required: false
         type: string
         default: ''
+
       use_liturgical:
-        description: 'Use liturgical calendar context'
-        required: true
+        description: '📅 Apply liturgical calendar context'
+        required: false
         type: boolean
         default: true
-      generate_video:
-        description: 'Generate Remotion video reels (9:16 + 1:1) — requires ~2 extra minutes'
-        required: false
-        type: boolean
-        default: false
-      video_profiles:
-        description: 'Video aspect ratios (comma-separated: 1:1,9:16)'
-        required: false
-        default: '9:16'
-      aspect_ratio:
-        description: 'Aspect ratio for carousel/images (1:1 square, 9:16 vertical, 4:5 portrait)'
-        required: false
-        type: choice
-        options:
-          - '1:1'
-          - '9:16'
-          - '4:5'
-        default: '1:1'
 
   schedule:
     # Daily 06:00 AM EAT (03:00 UTC) — auto-generates daily quote
@@ -58,9 +55,9 @@ permissions:
 
 jobs:
   generate:
-    name: "✝️ Generate ${{ github.event.inputs.content_type || 'quote' }}"
+    name: "✝️ Generate ${{ github.event.inputs.content_type || 'quote' }} › ${{ github.event.inputs.output_format || 'Image — Square 1:1 (1080×1080)' }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: 📥 Checkout Repository
@@ -93,26 +90,54 @@ jobs:
             libxrandr2 \
             libgbm1 \
             libxshmfence1
-          # Compatibility check for ALSA sound library across Ubuntu 22.04 & 24.04 (Noble)
+          # Ubuntu 24.04 renamed libasound2 → libasound2t64
           sudo apt-get install -y libasound2t64 || sudo apt-get install -y libasound2 || true
           fc-cache -f -v || true
 
-      - name: 🌐 Install Google Chrome (for Puppeteer + Remotion rendering)
+      - name: 🌐 Install Google Chrome
         run: |
           wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb || (sudo dpkg -i google-chrome-stable_current_amd64.deb && sudo apt-get install -f -y)
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb || \
+            (sudo dpkg -i google-chrome-stable_current_amd64.deb && sudo apt-get install -f -y)
           rm -f google-chrome-stable_current_amd64.deb
           google-chrome --version
+
+      - name: 🔧 Resolve output format settings
+        id: fmt
+        run: |
+          FORMAT="${{ github.event.inputs.output_format || 'Image — Square 1:1 (1080×1080)' }}"
+          echo "Selected format: $FORMAT"
+
+          # Determine aspect ratio for images / carousel
+          case "$FORMAT" in
+            *"9:16"*)  ASPECT="9:16" ;;
+            *"4:5"*)   ASPECT="4:5"  ;;
+            *)         ASPECT="1:1"  ;;
+          esac
+
+          # Determine video profiles
+          case "$FORMAT" in
+            *"Image + Video Reel — Square"*)       VIDEO=true  ; PROFILES="1:1"      ;;
+            *"Image + Video Reel — Vertical"*)     VIDEO=true  ; PROFILES="9:16"     ;;
+            *"Image + Video Reel — Square AND"*)   VIDEO=true  ; PROFILES="1:1,9:16" ;;
+            *)                                      VIDEO=false ; PROFILES=""         ;;
+          esac
+
+          echo "ASPECT_RATIO=$ASPECT"        >> "$GITHUB_OUTPUT"
+          echo "GENERATE_VIDEO=$VIDEO"       >> "$GITHUB_OUTPUT"
+          echo "VIDEO_PROFILES=$PROFILES"    >> "$GITHUB_OUTPUT"
+
+          echo "→ Image aspect: $ASPECT | Video: $VIDEO | Profiles: $PROFILES"
 
       - name: 🎨 Generate Content
         env:
           CONTENT_TYPE:          ${{ github.event.inputs.content_type || 'quote' }}
           CUSTOM_THEME:          ${{ github.event.inputs.custom_theme || '' }}
           USE_LITURGICAL:        ${{ github.event.inputs.use_liturgical || 'true' }}
-          GENERATE_VIDEO:        ${{ github.event.inputs.generate_video || 'false' }}
-          VIDEO_PROFILES:        ${{ github.event.inputs.video_profiles || '9:16' }}
-          ASPECT_RATIO:          ${{ github.event.inputs.aspect_ratio || '1:1' }}
-          CAROUSEL_ASPECT_RATIO: ${{ github.event.inputs.aspect_ratio || '1:1' }}
+          GENERATE_VIDEO:        ${{ steps.fmt.outputs.GENERATE_VIDEO }}
+          VIDEO_PROFILES:        ${{ steps.fmt.outputs.VIDEO_PROFILES }}
+          ASPECT_RATIO:          ${{ steps.fmt.outputs.ASPECT_RATIO }}
+          CAROUSEL_ASPECT_RATIO: ${{ steps.fmt.outputs.ASPECT_RATIO }}
           OPENROUTER_API_KEY:    ${{ secrets.OPENROUTER_API_KEY }}
           GOOGLE_AI_STUDIO_API:  ${{ secrets.GOOGLE_AI_STUDIO_API }}
           TELEGRAM_BOT_TOKEN:    ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -123,10 +148,8 @@ jobs:
           AI_MODEL:              google/gemini-2.5-flash
           GITHUB_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
           PUPPETEER_EXEC_PATH:   /usr/bin/google-chrome-stable
-          # Remotion needs a display server on Linux
           DISPLAY:               :99
         run: |
-          # Start virtual display for headless Chrome (supports both 1080x1920 vertical & 1920x1080)
           Xvfb :99 -screen 0 2560x1920x24 &
           sleep 1
           node src/index.js
