@@ -50,23 +50,47 @@ export const EOTCReel = ({
     { x: 75, speed: 1.4, size: 4, delay: 30 }
   ];
 
-  // 4. Kinetic typography timing
-  // Split the quote into natural poetic segments (or words)
-  const words = (quote || '').split(' ');
-  const wordsPerSegment = Math.max(1, Math.ceil(words.length / 4));
-  const segments = [];
-  for (let i = 0; i < words.length; i += wordsPerSegment) {
-    segments.push(words.slice(i, i + wordsPerSegment).join(' '));
-  }
+  // Smart, balanced clause segmentation (splits at Ethiopian punctuation ፤ or ። or creates balanced phrases)
+  const segments = React.useMemo(() => {
+    if (!quote) return [];
+    const clauses = quote
+      .split(/([፤።?!])/)
+      .reduce((acc, curr, i, arr) => {
+        if (i % 2 === 0) {
+          const punct = arr[i + 1] || '';
+          const trimmed = (curr + punct).trim();
+          if (trimmed) acc.push(trimmed);
+        }
+        return acc;
+      }, []);
+
+    if (clauses.length >= 2 && clauses.length <= 4) {
+      return clauses;
+    }
+
+    const allWords = quote.split(/\s+/).filter(Boolean);
+    if (allWords.length <= 6) return [quote];
+    const half = Math.ceil(allWords.length / 2);
+    return [
+      allWords.slice(0, half).join(' '),
+      allWords.slice(half).join(' ')
+    ];
+  }, [quote]);
+
+  // Adaptive, large typography: fills 1080x1920 mobile screen with bold presence
+  const maxSegmentLength = Math.max(...segments.map(s => s.length), 0);
+  const quoteFontSize = isVertical
+    ? (maxSegmentLength > 45 ? 68 : maxSegmentLength > 26 ? 82 : 92)
+    : (maxSegmentLength > 45 ? 48 : maxSegmentLength > 26 ? 56 : 64);
 
   // 5. Reference citation entrance
-  const refEntrance = interpolate(frame, [35, 55], [0, 1], {
+  const refEntrance = interpolate(frame, [30, 52], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp'
   });
 
   // 6. Cross pulse & scale
-  const crossScale = interpolate(introSpring, [0, 1], [0.8, 1]);
+  const crossScale = interpolate(introSpring, [0, 1], [0.85, 1]);
   const crossOpacity = interpolate(introSpring, [0, 1], [0, 1]);
 
   // 7. Reel progress bar (0% -> 100% over the duration)
@@ -88,7 +112,7 @@ export const EOTCReel = ({
         flexDirection: 'column',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: isVertical ? '140px 80px 120px' : '90px 70px 80px',
+        padding: isVertical ? '160px 60px 220px' : '75px 50px 75px',
         boxSizing: 'border-box'
       }}
     >
@@ -96,16 +120,16 @@ export const EOTCReel = ({
       <div
         style={{
           position: 'absolute',
-          top: '38%',
+          top: '40%',
           left: '50%',
           transform: `translate(-50%, -50%) scale(${haloScale})`,
-          width: isVertical ? 900 : 700,
-          height: isVertical ? 900 : 700,
+          width: isVertical ? 1000 : 750,
+          height: isVertical ? 1000 : 750,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(212, 175, 55, 0.28) 0%, rgba(212, 175, 55, 0.08) 40%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(212, 175, 55, 0.35) 0%, rgba(212, 175, 55, 0.10) 42%, transparent 70%)',
           opacity: haloOpacity,
           pointerEvents: 'none',
-          filter: 'blur(40px)'
+          filter: 'blur(50px)'
         }}
       />
 
@@ -113,15 +137,15 @@ export const EOTCReel = ({
       <div
         style={{
           position: 'absolute',
-          top: '20%',
+          top: '22%',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: isVertical ? 700 : 500,
-          height: 350,
+          width: isVertical ? 800 : 540,
+          height: 400,
           borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(30, 58, 138, 0.16) 0%, transparent 65%)',
+          background: 'radial-gradient(ellipse, rgba(30, 58, 138, 0.22) 0%, transparent 65%)',
           pointerEvents: 'none',
-          filter: 'blur(30px)'
+          filter: 'blur(35px)'
         }}
       />
 
@@ -144,11 +168,11 @@ export const EOTCReel = ({
               position: 'absolute',
               left: `${p.x}%`,
               top: yPos,
-              width: p.size,
-              height: p.size,
+              width: p.size + 1,
+              height: p.size + 1,
               borderRadius: '50%',
               backgroundColor: '#f0d890',
-              boxShadow: '0 0 12px 3px rgba(240, 216, 144, 0.65)',
+              boxShadow: '0 0 14px 4px rgba(240, 216, 144, 0.70)',
               opacity: pOpacity,
               pointerEvents: 'none'
             }}
@@ -162,7 +186,7 @@ export const EOTCReel = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 16,
+          gap: isVertical ? 20 : 14,
           zIndex: 10,
           transform: `translateY(${interpolate(introSpring, [0, 1], [-30, 0])}px)`,
           opacity: interpolate(introSpring, [0, 1], [0, 1])
@@ -171,30 +195,30 @@ export const EOTCReel = ({
         {/* Sacred Cross Icon */}
         <div
           style={{
-            fontSize: isVertical ? 56 : 46,
+            fontSize: isVertical ? 86 : 60,
             color: '#d4af37',
             transform: `scale(${crossScale})`,
             opacity: crossOpacity,
-            textShadow: '0 0 25px rgba(212, 175, 55, 0.75)',
+            textShadow: '0 0 40px rgba(212, 175, 55, 0.90)',
             lineHeight: 1
           }}
         >
           ✝
         </div>
 
-        {/* Theme pill with delicate gold shimmer border */}
+        {/* Theme pill with prominent gold glow */}
         <div
           style={{
-            background: 'rgba(212, 175, 55, 0.08)',
-            border: '1px solid rgba(212, 175, 55, 0.28)',
-            borderRadius: 30,
-            padding: '8px 26px',
-            fontSize: isVertical ? 20 : 18,
-            fontWeight: 600,
-            color: '#f0d890',
-            letterSpacing: '0.12em',
+            background: 'rgba(212, 175, 55, 0.14)',
+            border: '2px solid rgba(212, 175, 55, 0.45)',
+            borderRadius: 40,
+            padding: isVertical ? '14px 42px' : '9px 28px',
+            fontSize: isVertical ? 32 : 24,
+            fontWeight: 800,
+            color: '#f7e7b5',
+            letterSpacing: '0.14em',
             textTransform: 'uppercase',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 6px 26px rgba(0, 0, 0, 0.5), 0 0 22px rgba(212, 175, 55, 0.25)'
           }}
         >
           {theme}
@@ -203,10 +227,10 @@ export const EOTCReel = ({
         {date && (
           <div
             style={{
-              fontSize: isVertical ? 18 : 16,
-              color: 'rgba(255, 255, 255, 0.55)',
-              letterSpacing: '0.06em',
-              fontWeight: 400
+              fontSize: isVertical ? 26 : 20,
+              color: 'rgba(255, 255, 255, 0.75)',
+              letterSpacing: '0.08em',
+              fontWeight: 500
             }}
           >
             {date}
@@ -214,10 +238,10 @@ export const EOTCReel = ({
         )}
       </div>
 
-      {/* ── CENTER SECTION: Sacred Kinetic Quote ── */}
+      {/* ── CENTER SECTION: Sacred Kinetic Quote (Prominent & Cinematic) ── */}
       <div
         style={{
-          maxWidth: isVertical ? 920 : 860,
+          maxWidth: isVertical ? 980 : 920,
           width: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -231,9 +255,9 @@ export const EOTCReel = ({
         {/* Subtle decorative quotation mark */}
         <div
           style={{
-            fontSize: isVertical ? 48 : 38,
-            color: 'rgba(212, 175, 55, 0.45)',
-            marginBottom: isVertical ? 20 : 12,
+            fontSize: isVertical ? 76 : 52,
+            color: 'rgba(212, 175, 55, 0.60)',
+            marginBottom: isVertical ? 26 : 14,
             lineHeight: 1
           }}
         >
@@ -245,33 +269,34 @@ export const EOTCReel = ({
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: isVertical ? 18 : 12,
+            gap: isVertical ? 28 : 18,
             alignItems: 'center',
             width: '100%'
           }}
         >
           {segments.map((seg, idx) => {
-            const startFrame = 12 + idx * 16;
+            const startFrame = 10 + idx * 20;
             const segProgress = spring({
               frame: frame - startFrame,
               fps,
-              config: { damping: 13, stiffness: 100 }
+              config: { damping: 14, stiffness: 95 }
             });
             const segOpacity = interpolate(segProgress, [0, 1], [0, 1]);
-            const segY = interpolate(segProgress, [0, 1], [25, 0]);
+            const segY = interpolate(segProgress, [0, 1], [32, 0]);
 
             return (
               <div
                 key={idx}
                 style={{
-                  fontSize: isVertical ? 46 : 40,
-                  fontWeight: 700,
-                  lineHeight: 1.48,
+                  fontSize: quoteFontSize,
+                  fontWeight: 800,
+                  lineHeight: 1.42,
                   color: '#ffffff',
-                  textShadow: '0 4px 20px rgba(0, 0, 0, 0.65)',
+                  textShadow: '0 4px 32px rgba(0, 0, 0, 0.90), 0 2px 10px rgba(0, 0, 0, 0.95)',
                   opacity: frame >= startFrame ? segOpacity : 0,
                   transform: `translateY(${segY}px)`,
-                  letterSpacing: '0.015em'
+                  letterSpacing: '0.025em',
+                  wordBreak: 'keep-all'
                 }}
               >
                 {seg}
@@ -287,7 +312,7 @@ export const EOTCReel = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 16,
+          gap: isVertical ? 20 : 14,
           zIndex: 10,
           opacity: refEntrance,
           transform: `translateY(${interpolate(refEntrance, [0, 1], [20, 0])}px)`
@@ -298,21 +323,22 @@ export const EOTCReel = ({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 14,
-            width: isVertical ? 380 : 320
+            gap: 18,
+            width: isVertical ? 500 : 380
           }}
         >
           <div
             style={{
               flex: 1,
-              height: 1,
-              background: 'linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.55))'
+              height: 2,
+              background: 'linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.70))'
             }}
           />
           <div
             style={{
-              fontSize: 14,
-              color: '#d4af37'
+              fontSize: isVertical ? 20 : 16,
+              color: '#d4af37',
+              textShadow: '0 0 14px rgba(212, 175, 55, 0.9)'
             }}
           >
             ✦
@@ -320,8 +346,8 @@ export const EOTCReel = ({
           <div
             style={{
               flex: 1,
-              height: 1,
-              background: 'linear-gradient(90deg, rgba(212, 175, 55, 0.55), transparent)'
+              height: 2,
+              background: 'linear-gradient(90deg, rgba(212, 175, 55, 0.70), transparent)'
             }}
           />
         </div>
@@ -329,11 +355,11 @@ export const EOTCReel = ({
         {/* Reference text */}
         <div
           style={{
-            fontSize: isVertical ? 26 : 22,
-            fontWeight: 600,
-            color: '#f0d890',
+            fontSize: isVertical ? 44 : 32,
+            fontWeight: 800,
+            color: '#f7e7b5',
             letterSpacing: '0.08em',
-            textShadow: '0 2px 10px rgba(212, 175, 55, 0.35)'
+            textShadow: '0 3px 20px rgba(212, 175, 55, 0.55)'
           }}
         >
           {reference}
