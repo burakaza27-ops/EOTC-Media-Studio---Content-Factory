@@ -122,11 +122,8 @@ export async function renderRemotionReel(opts = {}) {
   }
   console.log(`🚀 Using local Chrome engine: ${chromePath}`);
 
-  // This callback runs if Remotion tries to download Chrome — we abort and use local Chrome instead.
-  const onBrowserDownload = () => {
-    throw new Error(
-      'Remotion wanted to download Chrome, but local Chrome was supplied — this should not happen.'
-    );
+  const onBrowserDownload = ({ percent }) => {
+    console.log(`  🌐 Remotion browser fetch progress: ${Math.round((percent || 0) * 100)}%`);
   };
 
   for (const profileKey of profiles) {
@@ -144,6 +141,7 @@ export async function renderRemotionReel(opts = {}) {
         serveUrl: bundleLocation,
         id: config.compositionId,
         inputProps,
+        browserExecutable: chromePath,
         chromiumOptions: { executablePath: chromePath },
         onBrowserDownload
       });
@@ -154,6 +152,7 @@ export async function renderRemotionReel(opts = {}) {
         codec: 'h264',
         outputLocation: outPath,
         inputProps,
+        browserExecutable: chromePath,
         chromiumOptions: { executablePath: chromePath },
         onBrowserDownload,
         onProgress: ({ progress }) => {
