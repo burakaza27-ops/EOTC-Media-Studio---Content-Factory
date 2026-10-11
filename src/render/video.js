@@ -194,7 +194,7 @@ export async function renderVideoReel(opts = {}) {
  * @param {number}   slideDuration - Seconds per slide (default 4s)
  * @returns {Object} Map of profile -> output path
  */
-export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'carousel', slideDuration = 4) {
+export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'carousel', slideDuration = 4, profiles = null) {
   if (!imagePaths || imagePaths.length === 0) throw new Error('renderCarouselVideo: no images provided');
 
   const ffmpeg = await resolvedFFmpeg();
@@ -202,10 +202,14 @@ export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'car
 
   const fps = 25;
   const results = {};
-  const profiles = ['1:1', '9:16'];
+  const activeProfiles = Array.isArray(profiles) && profiles.length > 0
+    ? profiles
+    : (typeof profiles === 'string' ? profiles.split(',').map(s => s.trim()) : ['1:1', '9:16']);
 
-  for (const profileKey of profiles) {
+  for (const profileKey of activeProfiles) {
     const profile = VIDEO_PROFILES[profileKey];
+    if (!profile) continue;
+
     const outPath = path.join(outputDir, `${baseName}_${profile.suffix}.mp4`);
     console.log(`\n🎬 Carousel ${profile.label} → ${path.basename(outPath)}`);
 
@@ -222,7 +226,7 @@ export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'car
       const preset = KEN_BURNS_PRESETS[i % KEN_BURNS_PRESETS.length];
       const scaleW = Math.round(profile.width * 1.2 / 2) * 2;
       const scaleH = Math.round(profile.height * 1.2 / 2) * 2;
-      const scaleFilter = `scale=${scaleW}:${scaleH},zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
+      const scaleFilter = `scale=w=${scaleW}:h=${scaleH}:force_original_aspect_ratio=increase,crop=${scaleW}:${scaleH},zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
       const fade = `fade=t=in:st=0:d=0.5,fade=t=out:st=${slideDuration - 0.5}:d=0.5`;
       filterParts.push(`[${i}:v]${scaleFilter},${fade}[v${i}]`);
     });

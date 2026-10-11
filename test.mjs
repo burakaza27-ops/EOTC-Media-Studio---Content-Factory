@@ -137,9 +137,10 @@ const litCtx = getLiturgicalContext(new Date(2026, 9, 4));
 check('Bahire Hasab: Liturgical context generated', litCtx && typeof litCtx.mood === 'string', `Mood: ${litCtx?.mood}`);
 
 // 10. Video Module Exports
-const { VIDEO_PROFILES, checkFFmpeg, renderVideoReel } = await import('./src/render/video.js');
+const { VIDEO_PROFILES, checkFFmpeg, renderVideoReel, renderCarouselVideo } = await import('./src/render/video.js');
 check('Video: profiles 1:1, 4:5, 9:16 defined', !!(VIDEO_PROFILES['1:1'] && VIDEO_PROFILES['4:5'] && VIDEO_PROFILES['9:16']));
 check('Video: renderVideoReel is function', typeof renderVideoReel === 'function');
+check('Video: renderCarouselVideo is function', typeof renderCarouselVideo === 'function');
 const ffmpegInfo = await checkFFmpeg();
 check('Video: FFmpeg check callable', typeof ffmpegInfo.available === 'boolean', `Available: ${ffmpegInfo.available}`);
 

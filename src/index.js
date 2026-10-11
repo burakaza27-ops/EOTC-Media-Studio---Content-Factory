@@ -14,7 +14,7 @@
  * Content Types:
  *  quote       — Power Quote (1080×1080)
  *  verse       — Daily Verse (1080×1080)
- *  carousel    — 5-Slide Teaching Carousel (1080×1350 each)
+ *  carousel    — 5-Slide Teaching Carousel (1080×1080 each)
  *  reflection  — Weekly Reflection (1080×1920)
  *  saint       — Saint of the Day (1080×1080)
  *  fasting     — Fasting Guide (1080×1350)
@@ -190,17 +190,26 @@ async function maybeRenderCarouselVideo(imagePaths, baseName, options = {}) {
   try {
     const ffCheck = await checkFFmpeg();
     if (!ffCheck.available) return {};
-    const videoPath = await renderCarouselVideo(imagePaths, OUTPUT_DIR, baseName, 4);
+    const profiles = options.videoProfiles || VIDEO_PROFILES_ENV;
+    const results = await renderCarouselVideo(imagePaths, OUTPUT_DIR, baseName, 4, profiles);
 
-    if (options.targetChatId && videoPath && fs.existsSync(videoPath)) {
-      const caption = `🎬 <b>EOTC Teaching Carousel Reel</b>`;
-      await sendVideoToChat(options.targetChatId, videoPath, caption).catch(e => console.warn(`Chat carousel reel delivery notice: ${e.message}`));
-    } else if (isTelegramConfigured() && videoPath && fs.existsSync(videoPath)) {
-      const caption = `🎬 <b>EOTC Teaching Carousel Reel</b>`;
-      await sendVideoToTelegram(videoPath, caption).catch(e => console.warn(`Telegram carousel reel delivery notice: ${e.message}`));
+    if (options.targetChatId && results) {
+      for (const [profile, vPath] of Object.entries(results)) {
+        if (vPath && fs.existsSync(vPath)) {
+          const caption = `🎬 <b>EOTC Teaching Carousel Reel (${profile})</b>`;
+          await sendVideoToChat(options.targetChatId, vPath, caption).catch(e => console.warn(`Chat carousel reel delivery notice: ${e.message}`));
+        }
+      }
+    } else if (isTelegramConfigured() && results) {
+      for (const [profile, vPath] of Object.entries(results)) {
+        if (vPath && fs.existsSync(vPath)) {
+          const caption = `🎬 <b>EOTC Teaching Carousel Reel (${profile})</b>`;
+          await sendVideoToTelegram(vPath, caption).catch(e => console.warn(`Telegram carousel reel delivery notice: ${e.message}`));
+        }
+      }
     }
 
-    return videoPath;
+    return results;
   } catch (err) {
     console.warn(`⚠️ Carousel video failed (non-fatal): ${err.message}`);
     return {};
@@ -323,10 +332,12 @@ export async function runCarouselPipeline(useLiturgical = true, options = {}) {
   const ctx = buildLiturgicalContext(useLiturgical);
   const carouselData = await generateCarousel(customTheme, ctx);
 
+  const aspectRatio = options.aspectRatio || process.env.CAROUSEL_ASPECT_RATIO || process.env.ASPECT_RATIO || '1:1';
   const outputPaths = await renderCarousel({
     slides: carouselData.slides,
     theme: carouselData.theme,
-    liturgicalContext: ctx ? { mood: ctx.mood, ethiopianDate: ctx.ethiopianDateGeez } : null
+    liturgicalContext: ctx ? { mood: ctx.mood, ethiopianDate: ctx.ethiopianDateGeez } : null,
+    aspectRatio
   }, OUTPUT_DIR);
 
   outputPaths.forEach(p => validateFileSize(p));
@@ -340,7 +351,7 @@ export async function runCarouselPipeline(useLiturgical = true, options = {}) {
   }
 
   // Video reel of all carousel slides (optional)
-  await maybeRenderCarouselVideo(outputPaths, 'carousel', options);
+  await maybeRenderCarouselVideo(outputPaths, 'carousel', { ...options, aspectRatio });
 
   console.log('✅ Carousel pipeline complete.');
   return outputPaths;

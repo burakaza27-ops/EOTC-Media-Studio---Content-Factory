@@ -328,26 +328,42 @@ export async function renderWeeklyReflection(reflectionData, outputPath) {
   }
 }
 
-export async function renderCarousel({ slides, theme, liturgicalContext }, outputDir) {
+export async function renderCarousel({ slides, theme, liturgicalContext, aspectRatio = null }, outputDir) {
   const templatePath = path.join(__dirname, '../../templates/deep_dive.html');
   const outputPaths = [];
   let browser = null;
+
+  const targetRatio = (aspectRatio || process.env.CAROUSEL_ASPECT_RATIO || process.env.ASPECT_RATIO || '1:1').trim();
+  const ASPECT_CONFIGS = {
+    '1:1':  { width: 1080, height: 1080, label: '1:1 Square' },
+    '9:16': { width: 1080, height: 1920, label: '9:16 Vertical Reel/Story' },
+    '4:5':  { width: 1080, height: 1350, label: '4:5 Portrait Feed' }
+  };
+  const config = ASPECT_CONFIGS[targetRatio] || ASPECT_CONFIGS['1:1'];
+
+  fs.mkdirSync(outputDir, { recursive: true });
   
   try {
-    console.log(`🎨 Rendering ${slides.length} carousel slides...`);
-    browser = await launchBrowser(1080, 1350, 3);
+    console.log(`🎨 Rendering ${slides.length} carousel slides (${config.label} ${config.width}×${config.height})...`);
+    browser = await launchBrowser(config.width, config.height, 3);
     
     for (let i = 0; i < slides.length; i++) {
       const slide = slides[i];
       const outputPath = path.join(outputDir, `carousel_${i + 1}.png`);
       
-      console.log(`  📊 Rendering slide ${i + 1}/5...`);
+      console.log(`  📊 Rendering slide ${i + 1}/${slides.length}...`);
       const page = await browser.newPage();
       await page.setCacheEnabled(false);
+      await page.setViewport({ width: config.width, height: config.height, deviceScaleFactor: 3 });
       
       await page.goto(`file://${templatePath}`, { waitUntil: 'networkidle2', timeout: 30000 });
       
-      await page.evaluate((slideData, index, total, themeName) => {
+      await page.evaluate((slideData, index, total, themeName, ratioKey, w, h) => {
+        const ratioClass = `aspect-${ratioKey.replace(':', '-')}`;
+        document.body.classList.add(ratioClass);
+        document.body.style.width = `${w}px`;
+        document.body.style.height = `${h}px`;
+
         const el = id => document.getElementById(id);
         if (el('slide-number')) el('slide-number').textContent = index + 1;
         if (el('slide-total')) el('slide-total').textContent = `${index + 1} OF ${total}`;
@@ -371,26 +387,25 @@ export async function renderCarousel({ slides, theme, liturgicalContext }, outpu
         progressDots.forEach((dot, dotIndex) => {
           dot.classList.toggle('active', dotIndex === index);
         });
-      }, slide, i, slides.length, theme);
+      }, slide, i, slides.length, theme, targetRatio, config.width, config.height);
 
       await injectContext(page, liturgicalContext);
       
       try { await page.waitForFunction(() => document.fonts.ready, { timeout: 15000 }); } catch {}
       await sleep(1500);
       
-      const vp = page.viewport();
       await page.screenshot({
         path: outputPath,
         type: 'png',
         fullPage: false,
-        clip: { x: 0, y: 0, width: vp.width, height: vp.height },
+        clip: { x: 0, y: 0, width: config.width, height: config.height },
         captureBeyondViewport: false
       });
       outputPaths.push(outputPath);
       await page.close();
     }
     
-    console.log(`✅ Carousel rendered: ${outputPaths.length} slides`);
+    console.log(`✅ Carousel rendered: ${outputPaths.length} slides (${config.label})`);
     return outputPaths;
     
   } finally {

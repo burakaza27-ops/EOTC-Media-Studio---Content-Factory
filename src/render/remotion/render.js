@@ -29,13 +29,19 @@ let cachedBundleLocation = null;
  * Prefers PUPPETEER_EXEC_PATH from .env, then well-known Windows locations.
  */
 function getChromeExecutable() {
+  if (process.env.PUPPETEER_EXEC_PATH && fs.existsSync(process.env.PUPPETEER_EXEC_PATH)) {
+    return process.env.PUPPETEER_EXEC_PATH;
+  }
   const candidates = [
-    process.env.PUPPETEER_EXEC_PATH,
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     process.env.LOCALAPPDATA
       ? path.join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe')
-      : null
+      : null,
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium'
   ].filter(Boolean);
 
   for (const p of candidates) {
@@ -115,12 +121,16 @@ export async function renderRemotionReel(opts = {}) {
   };
 
   const chromePath = getChromeExecutable();
-  if (!chromePath) {
-    throw new Error(
-      'Local Chrome not found. Please set PUPPETEER_EXEC_PATH in your .env to point to chrome.exe'
-    );
+  if (chromePath) {
+    console.log(`🚀 Using local Chrome engine: ${chromePath}`);
+  } else {
+    console.log(`🌐 No explicit Chrome path found; Remotion will auto-detect browser`);
   }
-  console.log(`🚀 Using local Chrome engine: ${chromePath}`);
+
+  const browserOpts = chromePath ? {
+    browserExecutable: chromePath,
+    chromiumOptions: { executablePath: chromePath }
+  } : {};
 
   const onBrowserDownload = ({ percent }) => {
     console.log(`  🌐 Remotion browser fetch progress: ${Math.round((percent || 0) * 100)}%`);
@@ -141,8 +151,7 @@ export async function renderRemotionReel(opts = {}) {
         serveUrl: bundleLocation,
         id: config.compositionId,
         inputProps,
-        browserExecutable: chromePath,
-        chromiumOptions: { executablePath: chromePath },
+        ...browserOpts,
         onBrowserDownload
       });
 
@@ -152,8 +161,7 @@ export async function renderRemotionReel(opts = {}) {
         codec: 'h264',
         outputLocation: outPath,
         inputProps,
-        browserExecutable: chromePath,
-        chromiumOptions: { executablePath: chromePath },
+        ...browserOpts,
         onBrowserDownload,
         onProgress: ({ progress }) => {
           const percent = Math.round(progress * 100);

@@ -91,7 +91,7 @@ The studio integrates with GitHub Actions for cloud-based headless rendering:
 |---|---|---|---|
 | **Power Quote** | `npm run quote` | 1080×1080 | Poetic Amharic spiritual quote with patristic weight |
 | **Daily Verse** | `npm run verse` | 1080×1080 | Verified 1962 EOTC Bible verse with strict Ge'ez numerals |
-| **Deep Dive Carousel** | `npm run carousel` | 5× 1080×1350 | 5-slide progressive theological masterclass |
+| **Deep Dive Carousel** | `npm run carousel` | 5× 1080×1080 (or 9:16 / 4:5) | 5-slide progressive theological masterclass |
 | **Weekly Reflection** | `npm run reflection` | 1080×1920 | Multi-paragraph homily + pastoral prayer |
 | **Saint of the Day** | `npm run saint` | 1080×1080 | Synaxarium hagiography, Ge'ez hymn, and life lesson |
 | **Fasting Guide** | `npm run fasting` | 1080×1350 | Active fast tracker, day countdown, rules & encouragement |

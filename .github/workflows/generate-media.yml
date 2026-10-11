@@ -38,6 +38,15 @@ on:
         description: 'Video aspect ratios (comma-separated: 1:1,9:16)'
         required: false
         default: '9:16'
+      aspect_ratio:
+        description: 'Aspect ratio for carousel/images (1:1 square, 9:16 vertical, 4:5 portrait)'
+        required: false
+        type: choice
+        options:
+          - '1:1'
+          - '9:16'
+          - '4:5'
+        default: '1:1'
 
   schedule:
     # Daily 06:00 AM EAT (03:00 UTC) — auto-generates daily quote
@@ -76,7 +85,6 @@ jobs:
             xvfb \
             ffmpeg \
             libnss3 \
-            libatk-bridge2.0-0 \
             libdrm2 \
             libxkbcommon0 \
             libxcomposite1 \
@@ -84,14 +92,15 @@ jobs:
             libxfixes3 \
             libxrandr2 \
             libgbm1 \
-            libasound2 \
             libxshmfence1
+          # Compatibility check for ALSA sound library across Ubuntu 22.04 & 24.04 (Noble)
+          sudo apt-get install -y libasound2t64 || sudo apt-get install -y libasound2 || true
           fc-cache -f -v || true
 
       - name: 🌐 Install Google Chrome (for Puppeteer + Remotion rendering)
         run: |
           wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb || (sudo dpkg -i google-chrome-stable_current_amd64.deb && sudo apt-get install -f -y)
           rm -f google-chrome-stable_current_amd64.deb
           google-chrome --version
 
@@ -102,6 +111,8 @@ jobs:
           USE_LITURGICAL:        ${{ github.event.inputs.use_liturgical || 'true' }}
           GENERATE_VIDEO:        ${{ github.event.inputs.generate_video || 'false' }}
           VIDEO_PROFILES:        ${{ github.event.inputs.video_profiles || '9:16' }}
+          ASPECT_RATIO:          ${{ github.event.inputs.aspect_ratio || '1:1' }}
+          CAROUSEL_ASPECT_RATIO: ${{ github.event.inputs.aspect_ratio || '1:1' }}
           OPENROUTER_API_KEY:    ${{ secrets.OPENROUTER_API_KEY }}
           GOOGLE_AI_STUDIO_API:  ${{ secrets.GOOGLE_AI_STUDIO_API }}
           TELEGRAM_BOT_TOKEN:    ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -115,8 +126,8 @@ jobs:
           # Remotion needs a display server on Linux
           DISPLAY:               :99
         run: |
-          # Start virtual display for headless Chrome (needed by Remotion on Linux)
-          Xvfb :99 -screen 0 1920x1080x24 &
+          # Start virtual display for headless Chrome (supports both 1080x1920 vertical & 1920x1080)
+          Xvfb :99 -screen 0 2560x1920x24 &
           sleep 1
           node src/index.js
 
