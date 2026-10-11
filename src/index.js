@@ -60,6 +60,8 @@ import {
   checkFFmpeg
 } from './render/video.js';
 
+import { renderRemotionReel } from './render/remotion/render.js';
+
 import {
   dispatchWorkflow
 } from './utils/github.js';
@@ -138,41 +140,42 @@ async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], content
   if (!wantVideo) return {};
 
   try {
-    const ffCheck = await checkFFmpeg();
-    if (!ffCheck.available) {
-      console.log(`⚠️ FFmpeg not found (${ffCheck.path}) — skipping video reel.`);
-      return {};
-    }
-    console.log(`🎬 FFmpeg ${ffCheck.version} — rendering video reels...`);
-    const results = await renderVideoReel({
-      imagePath,
+    // ── Primary: Remotion motion-graphics engine (animated kinetic typography) ──
+    console.log(`🎬 [Remotion] Rendering sacred video reels...`);
+    const quote = subtitleLines[0] || '';
+    const reference = subtitleLines[1] || '';
+    const theme = subtitleLines[2] || 'የዕለቱ ኃይለ ቃል';
+    const date = subtitleLines[3] || 'ኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን';
+
+    const results = await renderRemotionReel({
       outputDir: OUTPUT_DIR,
       baseName,
-      duration: 10,
-      profiles: VIDEO_PROFILES_ENV,
-      subtitleLines,
-      mood: 'devotional'
+      quote,
+      reference,
+      theme,
+      date,
+      profiles: VIDEO_PROFILES_ENV
     });
 
     if (options.targetChatId && results) {
       for (const [profile, videoPath] of Object.entries(results)) {
         if (videoPath && fs.existsSync(videoPath)) {
-          const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${subtitleLines[0] || ''}`;
-          await sendVideoToChat(options.targetChatId, videoPath, caption).catch(e => console.warn(`Chat reel delivery notice: ${e.message}`));
+          const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${quote}`;
+          await sendVideoToChat(options.targetChatId, videoPath, caption).catch(e => console.warn(`Chat reel delivery: ${e.message}`));
         }
       }
     } else if (isTelegramConfigured() && results) {
       for (const [profile, videoPath] of Object.entries(results)) {
         if (videoPath && fs.existsSync(videoPath)) {
-          const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${subtitleLines[0] || ''}`;
-          await sendVideoToTelegram(videoPath, caption).catch(e => console.warn(`Telegram reel delivery notice: ${e.message}`));
+          const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${quote}`;
+          await sendVideoToTelegram(videoPath, caption).catch(e => console.warn(`Telegram reel delivery: ${e.message}`));
         }
       }
     }
 
     return results;
   } catch (err) {
-    console.warn(`⚠️ Video reel failed (non-fatal): ${err.message}`);
+    console.warn(`⚠️ Remotion video reel failed (non-fatal): ${err.message}`);
     return {};
   }
 }

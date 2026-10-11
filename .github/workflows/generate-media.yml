@@ -30,14 +30,14 @@ on:
         type: boolean
         default: true
       generate_video:
-        description: 'Generate video reels (9:16 + 1:1) with FFmpeg'
+        description: 'Generate Remotion video reels (9:16 + 1:1) — requires ~2 extra minutes'
         required: false
         type: boolean
         default: false
       video_profiles:
-        description: 'Video aspect ratios (comma-separated: 1:1,4:5,9:16)'
+        description: 'Video aspect ratios (comma-separated: 1:1,9:16)'
         required: false
-        default: '1:1,9:16'
+        default: '9:16'
 
   schedule:
     # Daily 06:00 AM EAT (03:00 UTC) — auto-generates daily quote
@@ -51,7 +51,7 @@ jobs:
   generate:
     name: "✝️ Generate ${{ github.event.inputs.content_type || 'quote' }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: 📥 Checkout Repository
@@ -66,18 +66,33 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm ci || npm install
 
-      - name: 🎬 Install FFmpeg (for video reels)
-        if: ${{ github.event.inputs.generate_video == 'true' }}
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg
-          ffmpeg -version | head -1
-
       - name: 🔤 Install Ethiopian Fonts & System Packages
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y fonts-noto-core fonts-noto-extra fonts-sil-abyssinica
+          sudo apt-get install -y \
+            fonts-noto-core \
+            fonts-noto-extra \
+            fonts-sil-abyssinica \
+            libnss3 \
+            libatk-bridge2.0-0 \
+            libdrm2 \
+            libxkbcommon0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxfixes3 \
+            libxrandr2 \
+            libgbm1 \
+            libasound2 \
+            libxshmfence1
           fc-cache -f -v || true
+
+      - name: 🌐 Install Google Chrome (for Puppeteer + Remotion rendering)
+        run: |
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -qq
+          sudo apt-get install -y google-chrome-stable
+          google-chrome --version
 
       - name: 🎨 Generate Content
         env:
@@ -85,7 +100,7 @@ jobs:
           CUSTOM_THEME:          ${{ github.event.inputs.custom_theme || '' }}
           USE_LITURGICAL:        ${{ github.event.inputs.use_liturgical || 'true' }}
           GENERATE_VIDEO:        ${{ github.event.inputs.generate_video || 'false' }}
-          VIDEO_PROFILES:        ${{ github.event.inputs.video_profiles || '1:1,9:16' }}
+          VIDEO_PROFILES:        ${{ github.event.inputs.video_profiles || '9:16' }}
           OPENROUTER_API_KEY:    ${{ secrets.OPENROUTER_API_KEY }}
           GOOGLE_AI_STUDIO_API:  ${{ secrets.GOOGLE_AI_STUDIO_API }}
           TELEGRAM_BOT_TOKEN:    ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -93,11 +108,16 @@ jobs:
           TELEGRAM_ADMIN_IDS:    ${{ secrets.TELEGRAM_ADMIN_IDS }}
           SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY:          ${{ secrets.SUPABASE_KEY }}
-          AI_MODEL:              ${{ secrets.AI_MODEL || 'google/gemini-2.5-flash' }}
+          AI_MODEL:              google/gemini-2.5-flash
           GITHUB_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
-          PUPPETEER_EXEC_PATH:   /usr/bin/google-chrome
-          FFMPEG_PATH:           /usr/bin/ffmpeg
-        run: node src/index.js
+          PUPPETEER_EXEC_PATH:   /usr/bin/google-chrome-stable
+          # Remotion needs a display server on Linux
+          DISPLAY:               :99
+        run: |
+          # Start virtual display for headless Chrome (needed by Remotion on Linux)
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 1
+          node src/index.js
 
       - name: 📤 Upload Generated Media
         if: always()

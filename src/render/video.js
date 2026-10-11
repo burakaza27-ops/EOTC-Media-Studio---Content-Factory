@@ -128,9 +128,10 @@ export async function renderVideoReel(opts = {}) {
     const preset = KEN_BURNS_PRESETS[Math.floor(Math.random() * KEN_BURNS_PRESETS.length)];
     const fps = 25;
     const totalFrames = duration * fps;
-
-    // Scale-then-crop ensures the image fills the frame at any aspect ratio
-    const scaleFilter = `scale=${profile.width * 2}:${profile.height * 2},zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
+    // Scale to 1.2x target size (ensures crisp zoompan without memory exhaustion)
+    const scaleW = Math.round(profile.width * 1.2 / 2) * 2;
+    const scaleH = Math.round(profile.height * 1.2 / 2) * 2;
+    const scaleFilter = `scale=${scaleW}:${scaleH},zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
 
     // Sacred golden particle overlay (overlay a generated radial vignette)
     const vignetteFilter = `vignette=angle=PI/4:mode=backward`;
@@ -219,7 +220,9 @@ export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'car
 
       const totalFrames = slideDuration * fps;
       const preset = KEN_BURNS_PRESETS[i % KEN_BURNS_PRESETS.length];
-      const scaleFilter = `scale=${profile.width * 2}:${profile.height * 2},zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
+      const scaleW = Math.round(profile.width * 1.2 / 2) * 2;
+      const scaleH = Math.round(profile.height * 1.2 / 2) * 2;
+      const scaleFilter = `scale=${scaleW}:${scaleH},zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
       const fade = `fade=t=in:st=0:d=0.5,fade=t=out:st=${slideDuration - 0.5}:d=0.5`;
       filterParts.push(`[${i}:v]${scaleFilter},${fade}[v${i}]`);
     });
