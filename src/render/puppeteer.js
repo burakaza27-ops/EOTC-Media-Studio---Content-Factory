@@ -166,7 +166,7 @@ async function launchBrowser(width = 1080, height = 1080, deviceScaleFactor = 3,
 async function injectContext(page, context = {}) {
   const mood = context?.mood || DEFAULT_MOOD;
   const palette = MOOD_PALETTES[mood] || MOOD_PALETTES[DEFAULT_MOOD];
-  const ethDate = context?.ethiopianDate || '';
+  const ethDate = context?.ethiopianDate || context?.ethiopianDateFormatted || '';
 
   // Inject mood palette as CSS custom properties
   const cssVars = Object.entries(palette)
@@ -179,13 +179,17 @@ async function injectContext(page, context = {}) {
     }
     * { -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; }
     html { text-rendering: optimizeLegibility !important; }
+    .eth-date:empty { display: none !important; }
   `});
 
   // Inject Ethiopian date badge if the element exists
   if (ethDate) {
     await page.evaluate((dateText) => {
       const badge = document.getElementById('eth-date-badge');
-      if (badge) badge.textContent = dateText;
+      if (badge) {
+        badge.textContent = dateText;
+        badge.style.display = 'block';
+      }
     }, ethDate);
   }
 }
@@ -383,10 +387,15 @@ export async function renderCarousel({ slides, theme, liturgicalContext, aspectR
         const progressBar = el('progress-bar');
         if (progressBar) progressBar.style.width = ((index + 1) / total * 100) + '%';
         
-        const progressDots = document.querySelectorAll('.dot');
-        progressDots.forEach((dot, dotIndex) => {
-          dot.classList.toggle('active', dotIndex === index);
-        });
+        const dotsContainer = el('progress-dots');
+        if (dotsContainer) {
+          dotsContainer.innerHTML = '';
+          for (let d = 0; d < total; d++) {
+            const dot = document.createElement('div');
+            dot.className = 'dot' + (d === index ? ' active' : '');
+            dotsContainer.appendChild(dot);
+          }
+        }
       }, slide, i, slides.length, theme, targetRatio, config.width, config.height);
 
       await injectContext(page, liturgicalContext);

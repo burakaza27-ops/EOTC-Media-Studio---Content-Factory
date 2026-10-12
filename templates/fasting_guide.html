@@ -6,25 +6,39 @@
   <title>EOTC Fasting Guide</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;500;600;700;800;900&family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-void: #030208;
-      --bg-deep: #0a0715;
-      --mood-primary: #9b72cf;
-      --mood-primary-light: #c4a8e0;
-      --mood-primary-dim: #6b4d8a;
-      --mood-glow: rgba(155, 114, 207, 0.22);
-      --mood-bg-accent: rgba(100, 60, 150, 0.10);
-      --white: #ffffff;
-      --white-90: rgba(255, 255, 255, 0.90);
-      --white-60: rgba(255, 255, 255, 0.60);
-      --white-30: rgba(255, 255, 255, 0.30);
-      --white-08: rgba(255, 255, 255, 0.08);
+      --bg-void:  #020108;
+      --bg-deep:  #080612;
+      --purple:   rgba(80,30,130,0.28);
+      --gold:     #d4af37;
+      --gold-lt:  #f0d890;
+      --gold-pale:#fdf8e8;
+      --gold-glow:rgba(212,175,55,0.22);
+      --mood-primary:       #d4af37;
+      --mood-primary-light: #f0d890;
+      --mood-glow:          rgba(212,175,55,0.22);
+      --mood-bg-accent:     rgba(212,175,55,0.06);
+      --white:    #ffffff;
+      --white-90: rgba(255,255,255,0.90);
+      --white-70: rgba(255,255,255,0.70);
+      --white-50: rgba(255,255,255,0.50);
+      --white-08: rgba(255,255,255,0.08);
+      --white-06: rgba(255,255,255,0.06);
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    html { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; font-feature-settings: "kern" 1, "liga" 1; }
+    html { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    @keyframes breathe {
+      0%,100% { opacity: 0.40; transform: translate(-50%,-50%) scale(1);    }
+      50%      { opacity: 0.75; transform: translate(-50%,-50%) scale(1.07); }
+    }
+    @keyframes progressGlow {
+      0%,100% { box-shadow: 0 0 12px rgba(212,175,55,0.35); }
+      50%      { box-shadow: 0 0 28px rgba(212,175,55,0.65); }
+    }
 
     body {
       width: 1080px; height: 1350px;
@@ -33,17 +47,156 @@
       background: var(--bg-void);
     }
 
-    
-    /* === LALIBELA CROSS BRAND === */
-    .brand-lalibela { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
-    .brand-lalibela img { width: 44px; height: 44px; filter: drop-shadow(0 0 8px rgba(212,175,55,0.4)); }
+    /* ══ BACKGROUNDS ══ */
+    .bg {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background:
+        radial-gradient(ellipse at 50% 25%, rgba(80,30,130,0.22) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 90%, rgba(212,175,55,0.10) 0%, transparent 45%),
+        linear-gradient(168deg, var(--bg-void) 0%, var(--bg-deep) 45%, #0c0a16 100%);
+      z-index: 0;
+    }
+    .glow-center {
+      position: absolute; top: 30%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 800px; height: 800px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(212,175,55,0.12) 0%, rgba(212,175,55,0.03) 38%, transparent 65%);
+      animation: breathe 12s ease-in-out infinite; filter: blur(40px); z-index: 0;
+    }
+    .grain {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E");
+      z-index: 1; pointer-events: none;
+    }
+    .vignette {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.60) 100%);
+      z-index: 1; pointer-events: none;
+    }
+
+    /* ══ DATE BADGE ══ */
+    .eth-date {
+      position: absolute; top: 62px; right: 68px; z-index: 10;
+      font-size: 13px; letter-spacing: 0.16em;
+      color: var(--gold-lt); font-weight: 700;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--white-06);
+      padding: 6px 18px; border-radius: 16px;
+    }
+
+    /* ══ CONTENT ══ */
+    .content {
+      position: relative; z-index: 10;
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      padding: 100px 90px 90px;
+    }
+
+    /* Header */
+    .header { margin-bottom: 44px; }
+    .fast-badge {
+      display: inline-block;
+      font-size: 12px; letter-spacing: 0.38em; font-weight: 700;
+      color: var(--gold-lt); text-transform: uppercase;
+      border: 1px solid rgba(212,175,55,0.28); padding: 8px 28px; border-radius: 24px;
+      background: rgba(212,175,55,0.05); margin-bottom: 26px;
+      font-family: 'Cinzel', serif;
+    }
+    .fast-name {
+      font-size: 64px; font-weight: 900; line-height: 1.20;
+      background: linear-gradient(to right, var(--white) 15%, var(--gold-lt) 50%, var(--white) 85%);
+      background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .day-count {
+      font-size: 22px; font-weight: 600;
+      color: rgba(212,175,55,0.70); letter-spacing: 0.10em;
+      font-family: 'Cinzel', serif;
+    }
+
+    /* Progress bar */
+    .progress-container {
+      width: 100%; height: 8px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 8px; overflow: hidden;
+      margin-bottom: 52px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+    }
+    .progress-fill {
+      height: 100%; border-radius: 8px;
+      background: linear-gradient(90deg, #d4af37, #f0d890, #d4af37);
+      background-size: 200% 100%;
+      animation: progressGlow 3s ease-in-out infinite;
+      transition: width 0.5s ease;
+    }
+
+    /* Encouragement */
+    .encouragement {
+      font-size: 30px; font-weight: 600; line-height: 1.65;
+      color: var(--white-90); margin-bottom: 44px;
+      padding: 28px 32px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid var(--gold);
+      border-radius: 0 8px 8px 0;
+    }
+
+    /* Rules list */
+    .rules-section { flex: 1; }
+    .rules-title {
+      font-size: 13px; letter-spacing: 0.38em; font-weight: 700;
+      color: rgba(212,175,55,0.65); text-transform: uppercase;
+      font-family: 'Cinzel', serif; margin-bottom: 22px;
+    }
+    .fasting-rules-list {
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .fasting-rules-list li, #fasting-rules-list li {
+      font-size: 24px; font-weight: 500; line-height: 1.60;
+      color: var(--white-70);
+      padding-left: 24px; position: relative; list-style: none;
+    }
+    .fasting-rules-list li::before, #fasting-rules-list li::before {
+      content: "✦";
+      position: absolute; left: 0;
+      color: rgba(212,175,55,0.55); font-size: 12px; top: 7px;
+    }
+
+    /* Scripture ref */
+    .scripture-ref-wrap {
+      margin-top: auto; padding-top: 36px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .ref-line {
+      flex: 1; height: 1px;
+      background: linear-gradient(90deg, rgba(212,175,55,0.50), transparent);
+    }
+    .ref-line:last-child {
+      background: linear-gradient(90deg, transparent, rgba(212,175,55,0.50));
+    }
+    #scripture-ref { font-size: 20px; font-weight: 700; color: var(--gold-lt); letter-spacing: 0.12em; }
+
+    /* Footer */
+    .footer {
+      display: flex; align-items: center; justify-content: center;
+      gap: 20px; padding-top: 32px;
+    }
+    .footer-line {
+      flex: 1; max-width: 180px; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212,175,55,0.38), transparent);
+    }
+    .footer-text {
+      font-size: 12px; letter-spacing: 0.44em; font-weight: 700;
+      color: rgba(212,175,55,0.55); text-transform: uppercase;
+      font-family: 'Cinzel', serif;
+    }
   </style>
 </head>
 <body>
   <div class="bg"></div>
+  <div class="glow-center"></div>
   <div class="grain"></div>
   <div class="vignette"></div>
-  
 
   <div class="eth-date" id="eth-date-badge"></div>
 
@@ -51,23 +204,26 @@
     <div class="header">
       <div class="fast-badge">ጾም Guide</div>
       <h1 class="fast-name" id="fast-name">ዐቢይ ጾም</h1>
-      <div class="day-count" id="fast-day-count">Day 23 of 55</div>
+      <div class="day-count" id="fast-day-count">Day 1 of 55</div>
     </div>
 
     <div class="progress-container">
-      <div class="progress-fill" id="progress-bar" style="width: 42%"></div>
+      <div class="progress-fill" id="progress-bar" style="width:0%"></div>
     </div>
 
-    <div class="rules-header">Fasting Rules</div>
-    <ul class="rules-list" id="fasting-rules-list">
-      <li>No food or drink until 3 PM</li>
-      <li>No meat, dairy, or eggs</li>
-      <li>Plant-based meals only</li>
-    </ul>
+    <div class="encouragement" id="encouragement-text">።።።</div>
 
-    <div class="encouragement">
-      <p class="encouragement-text" id="encouragement-text">።።።</p>
-      <div class="ref" id="scripture-ref"></div>
+    <div class="rules-section">
+      <div class="rules-title">የጾም ሕጎች</div>
+      <ul class="fasting-rules-list" id="fasting-rules-list">
+        <li>።።።</li>
+      </ul>
+    </div>
+
+    <div class="scripture-ref-wrap">
+      <div class="ref-line"></div>
+      <div id="scripture-ref"></div>
+      <div class="ref-line"></div>
     </div>
 
     <div class="footer">
@@ -76,5 +232,12 @@
       <div class="footer-line"></div>
     </div>
   </div>
+
+  <script>
+    // Sync progress bar width from data attribute
+    const pct = document.getElementById('progress-percent');
+    const bar = document.getElementById('progress-bar');
+    if (pct && bar) bar.style.width = (pct.textContent || '0') + '%';
+  </script>
 </body>
 </html>
