@@ -267,12 +267,20 @@ export function getGitHubDispatchKeyboard() {
         { text: '📜 Reflection (አስተንትኖ)', callback_data: 'gh:run:reflection' }
       ],
       [
-        { text: '⛪ Saint (ቅዱስ)', callback_data: 'gh:run:saint' },
-        { text: '🌿 Fasting (ጾም)', callback_data: 'gh:run:fasting' }
+        { text: '⛪ Saint (የዕለቱ ቅዱስ)', callback_data: 'gh:run:saint' },
+        { text: '🌿 Fasting (የጾም መመሪያ)', callback_data: 'gh:run:fasting' }
       ],
       [
-        { text: '🎬 Quote + Video Reel (9:16)', callback_data: 'gh:run:quote:video' },
-        { text: '🌟 All 9 Pipelines', callback_data: 'gh:run:all' }
+        { text: '👑 Holy Week (ሰሙነ ሕማማት)', callback_data: 'gh:run:holyweek' },
+        { text: '🏛️ History (ቤተ ክርስቲያን ታሪክ)', callback_data: 'gh:run:history' }
+      ],
+      [
+        { text: '📅 Calendar (ሳምንታዊ መቁጠሪያ)', callback_data: 'gh:run:calendar' },
+        { text: '🎬 Quote + Reel (9:16)', callback_data: 'gh:run:quote:video' }
+      ],
+      [
+        { text: '🌟 All 9 Pipelines (Cloud Run)', callback_data: 'gh:run:all' },
+        { text: '🌟 All 9 + Video Reels', callback_data: 'gh:run:all:video' }
       ],
       [
         { text: '🔙 ወደ GitHub ማውጫ', callback_data: 'menu:github' }
@@ -660,11 +668,15 @@ async function handleGitHubDispatch(chatId, contentType = 'quote', generateVideo
   const waitMsg = await sendMsg(chatId, `⏳ <b>GitHub Action [${contentType}]</b> በማስጀመር ላይ...`);
 
   try {
+    const format = generateVideo
+      ? 'Image + Video Reel — Vertical 9:16'
+      : 'Image — Square 1:1 (1080×1080)';
+
     const result = await dispatchWorkflow('generate-media.yml', {
       content_type: contentType,
+      output_format: format,
       use_liturgical: 'true',
-      generate_video: generateVideo ? 'true' : 'false',
-      video_profiles: '1:1,9:16'
+      custom_theme: ''
     });
 
     const lines = [
@@ -1102,9 +1114,12 @@ async function dispatchUpdate(update) {
       case 'reel':
         await executeGeneration(chatId, args[0]?.toLowerCase() || 'quote', null, true); break;
       case 'all':
-        await executeGeneration(chatId, 'all', null, false); break;
+        const wantAllVideo = args[0]?.toLowerCase() === 'video' || args[0]?.toLowerCase() === 'reel';
+        await executeGeneration(chatId, 'all', null, wantAllVideo); break;
       case 'dispatch':
-        await handleGitHubDispatch(chatId, args[0]?.toLowerCase() || 'quote', args[1] === 'video'); break;
+        const dispatchType = args[0]?.toLowerCase() || 'quote';
+        const dispatchVid = args[1]?.toLowerCase() === 'video' || args[1]?.toLowerCase() === 'reel';
+        await handleGitHubDispatch(chatId, dispatchType, dispatchVid); break;
       case 'ghstatus':
       case 'ghruns':
         await handleGitHubStatus(chatId); break;

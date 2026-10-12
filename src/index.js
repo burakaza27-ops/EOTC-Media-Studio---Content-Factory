@@ -733,11 +733,14 @@ export async function main() {
   if (cliOptions.dispatchCloud) {
     console.log(`\n🚀 Dispatching GitHub Action workflow for "${contentType}" (video: ${wantVideo})...`);
     try {
+      const format = wantVideo
+        ? 'Image + Video Reel — Vertical 9:16'
+        : 'Image — Square 1:1 (1080×1080)';
       const res = await dispatchWorkflow('generate-media.yml', {
         content_type: contentType,
+        output_format: format,
         use_liturgical: useLiturgical ? 'true' : 'false',
-        generate_video: wantVideo ? 'true' : 'false',
-        video_profiles: VIDEO_PROFILES_ENV.join(',')
+        custom_theme: customTheme || ''
       });
       console.log(`✅ Workflow successfully dispatched to GitHub Actions! Ref: ${res.ref}`);
       return res;
