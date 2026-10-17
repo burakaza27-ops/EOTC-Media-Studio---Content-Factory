@@ -208,6 +208,10 @@ async function renderTemplate(page, htmlFile, variables, outputPath, options = {
   // Inject variables
   await page.evaluate((vars) => {
     for (const [id, value] of Object.entries(vars)) {
+      if (id === 'progress-percent') {
+        const bar = document.getElementById('progress-bar');
+        if (bar) bar.style.width = `${value}%`;
+      }
       const el = document.getElementById(id);
       if (el) {
         if (id === 'reflection-body') {

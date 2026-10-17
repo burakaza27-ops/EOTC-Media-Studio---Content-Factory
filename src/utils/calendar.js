@@ -54,6 +54,12 @@ const ETHIOPIAN_MONTHS = {
   9: 'Ginbot', 10: 'Sene', 11: 'Hamle', 12: 'Nehase', 13: 'Pagume'
 };
 
+export const ETHIOPIAN_MONTHS_AMHARIC = {
+  1: 'መስከረም', 2: 'ጥቅምት', 3: 'ኅዳር', 4: 'ታኅሣሥ',
+  5: 'ጥር', 6: 'የካቲት', 7: 'መጋቢት', 8: 'ሚያዝያ',
+  9: 'ግንቦት', 10: 'ሰኔ', 11: 'ሐምሌ', 12: 'ነሐሴ', 13: 'ጳጉሜ'
+};
+
 const DAILY_COMMEMORATIONS = {
   1:  { saint: 'ልደታ ለማርያም እና ነቢዩ ኤልያስ (Lideta Mariam & Elyas)', theme: 'The birth of the Most Holy Virgin Mary — chosen before time to be the Theotokos (God-bearer). She was born holy from the womb of Hanna and Joachim who prayed for her for years. Also commemorating Elijah the Prophet, who by prayer shut and opened the heavens, and was taken to heaven in a chariot of fire without tasting death.', type: 'saint' },
   2:  { saint: 'ሐዋርያው ታዴዎስ (Thaddeus the Apostle)', theme: 'The apostle Thaddeus — one of the twelve — who took the Gospel to Persia and Armenia and was martyred by an arrow. He is the patron of desperate causes and hopeless situations. His life teaches that God uses the overlooked to change the world.', type: 'saint' },
@@ -221,10 +227,18 @@ export function calculateMoveableFeasts(ethYear) {
 }
 
 export function getComputusData(ethYear) {
+  const ameteAlem = ethYear + 5500;
   const EVANGELISTS = ['ዮሐንስ', 'ማቴዎስ', 'ማርቆስ', 'ሉቃስ'];
-  const evIndex = (ethYear + 5500) % 4;
+  const evIndex = ameteAlem % 4;
   const evangelist = EVANGELISTS[evIndex];
   const isLeap = evIndex === 3; // Luke has 6 Pagume days before John
+
+  // Classical Bahire Hasab Metrics
+  const medeb = ameteAlem % 19;
+  const wenber = (medeb - 1 + 19) % 19;
+  const abeqte = (wenber * 11) % 30;
+  const metqe = (wenber * 19) % 30 || 30;
+  const metqeMonth = metqe > 14 ? 'መስከረም' : 'ጥቅምት';
 
   const moveables = calculateMoveableFeasts(ethYear);
 
@@ -233,10 +247,17 @@ export function getComputusData(ethYear) {
     return `${mName} ${toGeezNumerals(d.day)} (${d.day})`;
   };
 
+  const rikbeKahnat = offsetEthDate(moveables.fasika, +24);
+
   return {
     year: ethYear,
     yearGeez: toGeezNumerals(ethYear),
+    ameteAlem: ameteAlem,
+    ameteAlemGeez: toGeezNumerals(ameteAlem),
     evangelist: `ዘመነ ${evangelist}`,
+    wenber: wenber,
+    abeqte: abeqte,
+    metqe: `${metqeMonth} ${metqe}`,
     pagumeDays: isLeap ? 6 : 5,
     feasts: [
       { name: 'ጾመ ነነዌ (Fast of Nineveh)', date: formatMDate(moveables.nenewe), raw: moveables.nenewe },
@@ -246,6 +267,7 @@ export function getComputusData(ethYear) {
       { name: 'ጸሎተ ሐሙስ (Maundy Thursday)', date: formatMDate(moveables.hqmuss), raw: moveables.hqmuss },
       { name: 'ስቅለት (Good Friday)', date: formatMDate(moveables.siklet), raw: moveables.siklet },
       { name: 'ትንሣኤ / ፋሲካ (Holy Easter / Fasika)', date: formatMDate(moveables.fasika), raw: moveables.fasika },
+      { name: 'ርክበ ካህናት (Rikbe Kahnat)', date: formatMDate(rikbeKahnat), raw: rikbeKahnat },
       { name: 'ዕርገት (Ascension)', date: formatMDate(moveables.erget), raw: moveables.erget },
       { name: 'ጰራቅሊጦስ (Pentecost)', date: formatMDate(moveables.perakletos), raw: moveables.perakletos },
       { name: 'ጾመ ሐዋርያት (Apostles Fast begins)', date: formatMDate(moveables.tsomeHawariatStart), raw: moveables.tsomeHawariatStart }
@@ -423,12 +445,6 @@ export function toGeezNumerals(num) {
   }
   return String(num); // Fallback for very large numbers
 }
-
-const ETHIOPIAN_MONTHS_AMHARIC = {
-  1: 'መስከረም', 2: 'ጥቅምት', 3: 'ኅዳር', 4: 'ታኅሣሥ',
-  5: 'ጥር', 6: 'የካቲት', 7: 'መጋቢት', 8: 'ሚያዝያ',
-  9: 'ግንቦት', 10: 'ሰኔ', 11: 'ሐምሌ', 12: 'ነሐሴ', 13: 'ጳጉሜ'
-};
 
 /**
  * Returns Ethiopian date formatted in Amharic with Ge'ez numerals.

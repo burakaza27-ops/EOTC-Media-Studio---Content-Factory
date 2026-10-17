@@ -136,48 +136,73 @@ function buildLiturgicalContext(useLiturgical) {
  * Optionally renders video reels for a given image output path.
  */
 async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], contentType = '', options = {}) {
-  const wantVideo = options.generateVideo !== undefined ? options.generateVideo : GENERATE_VIDEO;
+  const wantVideo = options.generateVideo !== undefined
+    ? options.generateVideo
+    : (options.format === 'reel' || options.format === 'both' || GENERATE_VIDEO);
   if (!wantVideo) return {};
 
-  try {
-    // ── Primary: Remotion motion-graphics engine (animated kinetic typography) ──
-    console.log(`🎬 [Remotion] Rendering sacred video reels...`);
-    const quote = subtitleLines[0] || '';
-    const reference = subtitleLines[1] || '';
-    const theme = subtitleLines[2] || 'የዕለቱ ኃይለ ቃል';
-    const date = subtitleLines[3] || 'ኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን';
+  const quote = subtitleLines[0] || '';
+  const reference = subtitleLines[1] || '';
+  const theme = subtitleLines[2] || 'የዕለቱ ኃይለ ቃል';
+  const date = subtitleLines[3] || 'ኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን';
+  const profiles = options.videoProfiles || (options.aspectRatio ? [options.aspectRatio] : (options.format === 'reel' ? ['9:16'] : VIDEO_PROFILES_ENV));
 
-    const results = await renderRemotionReel({
-      outputDir: OUTPUT_DIR,
-      baseName,
-      quote,
-      reference,
-      theme,
-      date,
-      profiles: VIDEO_PROFILES_ENV
-    });
+  let results = {};
 
-    if (options.targetChatId && results) {
-      for (const [profile, videoPath] of Object.entries(results)) {
-        if (videoPath && fs.existsSync(videoPath)) {
-          const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${quote}`;
-          await sendVideoToChat(options.targetChatId, videoPath, caption).catch(e => console.warn(`Chat reel delivery: ${e.message}`));
-        }
-      }
-    } else if (isTelegramConfigured() && results) {
-      for (const [profile, videoPath] of Object.entries(results)) {
-        if (videoPath && fs.existsSync(videoPath)) {
-          const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${quote}`;
-          await sendVideoToTelegram(videoPath, caption).catch(e => console.warn(`Telegram reel delivery: ${e.message}`));
+  // Try Remotion only if specifically requested via options or environment
+  const engine = options.videoEngine || process.env.VIDEO_ENGINE || 'ffmpeg';
+
+  if (engine === 'remotion') {
+    try {
+      console.log(`🎬 [Remotion] Rendering kinetic typography video reel...`);
+      results = await renderRemotionReel({
+        outputDir: OUTPUT_DIR,
+        baseName,
+        quote,
+        reference,
+        theme,
+        date,
+        profiles
+      });
+    } catch (err) {
+      console.warn(`⚠️ Remotion video reel failed, seamlessly falling back to FFmpeg engine: ${err.message}`);
+    }
+  }
+
+  // Fast, bulletproof FFmpeg Ken Burns engine (renders in 5-8s without memory overhead)
+  if (!results || Object.keys(results).length === 0) {
+    try {
+      console.log(`🎬 [FFmpeg] Rendering cinematic Ken Burns video reel (${profiles.join(', ')})...`);
+      results = await renderVideoReel({
+        imagePath,
+        outputDir: OUTPUT_DIR,
+        baseName,
+        duration: options.duration || 8,
+        profiles,
+        subtitleLines: [quote, reference].filter(Boolean),
+        mood: options.mood || 'devotional'
+      });
+    } catch (err) {
+      console.error(`❌ Video reel rendering failed: ${err.message}`);
+      return {};
+    }
+  }
+
+  // Deliver to chat or default Telegram channel
+  if (results && Object.keys(results).length > 0) {
+    for (const [profile, videoPath] of Object.entries(results)) {
+      if (videoPath && fs.existsSync(videoPath)) {
+        const caption = `🎬 <b>EOTC Video Reel (${profile})</b>\n\n${quote}${reference ? `\n<i>${reference}</i>` : ''}`;
+        if (options.targetChatId) {
+          await sendVideoToChat(options.targetChatId, videoPath, caption).catch(e => console.warn(`Chat reel delivery notice: ${e.message}`));
+        } else if (isTelegramConfigured()) {
+          await sendVideoToTelegram(videoPath, caption).catch(e => console.warn(`Telegram reel delivery notice: ${e.message}`));
         }
       }
     }
-
-    return results;
-  } catch (err) {
-    console.warn(`⚠️ Remotion video reel failed (non-fatal): ${err.message}`);
-    return {};
   }
+
+  return results;
 }
 
 /**
@@ -257,14 +282,17 @@ export async function runQuotePipeline(useLiturgical = true, options = {}) {
 
   const caption = `✝️ ${quoteData.text}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (options.targetChatId) {
-    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
-  } else if (isTelegramConfigured()) {
-    await sendImageToTelegram(outputPath, caption);
+  const isReelOnly = options.format === 'reel';
+  if (!isReelOnly) {
+    if (options.targetChatId) {
+      await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured()) {
+      await sendImageToTelegram(outputPath, caption);
+    }
   }
 
-  // Video reel (optional)
-  await maybeRenderVideo(outputPath, 'power_quote', [quoteData.text], 'quote', options);
+  // Video reel (optional or requested)
+  await maybeRenderVideo(outputPath, 'power_quote', [quoteData.text, '— ኃይለ ቃል'], 'quote', options);
 
   console.log('✅ Quote pipeline complete.');
   return outputPath;
@@ -310,13 +338,16 @@ export async function runVersePipeline(useLiturgical = true, options = {}) {
 
   const caption = `📖 ${verseData.verse}\n— ${verseData.reference}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (options.targetChatId) {
-    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
-  } else if (isTelegramConfigured()) {
-    await sendImageToTelegram(outputPath, caption);
+  const isVerseReelOnly = options.format === 'reel';
+  if (!isVerseReelOnly) {
+    if (options.targetChatId) {
+      await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured()) {
+      await sendImageToTelegram(outputPath, caption);
+    }
   }
 
-  // Video reel (optional)
+  // Video reel (optional or requested)
   await maybeRenderVideo(outputPath, 'daily_verse', [verseData.verse, `— ${verseData.reference}`], 'verse', options);
 
   console.log('✅ Verse pipeline complete.');
@@ -344,13 +375,16 @@ export async function runCarouselPipeline(useLiturgical = true, options = {}) {
 
   const caption = `📊 <b>${carouselData.theme}</b>\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (options.targetChatId) {
-    await sendMediaGroupToChat(options.targetChatId, outputPaths, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
-  } else if (isTelegramConfigured()) {
-    await sendCarouselToTelegram(outputPaths, caption);
+  const isCarouselReelOnly = options.format === 'reel';
+  if (!isCarouselReelOnly) {
+    if (options.targetChatId) {
+      await sendMediaGroupToChat(options.targetChatId, outputPaths, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured()) {
+      await sendCarouselToTelegram(outputPaths, caption);
+    }
   }
 
-  // Video reel of all carousel slides (optional)
+  // Video reel of all carousel slides (optional or requested)
   await maybeRenderCarouselVideo(outputPaths, 'carousel', { ...options, aspectRatio });
 
   console.log('✅ Carousel pipeline complete.');
@@ -380,11 +414,17 @@ export async function runReflectionPipeline(useLiturgical = true, options = {}) 
 
   const caption = `🕊️ <b>${reflectionData.title}</b>\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (options.targetChatId) {
-    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
-  } else if (isTelegramConfigured()) {
-    await sendImageToTelegram(outputPath, caption);
+  const isRefReelOnly = options.format === 'reel';
+  if (!isRefReelOnly) {
+    if (options.targetChatId) {
+      await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured()) {
+      await sendImageToTelegram(outputPath, caption);
+    }
   }
+
+  // Video reel (optional or requested)
+  await maybeRenderVideo(outputPath, 'weekly_reflection', [reflectionData.title, reflectionData.opening || ''], 'reflection', options);
 
   console.log('✅ Reflection pipeline complete.');
   return outputPath;
@@ -427,13 +467,16 @@ export async function runSaintPipeline(useLiturgical = true, options = {}) {
 
   const caption = `✝️ <b>${saintData.saint || dailyData.saint}</b>\n\n${saintData.lesson || ''}\n${hymnLine ? `🎵 ${hymnLine}\n` : ''}\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (options.targetChatId) {
-    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
-  } else if (isTelegramConfigured()) {
-    await sendImageToTelegram(outputPath, caption);
+  const isSaintReelOnly = options.format === 'reel';
+  if (!isSaintReelOnly) {
+    if (options.targetChatId) {
+      await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured()) {
+      await sendImageToTelegram(outputPath, caption);
+    }
   }
 
-  // Video reel (optional)
+  // Video reel (optional or requested)
   await maybeRenderVideo(outputPath, 'saint_day', [saintData.saint, saintData.lesson], 'saint', options);
 
   console.log('✅ Saint pipeline complete.');
@@ -484,11 +527,17 @@ export async function runFastingPipeline(useLiturgical = true, options = {}) {
 
   const caption = `🍽️ <b>${fastingInfo.name}</b>\nDay ${fastingInfo.currentDay}/${fastingInfo.totalDays}\n\n${guideData.encouragement || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (options.targetChatId) {
-    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
-  } else if (isTelegramConfigured()) {
-    await sendImageToTelegram(outputPath, caption);
+  const isFastingReelOnly = options.format === 'reel';
+  if (!isFastingReelOnly) {
+    if (options.targetChatId) {
+      await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured()) {
+      await sendImageToTelegram(outputPath, caption);
+    }
   }
+
+  // Video reel (optional or requested)
+  await maybeRenderVideo(outputPath, 'fasting_guide', [fastingInfo.name, guideData.encouragement || ''], 'fasting', options);
 
   console.log('✅ Fasting guide pipeline complete.');
   return outputPath;
@@ -535,11 +584,17 @@ export async function runHolyWeekPipeline(useLiturgical = true, options = {}) {
 
   const caption = `✝️ <b>ሰሙነ ሕማማት — ${content.dayName}</b>\n${content.subtitle}\n\n${content.teaching || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (options.targetChatId) {
-    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
-  } else if (isTelegramConfigured()) {
-    await sendImageToTelegram(outputPath, caption);
+  const isHolyWeekReelOnly = options.format === 'reel';
+  if (!isHolyWeekReelOnly) {
+    if (options.targetChatId) {
+      await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured()) {
+      await sendImageToTelegram(outputPath, caption);
+    }
   }
+
+  // Video reel (optional or requested)
+  await maybeRenderVideo(outputPath, 'holy_week', [content.dayName || holyWeekDay.amharic, content.teaching || ''], 'holyweek', options);
 
   console.log('✅ Holy Week pipeline complete.');
   return outputPath;
@@ -578,11 +633,17 @@ export async function runHistoryPipeline(useLiturgical = true, options = {}) {
 
   const caption = `📜 <b>${historyData.title || topic.title}</b>\n${topic.era} • ${topic.year}\n\n${historyData.significance || ''}\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (options.targetChatId) {
-    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
-  } else if (isTelegramConfigured()) {
-    await sendImageToTelegram(outputPath, caption);
+  const isHistoryReelOnly = options.format === 'reel';
+  if (!isHistoryReelOnly) {
+    if (options.targetChatId) {
+      await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured()) {
+      await sendImageToTelegram(outputPath, caption);
+    }
   }
+
+  // Video reel (optional or requested)
+  await maybeRenderVideo(outputPath, 'church_history', [historyData.title || topic.title, historyData.significance || ''], 'history', options);
 
   console.log('✅ History pipeline complete.');
   return outputPath;
@@ -631,11 +692,17 @@ export async function runCalendarPipeline(useLiturgical = true, options = {}) {
 
   const caption = `📅 <b>የሳምንቱ መርሃ ግብር — ${weekTitle}</b>\n\n${ctx ? `📅 ${ctx.ethiopianDate}` : ''}`;
 
-  if (options.targetChatId) {
-    await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
-  } else if (isTelegramConfigured()) {
-    await sendImageToTelegram(outputPath, caption);
+  const isCalReelOnly = options.format === 'reel';
+  if (!isCalReelOnly) {
+    if (options.targetChatId) {
+      await sendPhotoToChat(options.targetChatId, outputPath, caption).catch(e => console.warn(`Delivery notice: ${e.message}`));
+    } else if (isTelegramConfigured()) {
+      await sendImageToTelegram(outputPath, caption);
+    }
   }
+
+  // Video reel (optional or requested)
+  await maybeRenderVideo(outputPath, 'calendar_summary', ['የሳምንቱ መርሃ ግብር', weekTitle], 'calendar', options);
 
   console.log('✅ Calendar pipeline complete.');
   return outputPath;

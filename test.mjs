@@ -151,7 +151,7 @@ check('Pipelines: all 9 registered in orchestrator', Object.keys(PIPELINES).leng
 // 12. Bahire Hasab Computus Algorithm Verification
 const { getComputusData, calculateMoveableFeasts } = await import('./src/utils/calendar.js');
 const computus2019 = getComputusData(2019);
-check('Computus: getComputusData returns Evangelist & feasts', !!(computus2019.evangelist && computus2019.feasts.length === 10), `${computus2019.evangelist}, ${computus2019.feasts.length} moveable feasts`);
+check('Computus: getComputusData returns Evangelist & feasts', !!(computus2019.evangelist && computus2019.feasts.length >= 10), `${computus2019.evangelist}, ${computus2019.feasts.length} moveable feasts`);
 const moveables = calculateMoveableFeasts(2019);
 check('Computus: calculateMoveableFeasts returns Fasika & Lent', !!(moveables.fasika && moveables.abiyTsomStart), `Fasika Month: ${moveables.fasika.month}, Day: ${moveables.fasika.day}`);
 

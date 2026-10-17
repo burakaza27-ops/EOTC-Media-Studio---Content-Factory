@@ -142,7 +142,7 @@
     }
 
     /* Rules list */
-    .rules-section { flex: 1; }
+    .rules-section { margin-bottom: 36px; }
     .rules-title {
       font-size: 13px; letter-spacing: 0.38em; font-weight: 700;
       color: rgba(212,175,55,0.65); text-transform: uppercase;
@@ -160,6 +160,39 @@
       content: "✦";
       position: absolute; left: 0;
       color: rgba(212,175,55,0.55); font-size: 12px; top: 7px;
+    }
+
+    /* Bottom cross panel */
+    .bottom-panel {
+      margin-top: auto;
+      background: linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(212,175,55,0.02) 100%);
+      border: 1px solid rgba(212,175,55,0.15);
+      border-radius: 12px;
+      padding: 32px 36px;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      margin-bottom: 28px;
+    }
+    .bottom-cross { flex-shrink: 0; }
+    .bottom-cross svg { width: 52px; height: 52px; filter: drop-shadow(0 0 12px rgba(212,175,55,0.55)); }
+    .bottom-text {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .bottom-quote {
+      font-size: 22px;
+      font-weight: 600;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.82);
+      font-style: italic;
+    }
+    .bottom-ref {
+      font-size: 16px;
+      font-weight: 700;
+      color: rgba(212,175,55,0.75);
+      letter-spacing: 0.10em;
     }
 
     /* Scripture ref */
@@ -220,6 +253,33 @@
       </ul>
     </div>
 
+    <div class="bottom-panel">
+      <div class="bottom-cross">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="fcg" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fdf8e8"/>
+              <stop offset="50%" stop-color="#f0d890"/>
+              <stop offset="100%" stop-color="#b8962e"/>
+            </linearGradient>
+          </defs>
+          <rect x="48" y="5" width="24" height="110" rx="2.5" fill="url(#fcg)"/>
+          <rect x="5" y="48" width="110" height="24" rx="2.5" fill="url(#fcg)"/>
+          <rect x="35" y="19" width="50" height="13" rx="2" fill="url(#fcg)"/>
+          <rect x="35" y="88" width="50" height="13" rx="2" fill="url(#fcg)"/>
+          <rect x="19" y="35" width="13" height="50" rx="2" fill="url(#fcg)"/>
+          <rect x="88" y="35" width="13" height="50" rx="2" fill="url(#fcg)"/>
+          <circle cx="60" cy="60" r="19" fill="url(#fcg)"/>
+          <circle cx="60" cy="60" r="11" fill="#020108"/>
+          <circle cx="60" cy="60" r="5.5" fill="url(#fcg)"/>
+        </svg>
+      </div>
+      <div class="bottom-text">
+        <div class="bottom-quote" id="encouragement-sub">«ይህ ወገን ግን ከጸሎትና ከጾም በቀር በምንም ሊወጣ አይችልም»</div>
+        <div class="bottom-ref">ማቴዎስ ፲፯፥፳፩</div>
+      </div>
+    </div>
+
     <div class="scripture-ref-wrap">
       <div class="ref-line"></div>
       <div id="scripture-ref"></div>
@@ -234,10 +294,15 @@
   </div>
 
   <script>
-    // Sync progress bar width from data attribute
-    const pct = document.getElementById('progress-percent');
+    // Sync progress bar width from puppeteer-injected progress-percent element
+    // The puppeteer injects the value as textContent of an element with id='progress-percent'
+    // but we can also look for it from data attribute or just read from the fill element
     const bar = document.getElementById('progress-bar');
-    if (pct && bar) bar.style.width = (pct.textContent || '0') + '%';
+    const pctEl = document.getElementById('progress-percent');
+    if (bar) {
+      const pct = pctEl ? (pctEl.textContent || '0') : (bar.dataset.pct || '0');
+      bar.style.width = pct + '%';
+    }
   </script>
 </body>
 </html>

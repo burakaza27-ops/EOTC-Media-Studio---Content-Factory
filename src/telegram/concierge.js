@@ -237,6 +237,24 @@ export function getGenerateSubmenuKeyboard() {
   };
 }
 
+export function getFormatSelectionKeyboard(contentType, extraParam = '') {
+  const extra = extraParam ? `:${extraParam}` : '';
+  return {
+    inline_keyboard: [
+      [
+        { text: '🖼️ ምስል ብቻ (Image Only)', callback_data: `act:${contentType}:image${extra}` },
+        { text: '🎬 ቪዲዮ ሪል ብቻ (Reel Only)', callback_data: `act:${contentType}:reel${extra}` }
+      ],
+      [
+        { text: '✨ ሁለቱንም (Image + Reel)', callback_data: `act:${contentType}:both${extra}` }
+      ],
+      [
+        { text: '🔙 ወደ ማውጫ ተመለስ', callback_data: 'menu:generate' }
+      ]
+    ]
+  };
+}
+
 export function getGitHubSubmenuKeyboard() {
   return {
     inline_keyboard: [
@@ -760,7 +778,7 @@ async function handleStatus(chatId) {
 
 // ─── EXECUTE IN-PROCESS GENERATION ────────────────────────────────────────────
 
-async function executeGeneration(chatId, contentType, customTheme = null, wantVideo = false) {
+async function executeGeneration(chatId, contentType, customTheme = null, format = 'image', extraOptions = {}) {
   const typeLabels = {
     quote: 'ኃይለ ቃል (Power Quote)',
     verse: 'ዕለታዊ ጥቅስ (Daily Verse)',
@@ -774,17 +792,27 @@ async function executeGeneration(chatId, contentType, customTheme = null, wantVi
     all: 'ሁሉንም 9 ይዘቶች (All 9 Pipelines)'
   };
 
+  const formatLabels = {
+    image: '🖼️ ምስል ብቻ (3× Retina PNG)',
+    reel: '🎬 9:16 ቪዲዮ ሪል ብቻ (MP4 Reel)',
+    both: '✨ ምስል + ቪዲዮ ሪል (Both)'
+  };
+
   const label = typeLabels[contentType] || contentType;
+  const fmt = (format === 'reel' || format === 'both' || format === 'image') ? format : (format === true ? 'reel' : 'image');
+  const fmtLabel = formatLabels[fmt] || '🖼️ ምስል';
+  const wantVideo = fmt === 'reel' || fmt === 'both';
+
   const progressMsg = await sendMsg(
     chatId,
-    `⏳ <b>${label}</b> በማመንጨት ላይ...\n\n• AI ይዘት በመጻፍ ላይ...\n• ንድፉ በ Puppeteer 3× Retina እየተቀረጸ ነው...\n• እባክዎ ጥቂት ሰከንዶች ይጠብቁ ✝️`
+    `⏳ <b>${label}</b> በማመንጨት ላይ...\n📌 <b>ቅርጸት፦</b> ${fmtLabel}\n\n• ይዘት በሥነ-መለኮታዊ ጥንቃቄ በመዘጋጀት ላይ ነው...\n• ንድፉ በከፍተኛ ጥራት (High-Res Retina) እየተቀረጸ ነው...\n${wantVideo ? '• 🎬 የቪዲዮ ሪል (Ken Burns motion) እየተዘጋጀ ነው...\n' : ''}• እባክዎ ጥቂት ሰከንዶች ይጠብቁ ✝️`
   );
 
   try {
     const pipelineFn = PIPELINES[contentType];
 
     if (contentType === 'all') {
-      await runAllPipelines(true, { targetChatId: chatId, customTheme, generateVideo: wantVideo });
+      await runAllPipelines(true, { targetChatId: chatId, customTheme, generateVideo: wantVideo, format: fmt });
       if (progressMsg?.message_id) {
         await editMsg(chatId, progressMsg.message_id, `🎉 <b>ሁሉም 9 ይዘቶች በተሳካ ሁኔታ ተጠናቀው ተልከዋል!</b>`, getMainMenuKeyboard());
       }
@@ -801,11 +829,13 @@ async function executeGeneration(chatId, contentType, customTheme = null, wantVi
     await pipelineFn(true, {
       targetChatId: chatId,
       customTheme: customTheme,
-      generateVideo: wantVideo
+      generateVideo: wantVideo,
+      format: fmt,
+      ...extraOptions
     });
 
     if (progressMsg?.message_id) {
-      await editMsg(chatId, progressMsg.message_id, `✅ <b>${label}</b> በተሳካ ሁኔታ ተጠናቆ ተልኳል! 🎉`, getMainMenuKeyboard());
+      await editMsg(chatId, progressMsg.message_id, `✅ <b>${label} (${fmtLabel})</b> በተሳካ ሁኔታ ተጠናቆ ተልኳል! 🎉`, getMainMenuKeyboard());
     }
   } catch (err) {
     console.error(`❌ Generation error (${contentType}):`, err);
@@ -921,22 +951,51 @@ async function dispatchUpdate(update) {
       return;
     }
 
-    // Generation triggers
+    // Generation triggers & Format selection
     if (data.startsWith('gen:reel:')) {
       const type = data.replace('gen:reel:', '');
-      await executeGeneration(chatId, type, null, true);
+      await executeGeneration(chatId, type, null, 'reel');
       return;
     }
     if (data.startsWith('gen:saint:')) {
       const day = data.replace('gen:saint:', '');
-      const pipelineFn = PIPELINES['saint'];
-      await sendMsg(chatId, `⏳ ለቀን ${day} ካርድ በማዘጋጀት ላይ...`);
-      await pipelineFn(true, { targetChatId: chatId, day: parseInt(day, 10) });
+      const promptText = `⛪ <b>የቀን ${day} ቅዱስ መታሰቢያ</b>\n\nምን ዓይነት ቅርጸት እንዲዘጋጅ ይፈልጋሉ?`;
+      await editMsg(chatId, cq.message.message_id, promptText, getFormatSelectionKeyboard('saint', day));
       return;
     }
     if (data.startsWith('gen:')) {
       const type = data.replace('gen:', '');
-      await executeGeneration(chatId, type, null, false);
+      if (type === 'all') {
+        await executeGeneration(chatId, 'all', null, 'image');
+        return;
+      }
+      const typeLabels = {
+        quote: 'ኃይለ ቃል (Power Quote)',
+        verse: 'ዕለታዊ ጥቅስ (Daily Verse)',
+        carousel: '5-ስላይድ ካሮሴል (Carousel)',
+        reflection: 'ሳምንታዊ አስተንትኖ (Reflection)',
+        saint: 'የዕለቱ ቅዱስ (Saint Card)',
+        fasting: 'የጾም መመሪያ (Fasting Guide)',
+        holyweek: 'ሰሙነ ሕማማት (Holy Week)',
+        history: 'የቤተ ክርስቲያን ታሪክ (Church History)',
+        calendar: 'ሳምንታዊ መቁጠሪያ (Weekly Calendar)'
+      };
+      const label = typeLabels[type] || type;
+      const promptText = `🎨 <b>${label}</b>\n\nየሚፈልጉትን የውጤት ቅርጸት ይምረጡ፦`;
+      await editMsg(chatId, cq.message.message_id, promptText, getFormatSelectionKeyboard(type));
+      return;
+    }
+
+    if (data.startsWith('act:')) {
+      const [, type, format, extra] = data.split(':');
+      const extraOpts = {};
+      let customTheme = null;
+      if (type === 'saint' && extra && !isNaN(parseInt(extra, 10))) {
+        extraOpts.day = parseInt(extra, 10);
+      } else if (extra) {
+        customTheme = extra;
+      }
+      await executeGeneration(chatId, type, customTheme, format, extraOpts);
       return;
     }
 
@@ -1083,36 +1142,87 @@ async function dispatchUpdate(update) {
         await handleStatus(chatId); break;
       case 'today':
         await handleToday(chatId); break;
-      case 'saint':
-        if (args[0] && !isNaN(parseInt(args[0], 10))) {
-          await handleSaint(chatId, args[0]);
+      case 'image': {
+        const subType = args[0]?.toLowerCase();
+        const theme = args.slice(1).join(' ') || null;
+        if (!subType || !PIPELINES[subType]) {
+          await sendMsg(chatId, '🖼️ <b>ምስል ለማመንጨት ከሚከተሉት አንዱን ይምረጡ፦</b>\n\nምሳሌ፦ <code>/image quote</code> ወይም <code>/image verse</code>', getGenerateSubmenuKeyboard());
         } else {
-          await executeGeneration(chatId, 'saint', rest || null, false);
+          await executeGeneration(chatId, subType, theme, 'image');
         }
         break;
-      case 'verse':
-        if (rest) {
-          await executeGeneration(chatId, 'verse', rest, false);
+      }
+      case 'reel': {
+        const subType = args[0]?.toLowerCase();
+        const theme = args.slice(1).join(' ') || null;
+        if (!subType || !PIPELINES[subType]) {
+          await sendMsg(chatId, '🎬 <b>9:16 ቪዲዮ ሪል ለማመንጨት ከሚከተሉት አንዱን ይምረጡ፦</b>\n\nምሳሌ፦ <code>/reel quote</code> ወይም <code>/reel verse</code>', getReelsSubmenuKeyboard());
         } else {
-          await executeGeneration(chatId, 'verse', null, false);
+          await executeGeneration(chatId, subType, theme, 'reel');
         }
         break;
+      }
+      case 'both': {
+        const subType = args[0]?.toLowerCase();
+        const theme = args.slice(1).join(' ') || null;
+        if (!subType || !PIPELINES[subType]) {
+          await sendMsg(chatId, '✨ <b>ምስል + ቪዲዮ ሪል ለማመንጨት ከሚከተሉት ይምረጡ፦</b>\n\nምሳሌ፦ <code>/both quote</code> ወይም <code>/both verse</code>', getGenerateSubmenuKeyboard());
+        } else {
+          await executeGeneration(chatId, subType, theme, 'both');
+        }
+        break;
+      }
       case 'quote':
-        await executeGeneration(chatId, 'quote', rest || null, false); break;
+      case 'verse':
       case 'carousel':
-        await executeGeneration(chatId, 'carousel', rest || null, false); break;
       case 'reflection':
-        await executeGeneration(chatId, 'reflection', rest || null, false); break;
+      case 'saint':
       case 'fasting':
-        await executeGeneration(chatId, 'fasting', null, false); break;
       case 'holyweek':
-        await executeGeneration(chatId, 'holyweek', null, false); break;
       case 'history':
-        await executeGeneration(chatId, 'history', rest || null, false); break;
-      case 'calendar':
-        await executeGeneration(chatId, 'calendar', null, false); break;
-      case 'reel':
-        await executeGeneration(chatId, args[0]?.toLowerCase() || 'quote', null, true); break;
+      case 'calendar': {
+        const firstArg = args[0]?.toLowerCase();
+        let requestedFmt = null;
+        let parsedTheme = null;
+
+        if (firstArg === 'image' || firstArg === 'img') {
+          requestedFmt = 'image';
+          parsedTheme = args.slice(1).join(' ') || null;
+        } else if (firstArg === 'reel' || firstArg === 'video') {
+          requestedFmt = 'reel';
+          parsedTheme = args.slice(1).join(' ') || null;
+        } else if (firstArg === 'both') {
+          requestedFmt = 'both';
+          parsedTheme = args.slice(1).join(' ') || null;
+        }
+
+        if (requestedFmt) {
+          const extraOpts = {};
+          if (command === 'saint' && parsedTheme && !isNaN(parseInt(parsedTheme, 10))) {
+            extraOpts.day = parseInt(parsedTheme, 10);
+            parsedTheme = null;
+          }
+          await executeGeneration(chatId, command, parsedTheme, requestedFmt, extraOpts);
+        } else {
+          // If called without format flag, prompt user with interactive format buttons
+          const themeArg = args.join(' ') || '';
+          const typeLabels = {
+            quote: 'ኃይለ ቃል (Power Quote)',
+            verse: 'ዕለታዊ ጥቅስ (Daily Verse)',
+            carousel: '5-ስላይድ ካሮሴል (Carousel)',
+            reflection: 'ሳምንታዊ አስተንትኖ (Reflection)',
+            saint: 'የዕለቱ ቅዱስ (Saint Card)',
+            fasting: 'የጾም መመሪያ (Fasting Guide)',
+            holyweek: 'ሰሙነ ሕማማት (Holy Week)',
+            history: 'የቤተ ክርስቲያን ታሪክ (Church History)',
+            calendar: 'ሳምንታዊ መቁጠሪያ (Weekly Calendar)'
+          };
+          const label = typeLabels[command] || command;
+          const prompt = `🎨 <b>${label}</b>${themeArg ? `\n📌 <b>ርእስ፦</b> «${themeArg}»` : ''}\n\nየሚፈልጉትን የውጤት ቅርጸት ይምረጡ፦`;
+          await sendMsg(chatId, prompt, getFormatSelectionKeyboard(command, themeArg));
+        }
+        break;
+      }
       case 'all':
         const wantAllVideo = args[0]?.toLowerCase() === 'video' || args[0]?.toLowerCase() === 'reel';
         await executeGeneration(chatId, 'all', null, wantAllVideo); break;
@@ -1180,9 +1290,12 @@ export async function startBotPolling() {
   await tgRequest('setMyCommands', {
     commands: [
       { command: 'menu',       description: '🎛️ ዋና የቁጥጥር ማዕከል (Main Menu)' },
+      { command: 'image',      description: '🖼️ ምስል ብቻ አፍልቅ (/image [type])' },
+      { command: 'reel',       description: '🎬 9:16 ቪዲዮ ሪል ብቻ አፍልቅ (/reel [type])' },
+      { command: 'both',       description: '✨ ምስል + ቪዲዮ ሪል አፍልቅ (/both [type])' },
       { command: 'today',      description: '📅 የዛሬው ዕለት፣ ቅዱሳንና በዓላት' },
-      { command: 'quote',      description: '🎨 ኃይለ ቃል አፍልቅ (Generate Quote)' },
-      { command: 'verse',      description: '📖 ዕለታዊ ጥቅስ አፍልቅ (Generate Verse)' },
+      { command: 'quote',      description: '🎨 ኃይለ ቃል አፍልቅ (Quote)' },
+      { command: 'verse',      description: '📖 ዕለታዊ ጥቅስ አፍልቅ (Verse)' },
       { command: 'carousel',   description: '📑 5-ስላይድ ካሮሴል አፍልቅ' },
       { command: 'reflection', description: '📜 ሳምንታዊ አስተንትኖ አፍልቅ' },
       { command: 'saint',      description: '⛪ የዕለቱ ቅዱስ ካርድ' },
@@ -1190,7 +1303,6 @@ export async function startBotPolling() {
       { command: 'holyweek',   description: '👑 ሰሙነ ሕማማት ካርድ' },
       { command: 'history',    description: '🏛️ የቤተ ክርስቲያን ታሪክ' },
       { command: 'calendar',   description: '📅 ሳምንታዊ መቁጠሪያ' },
-      { command: 'reel',       description: '🎬 9:16 ቪዲዮ ሪል አፍልቅ' },
       { command: 'all',        description: '🌟 ሁሉንም 9 ይዘቶች በአንድ ጊዜ' },
       { command: 'dispatch',   description: '🚀 GitHub Action Workflow አስጀምር' },
       { command: 'ghstatus',   description: '☁️ የ GitHub Actions ሩጫዎች ሁኔታ' },
@@ -1216,14 +1328,30 @@ export function isBotConfigured() {
   return !!BOT_TOKEN();
 }
 
+// 🛡️ Global crash guards: prevent unhandled errors from terminating the bot daemon
+process.on('uncaughtException', (err) => {
+  console.error('🛡️ [Concierge] Caught uncaughtException:', err?.message || err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('🛡️ [Concierge] Caught unhandledRejection:', reason?.message || reason);
+});
+
 const isDirectRun = process.argv[1] && (
   path.resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase() ||
   process.argv[1].replace(/\\/g, '/').endsWith('src/telegram/concierge.js')
 );
 
 if (isDirectRun) {
-  startBotPolling().catch(err => {
-    console.error('Bot fatal error:', err);
-    process.exit(1);
-  });
+  const launch = async () => {
+    while (true) {
+      try {
+        await startBotPolling();
+      } catch (err) {
+        console.error('⚠️ [Concierge] Bot polling loop encountered an error, reviving in 5s:', err?.message || err);
+        await new Promise(r => setTimeout(r, 5000));
+      }
+    }
+  };
+  launch();
 }

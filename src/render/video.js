@@ -145,7 +145,9 @@ export async function renderVideoReel(opts = {}) {
     const customAudio = path.join(__dirname, '../../assets/audio/ambient.mp3');
     const hasCustomAudio = fs.existsSync(customAudio);
 
-    const inputArgs = ['-y', '-loop', '1', '-i', imagePath];
+    // CRITICAL: Input is a single still image. Do NOT use -loop 1 with zoompan
+    // because zoompan expands every input frame by totalFrames, multiplying duration!
+    const inputArgs = ['-y', '-i', imagePath];
     if (hasCustomAudio) {
       inputArgs.push('-stream_loop', '-1', '-i', customAudio);
     } else {
@@ -161,7 +163,7 @@ export async function renderVideoReel(opts = {}) {
       '-c:v', 'libx264',
       '-c:a', 'aac',
       '-b:a', '128k',
-      '-preset', 'fast',
+      '-preset', 'veryfast',
       '-crf', '18',
       '-pix_fmt', 'yuv420p',
       '-movflags', '+faststart',
@@ -177,7 +179,10 @@ export async function renderVideoReel(opts = {}) {
       results[profileKey] = outPath;
     } catch (err) {
       console.error(`  ❌ FFmpeg failed for ${profileKey}: ${err.message}`);
-      // Don't throw — let other profiles continue
+      // Clean up corrupted zero-byte or broken output files
+      if (fs.existsSync(outPath) && fs.statSync(outPath).size < 1024) {
+        try { fs.unlinkSync(outPath); } catch {}
+      }
     }
   }
 
@@ -200,6 +205,11 @@ export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'car
   const ffmpeg = await resolvedFFmpeg();
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
+  const validImages = imagePaths.filter(imgPath => fs.existsSync(imgPath));
+  if (validImages.length === 0) throw new Error('renderCarouselVideo: none of the specified image files exist');
+
+  const validCount = validImages.length;
+  const totalDuration = validCount * slideDuration;
   const fps = 25;
   const results = {};
   const activeProfiles = Array.isArray(profiles) && profiles.length > 0
@@ -211,16 +221,16 @@ export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'car
     if (!profile) continue;
 
     const outPath = path.join(outputDir, `${baseName}_${profile.suffix}.mp4`);
-    console.log(`\n🎬 Carousel ${profile.label} → ${path.basename(outPath)}`);
+    console.log(`\n🎬 Carousel ${profile.label} → ${path.basename(outPath)} (Expected duration: ${totalDuration}s)`);
 
     // Build concat input section
+    // CRITICAL FIX: Pass each image as a single frame (-i imgPath, NO -loop 1)
+    // zoompan takes that single frame and expands it into exactly totalFrames.
     const inputArgs = [];
     const filterParts = [];
-    const slideDurationStr = String(slideDuration);
 
-    imagePaths.forEach((imgPath, i) => {
-      if (!fs.existsSync(imgPath)) return;
-      inputArgs.push('-loop', '1', '-t', slideDurationStr, '-i', imgPath);
+    validImages.forEach((imgPath, i) => {
+      inputArgs.push('-i', imgPath);
 
       const totalFrames = slideDuration * fps;
       const preset = KEN_BURNS_PRESETS[i % KEN_BURNS_PRESETS.length];
@@ -231,22 +241,29 @@ export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'car
       filterParts.push(`[${i}:v]${scaleFilter},${fade}[v${i}]`);
     });
 
-    const validCount = filterParts.length;
     const concatInputs = Array.from({ length: validCount }, (_, i) => `[v${i}]`).join('');
     const concatFilter = `${concatInputs}concat=n=${validCount}:v=1:a=0,format=yuv420p[vout]`;
     const filterComplex = [...filterParts, concatFilter].join('; ');
 
+    // Add silent stereo audio track so Telegram / Instagram recognize valid audio container
+    inputArgs.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100');
+
     const args = [
       '-y',
       ...inputArgs,
+      '-t', String(totalDuration),
       '-filter_complex', filterComplex,
       '-map', '[vout]',
+      '-map', `${validCount}:a`,
       '-c:v', 'libx264',
-      '-preset', 'fast',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-preset', 'veryfast',
       '-crf', '20',
       '-pix_fmt', 'yuv420p',
       '-movflags', '+faststart',
       '-r', String(fps),
+      '-shortest',
       outPath
     ];
 
@@ -257,6 +274,9 @@ export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'car
       results[profileKey] = outPath;
     } catch (err) {
       console.error(`  ❌ FFmpeg carousel failed for ${profileKey}: ${err.message}`);
+      if (fs.existsSync(outPath) && fs.statSync(outPath).size < 1024) {
+        try { fs.unlinkSync(outPath); } catch {}
+      }
     }
   }
 
