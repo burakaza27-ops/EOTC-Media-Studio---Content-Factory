@@ -2,6 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createChildLogger } from '../utils/logger.js';
+
+const log = createChildLogger('db');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,7 +39,7 @@ function saveLocalCache(entry) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(LOCAL_CACHE_PATH, JSON.stringify(trimmed, null, 2));
   } catch (err) {
-    console.warn(`Local cache notice: ${err.message}`);
+    log.warn('Local cache write failed', { error: err.message });
   }
 }
 
@@ -53,7 +56,7 @@ export function getSupabase() {
       });
       return supabase;
     } catch (e) {
-      console.warn(`⚠️ Supabase client initialization error: ${e.message}`);
+      log.warn('Supabase client initialization error', { error: e.message });
       return null;
     }
   }
@@ -70,7 +73,7 @@ async function retryOperation(fn, retries = 3, delay = 1000) {
       return await fn();
     } catch (error) {
       if (i === retries - 1) throw error;
-      console.log(`⏳ Retrying DB operation in ${delay}ms...`);
+      log.debug('Retrying DB operation', { attempt: i + 1, retries, delayMs: delay });
       await sleep(delay);
     }
   }
@@ -84,27 +87,30 @@ export async function checkDuplicate(text, contentType = 'quote') {
     // Check local cache
     const cache = getLocalCache();
     const found = cache.some(item => item.text === text);
-    if (found) console.log(`🔄 Duplicate ${contentType} detected in local cache`);
+    if (found) log.info(`Duplicate ${contentType} detected in local cache`, { contentType });
     return found;
   }
 
   try {
-    const { data, error } = await retryOperation(() => 
+    // IMPORTANT: With { head: true }, Supabase issues a HEAD request.
+    // `data` is always null. The match count is in the `count` field.
+    const { count, error } = await retryOperation(() => 
       db
         .from(SUPABASE_TABLE())
-        .select('id', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('text', text)
     );
 
     if (error) {
+      log.warn('Supabase duplicate check error, falling back to cache', { error: error.message });
       // Fallback to local cache
       const cache = getLocalCache();
       return cache.some(item => item.text === text);
     }
 
-    const isDuplicate = data?.length > 0;
+    const isDuplicate = (count || 0) > 0;
     if (isDuplicate) {
-      console.log(`🔄 Duplicate ${contentType} detected in database`);
+      log.info(`Duplicate ${contentType} detected in database`, { contentType, count });
     }
     return isDuplicate;
   } catch (error) {
@@ -129,7 +135,7 @@ export async function saveQuote(text, contentType = 'quote') {
 
   const db = getSupabase();
   if (!db) {
-    console.log(`📋 Recorded ${contentType} to local offline store`);
+    log.info(`Recorded ${contentType} to local offline store`, { contentType });
     return { demo: true, ...entry };
   }
 
@@ -142,14 +148,14 @@ export async function saveQuote(text, contentType = 'quote') {
     );
 
     if (error) {
-      console.warn(`⚠️ Supabase save notice: ${error.message} (saved to local cache)`);
+      log.warn('Supabase save notice, saved to local cache', { error: error.message });
       return entry;
     }
 
-    console.log(`✅ ${contentType} saved to database`);
+    log.info(`Successfully saved ${contentType} to database`, { contentType });
     return data;
   } catch (error) {
-    console.warn(`⚠️ Save notice: ${error.message} (saved to local cache)`);
+    log.warn('Database save failed, stored in local cache', { error: error.message });
     return entry;
   }
 }

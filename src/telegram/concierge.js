@@ -95,12 +95,53 @@ import {
 const getEnv = (key) => process.env[key];
 const BOT_TOKEN = () => getEnv('TELEGRAM_BOT_TOKEN');
 
+// Admin authorization: only whitelisted user IDs can trigger heavy generation.
+// Set TELEGRAM_ADMIN_IDS=12345,67890 in .env (comma-separated Telegram user IDs).
+// If not set, ALL users are allowed (backwards-compatible, but insecure).
+const ADMIN_IDS = () => {
+  const ids = getEnv('TELEGRAM_ADMIN_IDS');
+  if (!ids) return null; // null = no restriction (allow all)
+  return ids.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+};
+
+function isAuthorized(userId) {
+  const admins = ADMIN_IDS();
+  if (!admins) return true; // No admin list configured = allow all
+  return admins.includes(userId);
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const OUTPUT_DIR = path.join(__dirname, '..', '..', 'output');
 
 let _lastUpdateId = 0;
 let _polling = false;
+
+// ─── Concurrency Limiter ──────────────────────────────────────────────────────
+// Prevents multiple simultaneous Chromium/FFmpeg launches from exhausting memory.
+const MAX_CONCURRENT_JOBS = 2;
+let _activeJobs = 0;
+const _jobQueue = [];
+
+function acquireJobSlot() {
+  return new Promise(resolve => {
+    if (_activeJobs < MAX_CONCURRENT_JOBS) {
+      _activeJobs++;
+      resolve();
+    } else {
+      _jobQueue.push(resolve);
+    }
+  });
+}
+
+function releaseJobSlot() {
+  _activeJobs--;
+  if (_jobQueue.length > 0) {
+    _activeJobs++;
+    const next = _jobQueue.shift();
+    next();
+  }
+}
 
 // Active user wizard state: chatId -> { step, contentType, generateVideo, customTheme }
 const _wizardSessions = new Map();
@@ -776,9 +817,12 @@ async function handleStatus(chatId) {
   return sendMsg(chatId, lines.join('\n'), getMainMenuKeyboard());
 }
 
-// ─── EXECUTE IN-PROCESS GENERATION ────────────────────────────────────────────
+// ─── EXECUTE IN-PROCESS GENERATION (Non-Blocking + Concurrency Limited) ──────
+// This function is intentionally fire-and-forget: it does NOT block the polling
+// loop. The caller uses executeGenerationAsync() which returns immediately after
+// sending the "working..." message, then runs the pipeline in the background.
 
-async function executeGeneration(chatId, contentType, customTheme = null, format = 'image', extraOptions = {}) {
+async function _executeGenerationWorker(chatId, contentType, customTheme = null, format = 'image', extraOptions = {}) {
   const typeLabels = {
     quote: 'ኃይለ ቃል (Power Quote)',
     verse: 'ዕለታዊ ጥቅስ (Daily Verse)',
@@ -803,10 +847,16 @@ async function executeGeneration(chatId, contentType, customTheme = null, format
   const fmtLabel = formatLabels[fmt] || '🖼️ ምስል';
   const wantVideo = fmt === 'reel' || fmt === 'both';
 
+  const queuePos = _activeJobs >= MAX_CONCURRENT_JOBS ? _jobQueue.length + 1 : 0;
+  const queueNotice = queuePos > 0 ? `\n⏳ <i>ተራ ቁጥር ${queuePos} — እባክዎ ጥቂት ይጠብቁ...</i>` : '';
+
   const progressMsg = await sendMsg(
     chatId,
-    `⏳ <b>${label}</b> በማመንጨት ላይ...\n📌 <b>ቅርጸት፦</b> ${fmtLabel}\n\n• ይዘት በሥነ-መለኮታዊ ጥንቃቄ በመዘጋጀት ላይ ነው...\n• ንድፉ በከፍተኛ ጥራት (High-Res Retina) እየተቀረጸ ነው...\n${wantVideo ? '• 🎬 የቪዲዮ ሪል (Ken Burns motion) እየተዘጋጀ ነው...\n' : ''}• እባክዎ ጥቂት ሰከንዶች ይጠብቁ ✝️`
+    `⏳ <b>${label}</b> በማመንጨት ላይ...\n📌 <b>ቅርጸት፦</b> ${fmtLabel}${queueNotice}\n\n• ይዘት በሥነ-መለኮታዊ ጥንቃቄ በመዘጋጀት ላይ ነው...\n• ንድፉ በከፍተኛ ጥራት (High-Res Retina) እየተቀረጸ ነው...\n${wantVideo ? '• 🎬 የቪዲዮ ሪል (Ken Burns motion) እየተዘጋጀ ነው...\n' : ''}• እባክዎ ጥቂት ሰከንዶች ይጠብቁ ✝️`
   );
+
+  // Wait for a job slot (concurrency limiter)
+  await acquireJobSlot();
 
   try {
     const pipelineFn = PIPELINES[contentType];
@@ -844,7 +894,24 @@ async function executeGeneration(chatId, contentType, customTheme = null, format
     } else {
       await sendMsg(chatId, `❌ ማመንጨት አልተሳካም፦ <code>${err.message}</code>`, getMainMenuKeyboard());
     }
+  } finally {
+    releaseJobSlot();
   }
+}
+
+/**
+ * Fire-and-forget wrapper: sends the job to the background so the polling
+ * loop can immediately continue processing other users' messages.
+ */
+function executeGeneration(chatId, contentType, customTheme = null, format = 'image', extraOptions = {}) {
+  // Check authorization for heavy operations
+  const userId = extraOptions._userId;
+  if (!isAuthorized(userId)) {
+    return sendMsg(chatId, '🔒 <b>ይቅርታ — ይህን ትዕዛዝ የመጠቀም ፈቃድ የለዎትም።</b>\n\nየአስተዳዳሪ መብት ለማግኘት የ Telegram ID ቁጥርዎን ለ EOTC Media Studio አስተዳዳሪ ያቅርቡ።', getMainMenuKeyboard());
+  }
+  // Fire and forget — do NOT await. This keeps the polling loop responsive.
+  _executeGenerationWorker(chatId, contentType, customTheme, format, extraOptions)
+    .catch(err => console.error(`🛡️ Background generation error (${contentType}):`, err?.message || err));
 }
 
 // ─── DISPATCHER & INTERACTION ROUTER ──────────────────────────────────────────
@@ -1262,7 +1329,10 @@ async function pollOnce() {
     });
     for (const update of updates) {
       if (update.update_id > _lastUpdateId) _lastUpdateId = update.update_id;
-      await dispatchUpdate(update).catch(e => console.error('Dispatch error:', e.message));
+      // IMPORTANT: Do NOT await dispatchUpdate. Menu navigation & lightweight
+      // commands resolve fast; heavy generation is already fire-and-forget
+      // inside executeGeneration(). This keeps the poll loop responsive.
+      dispatchUpdate(update).catch(e => console.error('Dispatch error:', e.message));
     }
   } catch (err) {
     if (!err.message?.includes('ETIMEOUT') && !err.message?.includes('timeout')) {

@@ -2,6 +2,9 @@ import puppeteer from 'puppeteer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { createChildLogger } from '../utils/logger.js';
+
+const log = createChildLogger('render');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,7 +47,8 @@ async function compressIfNeeded(page, pngPath, clip) {
   const stats = fs.statSync(pngPath);
   if (stats.size <= MAX_FILE_SIZE_BYTES) return pngPath;
 
-  console.warn(`⚠️ PNG is ${(stats.size / 1024 / 1024).toFixed(1)}MB — compressing to JPEG...`);
+  const sizeMb = (stats.size / 1024 / 1024).toFixed(1);
+  log.warn(`PNG is ${sizeMb}MB — compressing to JPEG...`, { sizeMb, maxMb: 10 });
   const jpgPath = pngPath.replace(/\.png$/i, '.jpg');
 
   for (const quality of [85, 75, 65]) {
@@ -57,7 +61,8 @@ async function compressIfNeeded(page, pngPath, clip) {
       captureBeyondViewport: false
     });
     const jpgStats = fs.statSync(jpgPath);
-    console.log(`  🗜️  JPEG quality ${quality}: ${(jpgStats.size / 1024 / 1024).toFixed(1)}MB`);
+    const jpgMb = (jpgStats.size / 1024 / 1024).toFixed(1);
+    log.debug(`JPEG compression attempt`, { quality, sizeMb: jpgMb });
     if (jpgStats.size <= MAX_FILE_SIZE_BYTES) {
       // Remove oversized PNG, keep JPEG
       try { fs.unlinkSync(pngPath); } catch {}
@@ -68,7 +73,8 @@ async function compressIfNeeded(page, pngPath, clip) {
   // Last resort: keep JPEG at quality 55
   await page.screenshot({ path: jpgPath, type: 'jpeg', quality: 55, fullPage: false, clip, captureBeyondViewport: false });
   try { fs.unlinkSync(pngPath); } catch {}
-  console.warn(`⚠️ Final JPEG size: ${(fs.statSync(jpgPath).size / 1024 / 1024).toFixed(1)}MB`);
+  const finalMb = (fs.statSync(jpgPath).size / 1024 / 1024).toFixed(1);
+  log.warn(`Final JPEG size: ${finalMb}MB`, { sizeMb: finalMb });
   return jpgPath;
 }
 
@@ -131,31 +137,102 @@ const MOOD_PALETTES = {
 
 const DEFAULT_MOOD = 'devotional';
 
-async function launchBrowser(width = 1080, height = 1080, deviceScaleFactor = 3, retryCount = 0) {
-  const browserArgs = [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--disable-web-security',
-    '--disable-features=IsolateOrigins,site-per-process',
-    '--allow-file-access-from-files'
-  ];
+// ═══════════════════════════════════════════════════════════
+//  SINGLETON BROWSER POOL
+//  Instead of launching and killing Chromium 9 times during an
+//  'all' pipeline run, keep one browser alive and open/close pages.
+// ═══════════════════════════════════════════════════════════
+
+let _browserInstance = null;
+let _browserLaunchPromise = null;
+
+async function getBrowser() {
+  // If already launched, verify it's still alive
+  if (_browserInstance) {
+    try {
+      // Quick liveness check
+      await _browserInstance.version();
+      return _browserInstance;
+    } catch {
+      _browserInstance = null;
+    }
+  }
+
+  // Prevent concurrent launch attempts
+  if (_browserLaunchPromise) {
+    return _browserLaunchPromise;
+  }
+
+  _browserLaunchPromise = (async () => {
+    const browserArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      // SECURITY: Removed --disable-web-security and --allow-file-access-from-files
+      // which allowed XSS and arbitrary file reads in rendered templates.
+      '--disable-features=IsolateOrigins,site-per-process'
+    ];
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        _browserInstance = await puppeteer.launch({
+          executablePath: PUPPETEER_EXEC_PATH || undefined,
+          headless: true,
+          args: browserArgs,
+          // Default viewport — individual renders override via page.setViewport()
+          defaultViewport: { width: 1080, height: 1080, deviceScaleFactor: 2 }
+        });
+        log.info('Browser pool: Chromium launched (singleton)');
+        
+        // Auto-cleanup if process exits
+        _browserInstance.on('disconnected', () => {
+          _browserInstance = null;
+          _browserLaunchPromise = null;
+        });
+        
+        return _browserInstance;
+      } catch (error) {
+        if (attempt === MAX_RETRIES) throw error;
+        log.warn(`Browser launch failed, retrying (${attempt + 1}/${MAX_RETRIES})...`, { error: error.message });
+        await sleep(1000);
+      }
+    }
+  })();
 
   try {
-    return await puppeteer.launch({
-      executablePath: PUPPETEER_EXEC_PATH || undefined,
-      headless: true,
-      args: browserArgs,
-      defaultViewport: { width, height, deviceScaleFactor }
-    });
-  } catch (error) {
-    if (retryCount < MAX_RETRIES) {
-      console.log(`⏳ Browser launch failed, retrying (${retryCount + 1}/${MAX_RETRIES})...`);
-      await sleep(1000);
-      return launchBrowser(width, height, deviceScaleFactor, retryCount + 1);
-    }
-    throw error;
+    const browser = await _browserLaunchPromise;
+    return browser;
+  } finally {
+    _browserLaunchPromise = null;
+  }
+}
+
+/**
+ * Opens a new page with the given viewport, runs the render, then closes the page.
+ * The browser itself stays alive for reuse.
+ */
+async function withPage(width, height, scaleFactor, fn) {
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width, height, deviceScaleFactor: scaleFactor });
+    return await fn(page);
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
+/**
+ * Gracefully close the shared browser (call on process exit).
+ */
+export async function closeBrowserPool() {
+  if (_browserInstance) {
+    try {
+      await _browserInstance.close();
+      log.info('Browser pool: Chromium closed');
+    } catch {}
+    _browserInstance = null;
   }
 }
 
@@ -205,8 +282,12 @@ async function renderTemplate(page, htmlFile, variables, outputPath, options = {
   
   if (!loadResult) throw new Error(`Failed to load template ${htmlFile}`);
 
-  // Inject variables
+  // Inject variables — use textContent by default to prevent XSS.
+  // Only specific IDs that require structured HTML use innerHTML with sanitization.
   await page.evaluate((vars) => {
+    // IDs that legitimately need HTML injection (structured content from pipeline code, not AI)
+    const HTML_IDS = new Set(['reflection-body', 'fasting-rules-list', 'calendar-grid', 'kidase-dialogue']);
+    
     for (const [id, value] of Object.entries(vars)) {
       if (id === 'progress-percent') {
         const bar = document.getElementById('progress-bar');
@@ -215,14 +296,18 @@ async function renderTemplate(page, htmlFile, variables, outputPath, options = {
       const el = document.getElementById(id);
       if (el) {
         if (id === 'reflection-body') {
-          el.innerHTML = value.split('\n\n').map(p => `<p>${p}</p>`).join('');
-        } else if (id === 'fasting-rules-list') {
-          el.innerHTML = value;
-        } else if (id === 'calendar-grid') {
-          el.innerHTML = value;
-        } else if (id === 'kidase-dialogue') {
+          // Split paragraphs and wrap — content is Amharic text, not raw HTML
+          const paras = String(value).split('\n\n').map(p => {
+            const safe = p.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<p>${safe}</p>`;
+          }).join('');
+          el.innerHTML = paras;
+        } else if (HTML_IDS.has(id)) {
+          // These contain pipeline-generated HTML (grid rows, rule lists).
+          // They come from our own JS code, not raw AI output.
           el.innerHTML = value;
         } else {
+          // Default: safe textContent injection (no HTML execution)
           el.textContent = value;
         }
       }
@@ -277,11 +362,8 @@ async function renderTemplate(page, htmlFile, variables, outputPath, options = {
 // ═══════════════════════════════════════════════════════════
 
 export async function renderQuote({ text, theme, liturgicalContext }, outputPath) {
-  let browser = null;
-  try {
+  return withPage(1080, 1080, 2, async (page) => {
     console.log('🎨 Rendering quote...');
-    browser = await launchBrowser(1080, 1080, 3);
-    const page = await browser.newPage();
     
     await renderTemplate(page, 'power_quote.html', {
       'quote-text': text,
@@ -290,17 +372,12 @@ export async function renderQuote({ text, theme, liturgicalContext }, outputPath
     
     console.log(`✅ Rendered: ${outputPath}`);
     return outputPath;
-  } finally {
-    if (browser) try { await browser.close(); } catch {}
-  }
+  });
 }
 
 export async function renderDailyVerse(verseData, outputPath) {
-  let browser = null;
-  try {
+  return withPage(1080, 1080, 2, async (page) => {
     console.log('🎨 Rendering daily verse...');
-    browser = await launchBrowser(1080, 1080, 3);
-    const page = await browser.newPage();
     
     await renderTemplate(page, 'daily_verse.html', {
       'quote-text': verseData.verse,
@@ -309,17 +386,12 @@ export async function renderDailyVerse(verseData, outputPath) {
     
     console.log(`✅ Rendered: ${outputPath}`);
     return outputPath;
-  } finally {
-    if (browser) try { await browser.close(); } catch {}
-  }
+  });
 }
 
 export async function renderWeeklyReflection(reflectionData, outputPath) {
-  let browser = null;
-  try {
+  return withPage(1080, 1920, 2, async (page) => {
     console.log('🎨 Rendering weekly reflection...');
-    browser = await launchBrowser(1080, 1920, 2);
-    const page = await browser.newPage();
     
     await renderTemplate(page, 'weekly_reflection.html', {
       'title': reflectionData.title,
@@ -331,15 +403,12 @@ export async function renderWeeklyReflection(reflectionData, outputPath) {
     
     console.log(`✅ Rendered: ${outputPath}`);
     return outputPath;
-  } finally {
-    if (browser) try { await browser.close(); } catch {}
-  }
+  });
 }
 
 export async function renderCarousel({ slides, theme, liturgicalContext, aspectRatio = null }, outputDir) {
   const templatePath = path.join(__dirname, '../../templates/deep_dive.html');
   const outputPaths = [];
-  let browser = null;
 
   const targetRatio = (aspectRatio || process.env.CAROUSEL_ASPECT_RATIO || process.env.ASPECT_RATIO || '1:1').trim();
   const ASPECT_CONFIGS = {
@@ -351,18 +420,18 @@ export async function renderCarousel({ slides, theme, liturgicalContext, aspectR
 
   fs.mkdirSync(outputDir, { recursive: true });
   
-  try {
-    console.log(`🎨 Rendering ${slides.length} carousel slides (${config.label} ${config.width}×${config.height})...`);
-    browser = await launchBrowser(config.width, config.height, 3);
+  const browser = await getBrowser();
+  console.log(`🎨 Rendering ${slides.length} carousel slides (${config.label} ${config.width}×${config.height})...`);
+  
+  for (let i = 0; i < slides.length; i++) {
+    const slide = slides[i];
+    const outputPath = path.join(outputDir, `carousel_${i + 1}.png`);
     
-    for (let i = 0; i < slides.length; i++) {
-      const slide = slides[i];
-      const outputPath = path.join(outputDir, `carousel_${i + 1}.png`);
-      
-      console.log(`  📊 Rendering slide ${i + 1}/${slides.length}...`);
-      const page = await browser.newPage();
+    console.log(`  📊 Rendering slide ${i + 1}/${slides.length}...`);
+    const page = await browser.newPage();
+    try {
       await page.setCacheEnabled(false);
-      await page.setViewport({ width: config.width, height: config.height, deviceScaleFactor: 3 });
+      await page.setViewport({ width: config.width, height: config.height, deviceScaleFactor: 2 });
       
       await page.goto(`file://${templatePath}`, { waitUntil: 'networkidle2', timeout: 30000 });
       
@@ -415,27 +484,22 @@ export async function renderCarousel({ slides, theme, liturgicalContext, aspectR
         captureBeyondViewport: false
       });
       outputPaths.push(outputPath);
-      await page.close();
+    } finally {
+      await page.close().catch(() => {});
     }
-    
-    console.log(`✅ Carousel rendered: ${outputPaths.length} slides (${config.label})`);
-    return outputPaths;
-    
-  } finally {
-    if (browser) try { await browser.close(); } catch {}
   }
+  
+  console.log(`✅ Carousel rendered: ${outputPaths.length} slides (${config.label})`);
+  return outputPaths;
 }
 
 export async function renderSaintOfDay(saintData, outputPath) {
-  let browser = null;
-  try {
+  return withPage(1080, 1080, 2, async (page) => {
     if (saintData.isLordFeast) {
       console.log('🎨 Rendering Feast of the Lord...');
     } else {
       console.log('🎨 Rendering Saint of the Day...');
     }
-    browser = await launchBrowser(1080, 1080, 2);
-    const page = await browser.newPage();
     
     const footerText = saintData.isLordFeast ? 'Feast of the Day • EOTC Youth' : 'Saint of the Day • EOTC Youth';
     
@@ -450,17 +514,12 @@ export async function renderSaintOfDay(saintData, outputPath) {
     
     console.log(`✅ Rendered: ${outputPath}`);
     return outputPath;
-  } finally {
-    if (browser) try { await browser.close(); } catch {}
-  }
+  });
 }
 
 export async function renderFastingGuide(fastingData, outputPath) {
-  let browser = null;
-  try {
+  return withPage(1080, 1350, 2, async (page) => {
     console.log('🎨 Rendering Fasting Guide...');
-    browser = await launchBrowser(1080, 1350, 2);
-    const page = await browser.newPage();
     
     await renderTemplate(page, 'fasting_guide.html', {
       'fast-name': fastingData.name,
@@ -473,17 +532,12 @@ export async function renderFastingGuide(fastingData, outputPath) {
     
     console.log(`✅ Rendered: ${outputPath}`);
     return outputPath;
-  } finally {
-    if (browser) try { await browser.close(); } catch {}
-  }
+  });
 }
 
 export async function renderCalendarSummary(calendarData, outputPath) {
-  let browser = null;
-  try {
+  return withPage(1080, 1920, 2, async (page) => {
     console.log('🎨 Rendering Weekly Calendar...');
-    browser = await launchBrowser(1080, 1920, 2);
-    const page = await browser.newPage();
     
     await renderTemplate(page, 'calendar_summary.html', {
       'week-title': calendarData.weekTitle,
@@ -492,17 +546,12 @@ export async function renderCalendarSummary(calendarData, outputPath) {
     
     console.log(`✅ Rendered: ${outputPath}`);
     return outputPath;
-  } finally {
-    if (browser) try { await browser.close(); } catch {}
-  }
+  });
 }
 
 export async function renderHolyWeek(holyWeekData, outputPath) {
-  let browser = null;
-  try {
+  return withPage(1080, 1350, 2, async (page) => {
     console.log(`🎨 Rendering Holy Week: ${holyWeekData.dayName}...`);
-    browser = await launchBrowser(1080, 1350, 2);
-    const page = await browser.newPage();
     
     await renderTemplate(page, 'holy_week.html', {
       'day-name': holyWeekData.dayName,
@@ -514,17 +563,12 @@ export async function renderHolyWeek(holyWeekData, outputPath) {
     
     console.log(`✅ Rendered: ${outputPath}`);
     return outputPath;
-  } finally {
-    if (browser) try { await browser.close(); } catch {}
-  }
+  });
 }
 
 export async function renderChurchHistory(historyData, outputPath) {
-  let browser = null;
-  try {
+  return withPage(1080, 1350, 2, async (page) => {
     console.log('🎨 Rendering Church History...');
-    browser = await launchBrowser(1080, 1350, 2);
-    const page = await browser.newPage();
     
     await renderTemplate(page, 'church_history.html', {
       'era-badge': historyData.era,
@@ -536,9 +580,7 @@ export async function renderChurchHistory(historyData, outputPath) {
     
     console.log(`✅ Rendered: ${outputPath}`);
     return outputPath;
-  } finally {
-    if (browser) try { await browser.close(); } catch {}
-  }
+  });
 }
 
 export function isConfigured() {

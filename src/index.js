@@ -51,7 +51,8 @@ import {
   renderFastingGuide,
   renderCalendarSummary,
   renderHolyWeek,
-  renderChurchHistory
+  renderChurchHistory,
+  closeBrowserPool
 } from './render/puppeteer.js';
 
 import {
@@ -92,6 +93,9 @@ import {
 } from './utils/calendar.js';
 
 import { getVerifiedVerse } from './canon/scripture.js';
+import { createChildLogger } from './utils/logger.js';
+
+const log = createChildLogger('orchestrator');
 import { getSynaxariumEntry } from './canon/synaxarium.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -106,6 +110,9 @@ const VIDEO_PROFILES_ENV = (process.env.VIDEO_PROFILES || '1:1,9:16').split(',')
 // ═══════════════════════════════════════════════════════════
 //  UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════
+
+// Maximum retries when duplicate content is detected before giving up
+const MAX_DUPE_RETRIES = 3;
 
 function ensureOutputDir() {
   if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -263,11 +270,15 @@ export async function runQuotePipeline(useLiturgical = true, options = {}) {
 
   const quoteData = await generateQuote(ctx);
 
-  // Duplicate check
+  // Duplicate check with bounded retry to prevent infinite recursion
+  const retryDepth = options._retryDepth || 0;
   const isDupe = await checkDuplicate(quoteData.text, 'quote');
-  if (isDupe && !customTheme) {
-    console.log('⚠️ Duplicate detected. Regenerating...');
-    return runQuotePipeline(useLiturgical, options);
+  if (isDupe && !customTheme && retryDepth < MAX_DUPE_RETRIES) {
+    console.log(`⚠️ Duplicate detected. Regenerating... (attempt ${retryDepth + 1}/${MAX_DUPE_RETRIES})`);
+    return runQuotePipeline(useLiturgical, { ...options, _retryDepth: retryDepth + 1 });
+  }
+  if (isDupe && retryDepth >= MAX_DUPE_RETRIES) {
+    console.warn(`⚠️ Max duplicate retries reached (${MAX_DUPE_RETRIES}). Proceeding with current content.`);
   }
 
   const outputPath = path.join(OUTPUT_DIR, 'power_quote.png');
@@ -321,10 +332,15 @@ export async function runVersePipeline(useLiturgical = true, options = {}) {
     console.log(`✅ Using verified canonical text for ${canonVerse.reference}`);
   }
 
+  // Duplicate check with bounded retry to prevent infinite recursion
+  const retryDepth = options._retryDepth || 0;
   const isDupe = await checkDuplicate(verseData.verse, 'verse');
-  if (isDupe && !customTheme) {
-    console.log('⚠️ Duplicate verse. Regenerating...');
-    return runVersePipeline(useLiturgical, options);
+  if (isDupe && !customTheme && retryDepth < MAX_DUPE_RETRIES) {
+    console.log(`⚠️ Duplicate verse. Regenerating... (attempt ${retryDepth + 1}/${MAX_DUPE_RETRIES})`);
+    return runVersePipeline(useLiturgical, { ...options, _retryDepth: retryDepth + 1 });
+  }
+  if (isDupe && retryDepth >= MAX_DUPE_RETRIES) {
+    console.warn(`⚠️ Max duplicate retries reached (${MAX_DUPE_RETRIES}). Proceeding with current verse.`);
   }
 
   const outputPath = path.join(OUTPUT_DIR, 'daily_verse.png');
@@ -855,5 +871,15 @@ const isDirectRun = process.argv[1] && (
 );
 
 if (isDirectRun) {
-  main();
+  main().finally(() => closeBrowserPool());
 }
+
+// Graceful shutdown: ensure Chromium is killed on process exit
+process.on('SIGINT', async () => {
+  await closeBrowserPool();
+  process.exit(0);
+});
+process.on('SIGTERM', async () => {
+  await closeBrowserPool();
+  process.exit(0);
+});

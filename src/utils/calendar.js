@@ -6,49 +6,24 @@
  * Features: True Bahire Hasab (Computus) for moveable feasts, 30-day commemorations, and Zemene (Seasons).
  */
 
+import { EthDateTime } from 'ethiopian-calendar-date-converter';
+import { createChildLogger } from './logger.js';
+
+const log = createChildLogger('calendar');
+
 // ─── Ethiopian Calendar Conversion ──────────────────────────────────────────
+// Delegated to the verified ethiopian-calendar-date-converter library.
+// The previous custom implementation had off-by-one errors in leap year
+// boundary calculations that caused every date to be wrong.
 
 export function toEthiopianDate(gregorianDate = new Date()) {
-  const gYear = gregorianDate.getFullYear();
-  const gMonth = gregorianDate.getMonth() + 1; // 1-indexed
-  const gDay = gregorianDate.getDate();
-
-  const isEthLeapYearThisGYear = (gYear % 4 === 3);
-  const newYearDay = (isEthLeapYearThisGYear && gMonth === 9) ? 12 : 11;
-  const isBeforeNewYearExact = gMonth < 9 || (gMonth === 9 && gDay < newYearDay);
-  
-  const ethYear = isBeforeNewYearExact ? gYear - 8 : gYear - 7;
-  
-  // Use UTC to avoid any Daylight Saving Time Math.floor() skipping bugs
-  const targetUTC = Date.UTC(gYear, gMonth - 1, gDay);
-  const newYearGregorianUTC = Date.UTC(
-    isBeforeNewYearExact ? gYear - 1 : gYear,
-    8,
-    isBeforeNewYearExact && ((gYear - 1) % 4 === 3) ? 12 : 11
-  );
-  
-  const diffMs = targetUTC - newYearGregorianUTC;
-  const dayOfEthYear = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  let ethMonth, ethDay;
-
-  if (dayOfEthYear < 0) {
-    ethMonth = 13; 
-    ethDay = 30 + dayOfEthYear + 1;
-  } else if (dayOfEthYear < 360) {
-    ethMonth = Math.floor(dayOfEthYear / 30) + 1;
-    ethDay = (dayOfEthYear % 30) + 1;
-  } else {
-    ethMonth = 13; 
-    ethDay = dayOfEthYear - 360 + 1;
-  }
-
-  return { year: ethYear, month: ethMonth, day: ethDay };
+  const eth = EthDateTime.fromEuropeanDate(gregorianDate);
+  return { year: eth.year, month: eth.month, day: eth.date };
 }
 
 // ─── Constants & Reference Arrays ───────────────────────────────────────────
 
-const ETHIOPIAN_MONTHS = {
+export const ETHIOPIAN_MONTHS = {
   1: 'Meskerem', 2: 'Tikimt', 3: 'Hidar', 4: 'Tahsas',
   5: 'Tir', 6: 'Yekatit', 7: 'Megabit', 8: 'Miyazya',
   9: 'Ginbot', 10: 'Sene', 11: 'Hamle', 12: 'Nehase', 13: 'Pagume'
@@ -306,7 +281,12 @@ export function getLiturgicalContext(date = new Date()) {
   const ethMonthName = ETHIOPIAN_MONTHS[ethDate.month] || 'Unknown';
   const gDayOfWeek = date.getDay(); // 0: Sun, 3: Wed, 5: Fri
 
-  console.log(`📅 Ethiopian Date: ${ethMonthName} ${ethDate.day}, ${ethDate.year}`);
+  log.info(`Ethiopian Date: ${ethMonthName} ${ethDate.day}, ${ethDate.year}`, {
+    month: ethDate.month,
+    monthName: ethMonthName,
+    day: ethDate.day,
+    year: ethDate.year
+  });
 
   // Calculate Moveable Feasts using Bahire Hasab
   const moveables = calculateMoveableFeasts(ethDate.year);
@@ -422,26 +402,25 @@ const GEEZ_TENS = ['', '፲', '፳', '፴', '፵', '፶', '፷', '፸', '፹', '
 export function toGeezNumerals(num) {
   if (num === null || num === undefined || isNaN(num)) return '';
   num = Math.floor(num);
-  if (num === 0) return '';
-  if (num < 0) return toGeezNumerals(-num);
-  // Single digits
+  if (num === 0) return '0';
+  if (num < 0) return '-' + toGeezNumerals(-num);
+  // Single digits (1-9)
   if (num < 10) return GEEZ_ONES[num];
-  // Tens and tens+ones (10-99)
+  // Tens and teens (10-99)
   if (num < 100) return GEEZ_TENS[Math.floor(num / 10)] + (GEEZ_ONES[num % 10] || '');
-  // Hundreds (100-999)
-  if (num < 1000) {
-    const h = Math.floor(num / 100);
+  // Hundreds up to 9,999 (grouped into hundreds ፻)
+  if (num < 10000) {
+    const hundreds = Math.floor(num / 100);
     const rem = num % 100;
-    // GEEZ_ONES[1]='፩' but 1 hundred is just ፻
-    const hundredStr = h === 1 ? '፻' : toGeezNumerals(h) + '፻';
+    const hundredStr = hundreds === 1 ? '፻' : toGeezNumerals(hundreds) + '፻';
     return hundredStr + (rem > 0 ? toGeezNumerals(rem) : '');
   }
-  // Thousands (1000-9999) — e.g. 2018 = ፪፲፻፲፰
-  if (num < 10000) {
-    const th = Math.floor(num / 1000);
-    const rem = num % 1000;
-    const thousandStr = th === 1 ? '፲፻' : toGeezNumerals(th) + '፲፻';
-    return thousandStr + (rem > 0 ? toGeezNumerals(rem) : '');
+  // Myriads (10,000+) using ፼
+  if (num < 100000000) {
+    const myriad = Math.floor(num / 10000);
+    const rem = num % 10000;
+    const myriadStr = myriad === 1 ? '፼' : toGeezNumerals(myriad) + '፼';
+    return myriadStr + (rem > 0 ? toGeezNumerals(rem) : '');
   }
   return String(num); // Fallback for very large numbers
 }

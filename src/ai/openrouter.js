@@ -2,6 +2,9 @@ import axios from 'axios';
 import { formatContextForPrompt } from '../utils/calendar.js';
 import { getVerifiedVerse } from '../canon/scripture.js';
 import { getSynaxariumEntry } from '../canon/synaxarium.js';
+import { createChildLogger } from '../utils/logger.js';
+
+const log = createChildLogger('ai');
 
 const getEnv = (key) => process.env[key];
 
@@ -482,7 +485,10 @@ async function callOpenRouter(apiKey, model, systemPrompt, userPrompt, jsonMode)
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      max_tokens: jsonMode ? 600 : 300,
+      // Amharic (Ethiopic Fidel) is 3 bytes/char and 2-4 tokens/word in BPE.
+      // 5-slide carousels need ~1000+ tokens; reflections need ~1200+.
+      // Previous limit of 600 caused mid-JSON truncation and silent fallbacks.
+      max_tokens: jsonMode ? 2048 : 500,
       temperature: 0.7,
       top_p: 0.9,
       response_format: jsonMode ? { type: "json_object" } : undefined
@@ -605,7 +611,7 @@ async function verifyAndCorrect(data, jsonMode = true) {
   });
 }
 
-function extractJSON(text) {
+export function extractJSON(text) {
   try {
     // 1. Try to find JSON block in markdown
     let cleanText = text;
@@ -647,7 +653,7 @@ function extractJSON(text) {
 
     return JSON.parse(cleanText.trim());
   } catch (e) {
-    console.error('JSON Extraction failed. Text received:', text);
+    log.error('JSON Extraction failed', { error: e.message, preview: typeof text === 'string' ? text.slice(0, 150) : text });
     throw new Error('Invalid JSON format from AI');
   }
 }

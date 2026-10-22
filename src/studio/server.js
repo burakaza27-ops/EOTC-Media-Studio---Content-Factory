@@ -491,7 +491,18 @@ async function handleRequest(req, res) {
   // ── API: POST /api/generate ──────────────────────────────────────────────
   if (req.method === 'POST' && pathname === '/api/generate') {
     let body = '';
-    req.on('data', d => { body += d.toString(); });
+    let bodySize = 0;
+    const MAX_BODY = 1024 * 1024; // 1 MB limit
+    req.on('data', d => {
+      bodySize += d.length;
+      if (bodySize > MAX_BODY) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Request body too large' }));
+        req.destroy();
+        return;
+      }
+      body += d.toString();
+    });
     req.on('end', async () => {
       try {
         const { contentType, useLiturgical } = JSON.parse(body);
@@ -510,8 +521,10 @@ async function handleRequest(req, res) {
   // ── Serve output files ───────────────────────────────────────────────────
   if (pathname.startsWith('/output/')) {
     const fileName = decodeURIComponent(pathname.replace('/output/', ''));
-    const filePath = path.join(OUTPUT_DIR, fileName);
-    if (fs.existsSync(filePath) && path.relative(OUTPUT_DIR, filePath).startsWith('') && !filePath.includes('..')) {
+    const filePath = path.resolve(OUTPUT_DIR, fileName);
+    // SECURITY: Verify the resolved path is still inside OUTPUT_DIR
+    // The old check `path.relative().startsWith('')` was always true (empty string prefixes everything).
+    if (fs.existsSync(filePath) && filePath.startsWith(path.resolve(OUTPUT_DIR) + path.sep)) {
       const ext = path.extname(filePath).toLowerCase();
       const stat = fs.statSync(filePath);
       res.writeHead(200, {
@@ -527,8 +540,10 @@ async function handleRequest(req, res) {
 
   // ── Serve assets (SVG vectors etc.) ────────────────────────────────────
   if (pathname.startsWith('/assets/')) {
-    const assetPath = path.join(ROOT, pathname);
-    if (fs.existsSync(assetPath)) {
+    const ASSETS_DIR = path.resolve(ROOT, 'assets');
+    const assetPath = path.resolve(ROOT, pathname.slice(1)); // strip leading /
+    // SECURITY: Verify path is contained within the assets directory
+    if (assetPath.startsWith(ASSETS_DIR + path.sep) && fs.existsSync(assetPath)) {
       const ext = path.extname(assetPath).toLowerCase();
       res.writeHead(200, { 'Content-Type': getMime(ext) });
       fs.createReadStream(assetPath).pipe(res);
