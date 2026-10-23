@@ -148,6 +148,12 @@ const _wizardSessions = new Map();
 
 // ─── Telegram HTTP Helper ─────────────────────────────────────────────────────
 
+const _tgAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 10,
+  timeout: 60000
+});
+
 function tgRequest(method, body = null) {
   return new Promise((resolve, reject) => {
     const token = BOT_TOKEN();
@@ -157,6 +163,7 @@ function tgRequest(method, body = null) {
       hostname: 'api.telegram.org',
       path: `/bot${token}/${method}`,
       method: payload ? 'POST' : 'GET',
+      agent: _tgAgent,
       headers: payload
         ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
         : {}
@@ -173,7 +180,8 @@ function tgRequest(method, body = null) {
       });
     });
     req.on('error', reject);
-    req.setTimeout(25000, () => {
+    // 45s client timeout allows 25s getUpdates to complete naturally without forced aborts
+    req.setTimeout(45000, () => {
       req.destroy();
       reject(new Error(`Telegram ${method} timeout`));
     });

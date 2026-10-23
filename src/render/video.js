@@ -72,14 +72,26 @@ export const VIDEO_PROFILES = {
 };
 
 // ─── KEN BURNS PRESETS ────────────────────────────────────────────────────────
-// Subtle, sacred, slow-moving camera to create cinematic reverence.
+// Subtle, sacred, continuous camera motions with ZERO step discontinuities or sudden jumps.
 const KEN_BURNS_PRESETS = [
-  // Gentle centre zoom
-  { z: 'if(lte(on,1),1.0,min(zoom+0.0004,1.12))', x: 'iw/2-(iw/zoom/2)', y: 'ih/2-(ih/zoom/2)' },
-  // Upper-left to centre
-  { z: 'if(lte(on,1),1.0,min(zoom+0.0005,1.15))', x: 'if(lte(zoom,1.05),0,iw/2-(iw/zoom/2))', y: 'if(lte(zoom,1.05),0,ih/2-(ih/zoom/2))' },
-  // Centre to bottom-right
-  { z: 'if(lte(on,1),1.10,max(zoom-0.0004,1.0))', x: 'if(gte(zoom,1.05),iw-(iw/zoom),iw/2-(iw/zoom/2))', y: 'if(gte(zoom,1.05),ih-(ih/zoom),ih/2-(ih/zoom/2))' }
+  // 1. Reverent Centre Zoom-In (Slow, meditative breathing into the sacred card)
+  {
+    z: 'min(zoom+0.0006,1.14)',
+    x: '(iw-iw/zoom)/2',
+    y: '(ih-ih/zoom)/2'
+  },
+  // 2. Reverent Centre Zoom-Out (Revealing the fullness of the teaching)
+  {
+    z: 'if(lte(on,1),1.14,max(1.0,zoom-0.0006))',
+    x: '(iw-iw/zoom)/2',
+    y: '(ih-ih/zoom)/2'
+  },
+  // 3. Gentle Vertical Elevation (Gliding upwards gracefully like incense)
+  {
+    z: 'min(zoom+0.0004,1.10)',
+    x: '(iw-iw/zoom)/2',
+    y: '((ih-ih/zoom)/2)+((on/250)*12)'
+  }
 ];
 
 // ─── CORE RENDER FUNCTION ─────────────────────────────────────────────────────
@@ -124,14 +136,14 @@ export async function renderVideoReel(opts = {}) {
     const outPath = path.join(outputDir, `${baseName}_${profile.suffix}.mp4`);
     console.log(`\n🎬 Rendering ${profile.label} → ${path.basename(outPath)}`);
 
-    // Build filter_complex: scale to profile dims + Ken Burns zoom/pan
+    // Build filter_complex: scale preserving aspect ratio + smooth Ken Burns zoom/pan
     const preset = KEN_BURNS_PRESETS[Math.floor(Math.random() * KEN_BURNS_PRESETS.length)];
     const fps = 25;
     const totalFrames = duration * fps;
     // Scale to 1.2x target size (ensures crisp zoompan without memory exhaustion)
     const scaleW = Math.round(profile.width * 1.2 / 2) * 2;
     const scaleH = Math.round(profile.height * 1.2 / 2) * 2;
-    const scaleFilter = `scale=${scaleW}:${scaleH},zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
+    const scaleFilter = `scale=w=${scaleW}:h=${scaleH}:force_original_aspect_ratio=decrease,pad=${scaleW}:${scaleH}:(ow-iw)/2:(oh-ih)/2:color=0x070b16,zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
 
     // Sacred golden particle overlay (overlay a generated radial vignette)
     const vignetteFilter = `vignette=angle=PI/4:mode=backward`;
