@@ -13,6 +13,7 @@ output/
 *.jpeg
 *.mp4
 !assets/**
+!tests/*.mp4
 
 # Logs
 *.log

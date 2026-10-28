@@ -72,26 +72,38 @@ export const VIDEO_PROFILES = {
 };
 
 // ─── KEN BURNS PRESETS ────────────────────────────────────────────────────────
-// Subtle, sacred, continuous camera motions with ZERO step discontinuities or sudden jumps.
-const KEN_BURNS_PRESETS = [
-  // 1. Reverent Centre Zoom-In (Slow, meditative breathing into the sacred card)
-  {
-    z: 'min(zoom+0.0006,1.14)',
-    x: '(iw-iw/zoom)/2',
-    y: '(ih-ih/zoom)/2'
-  },
-  // 2. Reverent Centre Zoom-Out (Revealing the fullness of the teaching)
-  {
-    z: 'if(lte(on,1),1.14,max(1.0,zoom-0.0006))',
-    x: '(iw-iw/zoom)/2',
-    y: '(ih-ih/zoom)/2'
-  },
-  // 3. Gentle Vertical Elevation (Gliding upwards gracefully like incense)
-  {
-    z: 'min(zoom+0.0004,1.10)',
-    x: '(iw-iw/zoom)/2',
-    y: '((ih-ih/zoom)/2)+((on/250)*12)'
-  }
+// Mathematically smooth, continuous camera motions with sub-pixel interpolation.
+// Eliminates jitter, stepping, sudden freezes, or floating-point rounding snap.
+export function getKenBurnsPreset(totalFrames, index = 0) {
+  const d = Math.max(1, totalFrames);
+  const presets = [
+    // 1. Reverent Centre Zoom-In (Slow, meditative breathing into the sacred card)
+    {
+      z: `1.0+0.14*(on/${d})`,
+      x: '(iw-iw/zoom)/2',
+      y: '(ih-ih/zoom)/2'
+    },
+    // 2. Reverent Centre Zoom-Out (Revealing the fullness of the teaching)
+    {
+      z: `1.14-0.14*(on/${d})`,
+      x: '(iw-iw/zoom)/2',
+      y: '(ih-ih/zoom)/2'
+    },
+    // 3. Gentle Vertical Elevation (Gliding upwards gracefully like incense)
+    {
+      z: `1.0+0.09*(on/${d})`,
+      x: '(iw-iw/zoom)/2',
+      y: `(ih-ih/zoom)/2-(ih*0.035)*(on/${d})`
+    }
+  ];
+  return presets[Math.abs(index) % presets.length];
+}
+
+// Legacy fallback export for backward compatibility
+export const KEN_BURNS_PRESETS = [
+  { z: '1.0+0.14*(on/250)', x: '(iw-iw/zoom)/2', y: '(ih-ih/zoom)/2' },
+  { z: '1.14-0.14*(on/250)', x: '(iw-iw/zoom)/2', y: '(ih-ih/zoom)/2' },
+  { z: '1.0+0.09*(on/250)', x: '(iw-iw/zoom)/2', y: '(ih-ih/zoom)/2-(ih*0.035)*(on/250)' }
 ];
 
 // ─── CORE RENDER FUNCTION ─────────────────────────────────────────────────────
@@ -136,13 +148,14 @@ export async function renderVideoReel(opts = {}) {
     const outPath = path.join(outputDir, `${baseName}_${profile.suffix}.mp4`);
     console.log(`\n🎬 Rendering ${profile.label} → ${path.basename(outPath)}`);
 
-    // Build filter_complex: scale preserving aspect ratio + smooth Ken Burns zoom/pan
-    const preset = KEN_BURNS_PRESETS[Math.floor(Math.random() * KEN_BURNS_PRESETS.length)];
+    // Build filter_complex: scale preserving aspect ratio + butter-smooth Ken Burns zoom/pan
     const fps = 25;
     const totalFrames = duration * fps;
-    // Scale to 1.2x target size (ensures crisp zoompan without memory exhaustion)
-    const scaleW = Math.round(profile.width * 1.2 / 2) * 2;
-    const scaleH = Math.round(profile.height * 1.2 / 2) * 2;
+    const preset = getKenBurnsPreset(totalFrames, Math.floor(Math.random() * 3));
+    // Super-resolution 3x canvas: eliminates FFmpeg integer crop rounding errors,
+    // producing silky smooth, 100% jitter-free sub-pixel Ken Burns zoom and pan.
+    const scaleW = profile.width * 3;
+    const scaleH = profile.height * 3;
     const scaleFilter = `scale=w=${scaleW}:h=${scaleH}:force_original_aspect_ratio=decrease,pad=${scaleW}:${scaleH}:(ow-iw)/2:(oh-ih)/2:color=0x070b16,zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
 
     // Sacred golden particle overlay (overlay a generated radial vignette)
@@ -245,9 +258,9 @@ export async function renderCarouselVideo(imagePaths, outputDir, baseName = 'car
       inputArgs.push('-i', imgPath);
 
       const totalFrames = slideDuration * fps;
-      const preset = KEN_BURNS_PRESETS[i % KEN_BURNS_PRESETS.length];
-      const scaleW = Math.round(profile.width * 1.2 / 2) * 2;
-      const scaleH = Math.round(profile.height * 1.2 / 2) * 2;
+      const preset = getKenBurnsPreset(totalFrames, i);
+      const scaleW = profile.width * 3;
+      const scaleH = profile.height * 3;
       const scaleFilter = `scale=w=${scaleW}:h=${scaleH}:force_original_aspect_ratio=increase,crop=${scaleW}:${scaleH},zoompan=z='${preset.z}':x='${preset.x}':y='${preset.y}':d=${totalFrames}:s=${profile.width}x${profile.height}:fps=${fps}`;
       const fade = `fade=t=in:st=0:d=0.5,fade=t=out:st=${slideDuration - 0.5}:d=0.5`;
       filterParts.push(`[${i}:v]${scaleFilter},${fade}[v${i}]`);

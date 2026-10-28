@@ -18,6 +18,8 @@
     "studio": "node src/studio/server.js",
     "bot": "node src/telegram/concierge.js",
     "reel": "cross-env GENERATE_VIDEO=true node src/index.js",
+    "reel:remotion": "cross-env GENERATE_VIDEO=true VIDEO_ENGINE=remotion node src/index.js",
+    "reel:motion": "node test_reel.mjs",
     "dispatch": "node src/index.js --dispatch",
     "all": "cross-env CONTENT_TYPE=all USE_LITURGICAL=true node src/index.js",
     "dev": "node --watch src/index.js",
