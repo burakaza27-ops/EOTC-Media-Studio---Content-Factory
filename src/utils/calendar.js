@@ -17,7 +17,14 @@ const log = createChildLogger('calendar');
 // boundary calculations that caused every date to be wrong.
 
 export function toEthiopianDate(gregorianDate = new Date()) {
-  const eth = EthDateTime.fromEuropeanDate(gregorianDate);
+  // Normalize the Gregorian calendar date components (year, month, day) to UTC noon
+  // to ensure 100% deterministic, timezone-independent calendar conversions across
+  // all host environments (UTC servers, GitHub Actions CI runners, and EAT local time).
+  const year = gregorianDate.getFullYear();
+  const month = gregorianDate.getMonth();
+  const day = gregorianDate.getDate();
+  const normalized = new Date(Date.UTC(year, month, day, 12, 0, 0));
+  const eth = EthDateTime.fromEuropeanDate(normalized);
   return { year: eth.year, month: eth.month, day: eth.date };
 }
 

@@ -14,31 +14,31 @@ import {
 
 test('EOTC Calendar Engine — Ethiopian Date Conversion', async (t) => {
   await t.test('converts standard Gregorian date to correct Ethiopian date', () => {
-    // 2026-10-04 is Meskerem 23, 2019
+    // 2026-10-04 is Meskerem 24, 2019
     const eth = toEthiopianDate(new Date(2026, 9, 4));
     assert.equal(eth.year, 2019);
     assert.equal(eth.month, 1);
-    assert.equal(eth.day, 23);
+    assert.equal(eth.day, 24);
   });
 
-  await t.test('correctly converts Ethiopian New Year (Enkutatash) in 2024 (Sep 12)', () => {
-    // 2024-09-12 is Meskerem 1, 2017 (in leap year cycle)
-    const eth = toEthiopianDate(new Date(2024, 8, 12));
+  await t.test('correctly converts Ethiopian New Year (Enkutatash) in 2024 (Sep 11)', () => {
+    // 2024-09-11 is Meskerem 1, 2017 (Enkutatash)
+    const eth = toEthiopianDate(new Date(2024, 8, 11));
     assert.equal(eth.year, 2017);
     assert.equal(eth.month, 1);
     assert.equal(eth.day, 1);
   });
 
-  await t.test('correctly identifies Pagume days (Sep 7, 2024 is Pagume 1)', () => {
-    // 2024-09-07 is Pagume 1, 2016
-    const sep7 = new Date(2024, 8, 7);
-    const eth = toEthiopianDate(sep7);
+  await t.test('correctly identifies Pagume days (Sep 6, 2024 is Pagume 1)', () => {
+    // 2024-09-06 is Pagume 1, 2016
+    const sep6 = new Date(2024, 8, 6);
+    const eth = toEthiopianDate(sep6);
     assert.equal(eth.month, 13);
     assert.equal(eth.day, 1);
-    const pagumeInfo = isPagume(sep7);
+    const pagumeInfo = isPagume(sep6);
     assert.equal(pagumeInfo.isPagume, true);
     assert.equal(pagumeInfo.day, 1);
-    assert.equal(isPagume(new Date(2024, 8, 12)).isPagume, false);
+    assert.equal(isPagume(new Date(2024, 8, 11)).isPagume, false);
   });
 });
 
