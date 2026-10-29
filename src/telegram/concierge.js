@@ -16,11 +16,17 @@
  *  - Direct delivery of generated PNGs, MP4 reels, and albums into the chat
  */
 
-import 'dotenv/config';
+import { createRequire } from 'module';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import { fileURLToPath } from 'url';
+
+// Load .env from the project root (works regardless of the working directory)
+const _require = createRequire(import.meta.url);
+const _dotenv = _require('dotenv');
+const _envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '.env');
+_dotenv.config({ path: _envPath });
 
 import {
   toEthiopianDate,
@@ -860,7 +866,7 @@ async function _executeGenerationWorker(chatId, contentType, customTheme = null,
 
   const progressMsg = await sendMsg(
     chatId,
-    `⏳ <b>${label}</b> በማመንጨት ላይ...\n📌 <b>ቅርጸት፦</b> ${fmtLabel}${queueNotice}\n\n• ይዘት በሥነ-መለኮታዊ ጥንቃቄ በመዘጋጀት ላይ ነው...\n• ንድፉ በከፍተኛ ጥራት (High-Res Retina) እየተቀረጸ ነው...\n${wantVideo ? '• 🎬 የቪዲዮ ሪል (Ken Burns motion) እየተዘጋጀ ነው...\n' : ''}• እባክዎ ጥቂት ሰከንዶች ይጠብቁ ✝️`
+    `⏳ <b>${label}</b> በማመንጨት ላይ...\n📌 <b>ቅርጸት፦</b> ${fmtLabel}${queueNotice}\n\n• ይዘት በሥነ-መለኮታዊ ጥንቃቄ በመዘጋጀት ላይ ነው...\n• ንድፉ በከፍተኛ ጥራት (High-Res Retina) እየተቀረጸ ነው...\n${wantVideo ? '• 🎬 የቪዲዮ ሪል (Remotion motion graphics) እየተዘጋጀ ነው...\n' : ''}• እባክዎ ጥቂት ሰከንዶች ይጠብቁ ✝️`
   );
 
   // Wait for a job slot (concurrency limiter)

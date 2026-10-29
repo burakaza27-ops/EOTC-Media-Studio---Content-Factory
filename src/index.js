@@ -156,8 +156,8 @@ async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], content
 
   let results = {};
 
-  // Try Remotion only if specifically requested via options or environment
-  const engine = options.videoEngine || process.env.VIDEO_ENGINE || 'ffmpeg';
+  // Try Remotion motion graphics engine first (matches tests/reel.mp4)
+  const engine = options.videoEngine || process.env.VIDEO_ENGINE || 'remotion';
 
   if (engine === 'remotion') {
     try {
@@ -165,6 +165,7 @@ async function maybeRenderVideo(imagePath, baseName, subtitleLines = [], content
       results = await renderRemotionReel({
         outputDir: OUTPUT_DIR,
         baseName,
+        title: theme,
         quote,
         reference,
         theme,
@@ -303,7 +304,7 @@ export async function runQuotePipeline(useLiturgical = true, options = {}) {
   }
 
   // Video reel (optional or requested)
-  await maybeRenderVideo(outputPath, 'power_quote', [quoteData.text, '— ኃይለ ቃል'], 'quote', options);
+  await maybeRenderVideo(outputPath, 'power_quote', [quoteData.text, '— ኃይለ ቃል', options.customTheme || 'የዕለቱ ኃይለ ቃል'], 'quote', options);
 
   console.log('✅ Quote pipeline complete.');
   return outputPath;
@@ -364,7 +365,7 @@ export async function runVersePipeline(useLiturgical = true, options = {}) {
   }
 
   // Video reel (optional or requested)
-  await maybeRenderVideo(outputPath, 'daily_verse', [verseData.verse, `— ${verseData.reference}`], 'verse', options);
+  await maybeRenderVideo(outputPath, 'daily_verse', [verseData.verse, `— ${verseData.reference}`, options.customTheme || 'ዕለታዊ ጥቅስ'], 'verse', options);
 
   console.log('✅ Verse pipeline complete.');
   return outputPath;
@@ -440,7 +441,7 @@ export async function runReflectionPipeline(useLiturgical = true, options = {}) 
   }
 
   // Video reel (optional or requested)
-  await maybeRenderVideo(outputPath, 'weekly_reflection', [reflectionData.title, reflectionData.opening || ''], 'reflection', options);
+  await maybeRenderVideo(outputPath, 'weekly_reflection', [reflectionData.title, reflectionData.opening || '', options.customTheme || 'ሳምንታዊ አስተንትኖ'], 'reflection', options);
 
   console.log('✅ Reflection pipeline complete.');
   return outputPath;
@@ -493,7 +494,7 @@ export async function runSaintPipeline(useLiturgical = true, options = {}) {
   }
 
   // Video reel (optional or requested)
-  await maybeRenderVideo(outputPath, 'saint_day', [saintData.saint, saintData.lesson], 'saint', options);
+  await maybeRenderVideo(outputPath, 'saint_day', [saintData.saint, saintData.lesson, options.customTheme || 'የዕለቱ ቅዱስ'], 'saint', options);
 
   console.log('✅ Saint pipeline complete.');
   return outputPath;

@@ -114,6 +114,7 @@ export async function renderRemotionReel(opts = {}) {
   const results = {};
 
   const inputProps = {
+    title: opts.title || theme,
     quote,
     reference,
     theme,
