@@ -823,7 +823,7 @@ export async function generateSaintOfDay(saintData, liturgicalContext = null) {
     return {
       saint: synaxarium?.saint || cleanSaint,
       story: synaxarium?.synaxariumExcerpt || (saintData.theme && !containsLatinWords(saintData.theme) ? saintData.theme : 'በኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን ሥርዓት መሠረት የዚህ ቅዱስ መታሰቢያ በታላቅ ክብርና ጸሎት ይዘከራል።'),
-      lesson: synaxarium?.spiritualLesson || 'በሃይማኖት መጽናትና እግዚአብሔርን በፍጹም ልብ ማገልገል የጽድቅ መንገድ ነው።',
+      lesson: synaxarium?.spiritualLesson || 'ለእኛም ይገለጥ ዘንድ ካለው ክብር ጋር ቢመዛዘን የአሁኑ ዘመን ሥቃይ ምንም እንዳይደለ አስባለሁ።',
       reference: 'ሮሜ ፰፥፲፰',
       feastType: (saintData.isLordFeast || synaxarium?.isLordFeast) ? 'የጌታ በዓል' : (saintData.type === 'feast' ? 'በዓል' : 'የቅዱስ ቀን'),
       liturgicalEvent: liturgicalContext?.event || null
