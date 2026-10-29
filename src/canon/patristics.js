@@ -485,3 +485,4 @@ export function getPatristicsByFather(fatherName = '') {
 export function getTotalPatristicsCount() {
   return VERIFIED_PATRISTICS.length;
 }
+
