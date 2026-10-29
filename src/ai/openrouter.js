@@ -177,8 +177,10 @@ Return the corrected content in the EXACT SAME format and structure as the input
 - Markdown code fences (\`\`\`)
 - JSON labels or wrappers beyond what was in the input
 - Conversational explanations or notes
-- English translations unless explicitly present in the input
-Return ONLY the corrected content.`;
+Return ONLY the corrected content.
+
+━━━ SECTION 7: PURE AMHARIC ENFORCEMENT ━━━
+All generated content MUST be 100% in AMHARIC (አማርኛ) and Ethiopic script (ፊደል). If the input contains ANY English words, phrases, or Latin characters in stories, lessons, titles, quotes, prayers, or reflections, you MUST translate and replace them completely with authentic, fluent Amharic. NEVER allow English words to slip through into the final output.`;
 
 
 const SAINT_SYSTEM_PROMPT = `You are an EOTC hagiographer (የቅዱሳን ታሪክ ጸሃፊ) writing about the daily saint commemoration for Ethiopian Orthodox youth.
@@ -199,6 +201,9 @@ Given a saint's name and description, generate:
 
 AMHARIC RULES:
 - Write in beautiful, flowing modern Amharic — not stilted or robotic.
+- CRITICAL: ALL fields ('saint', 'story', 'lesson', 'reference', 'feastType') MUST be 100% in pure AMHARIC (አማርኛ) and Ethiopic script (ፊደል).
+- ABSOLUTELY ZERO ENGLISH WORDS, ZERO LATIN ALPHABET ALLOWED IN VALUES.
+- If provided context or prompt is in English, translate and retell it completely in Ethiopian Orthodox Amharic.
 - Use Ge'ez numerals for ALL numbers. Chapter:verse separator: ፥
 - Spell EOTC terms correctly: ሥላሴ, ቁስቋም, ጥምቀት, ፋሲካ, ተዋሕዶ.
 
@@ -261,6 +266,10 @@ Given a historical topic and its context, generate:
 4. "era": The historical era label (keep as given).
 5. "year": The year (keep as given).
 6. "source": Name the primary historical source (ስንክሳር, ገድል, ክብረ ነገሥት, ፈትሃ ነገሥት, or modern scholarly work).
+
+CRITICAL AMHARIC REQUIREMENT:
+- All generated content ("title", "narrative", "significance") MUST BE 100% IN AMHARIC (አማርኛ).
+- ABSOLUTELY ZERO ENGLISH WORDS OR LATIN ALPHABET ALLOWED IN OUTPUT VALUES.
 
 Return ONLY valid JSON. No markdown.`;
 
@@ -612,6 +621,11 @@ async function verifyAndCorrect(data, jsonMode = true) {
   });
 }
 
+export function containsLatinWords(str) {
+  if (typeof str !== 'string') return false;
+  return /[a-zA-Z]{3,}/.test(str);
+}
+
 export function extractJSON(text) {
   try {
     // 1. Try to find JSON block in markdown
@@ -778,31 +792,40 @@ export async function generateWeeklyReflection(liturgicalContext = null) {
 
 export async function generateSaintOfDay(saintData, liturgicalContext = null) {
   const contextPrompt = formatContextForPrompt(liturgicalContext);
+  const cleanSaint = saintData.saint ? saintData.saint.split(' (')[0] : 'የዕለቱ ቅዱስ';
+  const synaxarium = saintData.synaxarium || (saintData.day ? getSynaxariumEntry(saintData.day) : null);
+
   if (saintData.isLordFeast) {
-    console.log(`🧠 AI Lord's Feast: ${saintData.saint}`);
+    console.log(`🧠 AI Lord's Feast: ${cleanSaint}`);
   } else {
-    console.log(`🧠 AI Saint: ${saintData.saint}`);
+    console.log(`🧠 AI Saint: ${cleanSaint}`);
   }
   
-  let userPrompt = `Saint: ${saintData.saint}\nDescription: ${saintData.theme}${contextPrompt}`;
+  const synaxExcerpt = synaxarium?.synaxariumExcerpt || saintData.theme || '';
+  let userPrompt = `ቅዱስ/በዓል: ${cleanSaint}\nየስንክሳር ታሪክ: ${synaxExcerpt}\n\nአስፈላጊ መመሪያ፡ ታሪኩንና መንፈሳዊ ትምህርቱን በሙሉ በንጹሕ አማርኛ (Amharic) ብቻ ጻፍ። እንግሊዝኛ ፈጽሞ አትጠቀም።${contextPrompt}`;
   if (saintData.isLordFeast) {
-    userPrompt += `\n\n⚠️ THEOLOGICAL COMMAND (MANDATORY): Note that ${saintData.saint.split(' (')[0]} is GOD (the Lord Jesus Christ / the Holy Trinity), NOT a saint or mere human. He is holy and perfect man and perfect God (Tewahedo doctrine). Make sure the generated story and lesson reflect His deity and perfect humanity, and NEVER refer to Him as a saint or a mere human. The feastType MUST be returned as "በዓል" (Feast) and never "ቅዱስ/ቅድስት" (Saint).`;
+    userPrompt += `\n\n⚠️ THEOLOGICAL COMMAND (MANDATORY): Note that ${cleanSaint} is GOD (the Lord Jesus Christ / the Holy Trinity), NOT a saint or mere human. He is holy and perfect man and perfect God (Tewahedo doctrine). Make sure the generated story and lesson reflect His deity and perfect humanity, and NEVER refer to Him as a saint or a mere human. The feastType MUST be returned as "በዓል" (Feast) and never "ቅዱስ/ቅድስት" (Saint).`;
   }
 
   try {
     const content = await callAI(SAINT_SYSTEM_PROMPT, userPrompt, true);
     const rawData = extractJSON(content);
     const auditedData = await verifyAndCorrect(rawData, true);
+
+    // Safeguard: verify no English words were generated
+    if (containsLatinWords(auditedData.story) || containsLatinWords(auditedData.lesson) || containsLatinWords(auditedData.saint)) {
+      throw new Error('AI output contained English words instead of pure Amharic');
+    }
+
     return { ...auditedData, liturgicalEvent: liturgicalContext?.event || null };
   } catch (err) {
-    console.warn(`⚠️ AI generateSaintOfDay failed (${err.message}). Using Synaxarium entry fallback.`);
-    const cleanSaint = saintData.saint.split(' (')[0];
+    console.warn(`⚠️ AI generateSaintOfDay fallback (${err.message}). Using canonical Synaxarium entry.`);
     return {
-      saint: cleanSaint,
-      story: saintData.theme || 'በኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን ሥርዓት መሠረት የዚህ ቅዱስ መታሰቢያ በታላቅ ክብርና ጸሎት ይዘከራል።',
-      lesson: 'በሃይማኖት መጽናትና እግዚአብሔርን በፍጹም ልብ ማገልገል የጽድቅ መንገድ ነው።',
+      saint: synaxarium?.saint || cleanSaint,
+      story: synaxarium?.synaxariumExcerpt || (saintData.theme && !containsLatinWords(saintData.theme) ? saintData.theme : 'በኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን ሥርዓት መሠረት የዚህ ቅዱስ መታሰቢያ በታላቅ ክብርና ጸሎት ይዘከራል።'),
+      lesson: synaxarium?.spiritualLesson || 'በሃይማኖት መጽናትና እግዚአብሔርን በፍጹም ልብ ማገልገል የጽድቅ መንገድ ነው።',
       reference: 'ሮሜ ፰፥፲፰',
-      feastType: saintData.isLordFeast ? 'የጌታ በዓል' : (saintData.type === 'feast' ? 'በዓል' : 'የቅዱስ ቀን'),
+      feastType: (saintData.isLordFeast || synaxarium?.isLordFeast) ? 'የጌታ በዓል' : (saintData.type === 'feast' ? 'በዓል' : 'የቅዱስ ቀን'),
       liturgicalEvent: liturgicalContext?.event || null
     };
   }
@@ -855,15 +878,20 @@ export async function generateChurchHistory(historyTopic, liturgicalContext = nu
   const contextPrompt = formatContextForPrompt(liturgicalContext);
   console.log(`🧠 AI Church History: ${historyTopic.title}`);
   try {
-    const content = await callAI(CHURCH_HISTORY_SYSTEM_PROMPT, `Topic: ${historyTopic.title}\nEra: ${historyTopic.era}\nYear: ${historyTopic.year}\nContext: ${historyTopic.theme}${contextPrompt}`, true);
+    const content = await callAI(CHURCH_HISTORY_SYSTEM_PROMPT, `Topic: ${historyTopic.title}\nEra: ${historyTopic.era}\nYear: ${historyTopic.year}\nContext: ${historyTopic.theme}${contextPrompt}\n\nአስፈላጊ መመሪያ፡ ታሪኩንና ትርጉሙን በሙሉ በንጹሕ አማርኛ (Amharic) ብቻ ጻፍ። እንግሊዝኛ ፈጽሞ አትጠቀም።`, true);
     const rawData = extractJSON(content);
     const auditedData = await verifyAndCorrect(rawData, true);
+
+    if (containsLatinWords(auditedData.narrative) || containsLatinWords(auditedData.significance) || containsLatinWords(auditedData.title)) {
+      throw new Error('AI Church History contained English words instead of pure Amharic');
+    }
+
     return { ...auditedData, era: historyTopic.era, year: historyTopic.year, liturgicalEvent: liturgicalContext?.event || null };
   } catch (err) {
     console.warn(`⚠️ AI generateChurchHistory failed (${err.message}). Using canonical church history fallback.`);
     return {
       title: historyTopic.title,
-      narrative: historyTopic.theme || 'የኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን የሁለት ሺሕ ዓመታት ታሪክ በመንፈሳዊ ጽናትና በቅዱሳን አባቶች ተጋድሎ የተመሠረተ ነው።',
+      narrative: (historyTopic.theme && !containsLatinWords(historyTopic.theme)) ? historyTopic.theme : 'የኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ቤተ ክርስቲያን የሁለት ሺሕ ዓመታት ታሪክ በመንፈሳዊ ጽናትና በቅዱሳን አባቶች ተጋድሎ የተመሠረተ ነው።',
       significance: 'ይህ ታሪካዊ ክስተት ዛሬም ለኦርቶዶክሳዊ ማንነታችንና ለእምነታችን ጽናት ታላቅ ትምህርት ነው።',
       era: historyTopic.era || 'የኢትዮጵያ ቤተ ክርስቲያን ታሪክ',
       year: historyTopic.year || '፪ሺህ ዓመታት',

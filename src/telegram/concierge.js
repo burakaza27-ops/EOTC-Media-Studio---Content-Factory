@@ -19,6 +19,7 @@
 import { createRequire } from 'module';
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
 import https from 'https';
 import { fileURLToPath } from 'url';
 
@@ -426,7 +427,7 @@ async function handleToday(chatId) {
     `✝️ <b>የዕለቱ ሥነ ሥርዓት — ${eth.day} ${ctx.ethiopianDate.split(' ')[1] || ''} ${eth.year} ዓ.ም</b>`,
     `<i>${ethDate}</i>`,
     '',
-    `🔔 <b>የዕለቱ በዓል/መታሰቢያ፡</b> ${daily.saint}`,
+    `🔔 <b>የዕለቱ በዓል/መታሰቢያ፡</b> ${synaxarium?.saint || daily.saint.split(' (')[0]}`,
     `🎭 <b>የሥነ-ሥርዓት መንፈስ፡</b> ${ctx.mood}`
   ];
 
@@ -1483,6 +1484,22 @@ const isDirectRun = process.argv[1] && (
 );
 
 if (isDirectRun) {
+  // If running in cloud environments (Render, Railway, Fly, Heroku, etc.), listen on $PORT
+  if (process.env.PORT) {
+    const port = parseInt(process.env.PORT, 10);
+    const healthServer = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'healthy',
+        bot: 'EOTC Media Studio Telegram Concierge',
+        timestamp: new Date().toISOString()
+      }));
+    });
+    healthServer.listen(port, () => {
+      console.log(`🌐 Cloud health-check server listening on port ${port}`);
+    });
+  }
+
   const launch = async () => {
     while (true) {
       try {

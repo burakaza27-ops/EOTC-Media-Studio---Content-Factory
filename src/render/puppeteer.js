@@ -501,13 +501,13 @@ export async function renderSaintOfDay(saintData, outputPath) {
       console.log('🎨 Rendering Saint of the Day...');
     }
     
-    const footerText = saintData.isLordFeast ? 'Feast of the Day • EOTC Youth' : 'Saint of the Day • EOTC Youth';
+    const footerText = saintData.isLordFeast ? 'የጌታ በዓል • EOTC YOUTH' : 'የዕለቱ ቅዱስ • EOTC YOUTH';
     
     await renderTemplate(page, 'saint_day.html', {
       'saint-name': saintData.saint,
       'saint-story': saintData.story,
       'saint-lesson': saintData.lesson,
-      'feast-type-badge': saintData.feastType || (saintData.isLordFeast ? 'በዓል' : 'Saint'),
+      'feast-type-badge': saintData.feastType || (saintData.isLordFeast ? 'የጌታ በዓል' : 'የቅዱስ ቀን'),
       'scripture-ref': saintData.reference || '',
       'footer-text': footerText
     }, outputPath, { liturgicalContext: saintData.liturgicalContext });

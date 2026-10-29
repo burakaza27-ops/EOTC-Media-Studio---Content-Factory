@@ -465,17 +465,21 @@ export async function runSaintPipeline(useLiturgical = true, options = {}) {
     console.log(`📜 Synaxarium entry found for day ${ethDay}: ${synaxariumData.saint}`);
   }
 
-  const saintData = await generateSaintOfDay(dailyData, ctx);
+  const saintData = await generateSaintOfDay({ ...dailyData, day: ethDay, synaxarium: synaxariumData }, ctx);
   const hymnLine = synaxariumData?.hymnAmharic || '';
+
+  const cleanSaintName = saintData.saint || synaxariumData?.saint || dailyData.saint.split(' (')[0];
+  const storyText = saintData.story || synaxariumData?.synaxariumExcerpt || '';
+  const lessonText = saintData.lesson || synaxariumData?.spiritualLesson || '';
 
   const outputPath = path.join(OUTPUT_DIR, 'saint_day.png');
   await renderSaintOfDay({
-    saint: saintData.saint || dailyData.saint.split(' (')[0],
-    story: saintData.story || (synaxariumData?.synaxariumExcerpt || ''),
-    lesson: saintData.lesson || (synaxariumData?.spiritualLesson || ''),
-    reference: saintData.reference || '',
+    saint: cleanSaintName,
+    story: storyText,
+    lesson: lessonText,
+    reference: saintData.reference || 'ሮሜ ፰፥፲፰',
     hymn: hymnLine,
-    feastType: saintData.feastType || (dailyData.isLordFeast ? 'በዓል' : (dailyData.type === 'feast' ? 'በዓል' : 'ቅዱስ/ቅድስት')),
+    feastType: saintData.feastType || (dailyData.isLordFeast ? 'የጌታ በዓል' : (dailyData.type === 'feast' ? 'በዓል' : 'የቅዱስ ቀን')),
     isLordFeast: dailyData.isLordFeast,
     liturgicalContext: ctx ? { mood: ctx.mood, ethiopianDate: ctx.ethiopianDateGeez } : null
   }, outputPath);
