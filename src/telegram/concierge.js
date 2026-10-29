@@ -53,6 +53,13 @@ import {
 } from '../canon/synaxarium.js';
 
 import {
+  getVerifiedPatristicQuote,
+  searchPatristics,
+  getPatristicsByFather,
+  getTotalPatristicsCount
+} from '../canon/patristics.js';
+
+import {
   testAIConnection
 } from '../ai/openrouter.js';
 
@@ -248,10 +255,13 @@ export function getMainMenuKeyboard() {
       ],
       [
         { text: '📖 ዕለታዊ ጥቅስ (Verse)', callback_data: 'gen:verse' },
-        { text: '📅 የዛሬው ዕለት (Today)', callback_data: 'today' }
+        { text: '📜 የአበው ትምህርት (Patristic)', callback_data: 'patristic:random' }
       ],
       [
-        { text: '📐 ባሕረ ሐሳብ (Computus)', callback_data: 'computus' },
+        { text: '📅 የዛሬው ዕለት (Today)', callback_data: 'today' },
+        { text: '📐 ባሕረ ሐሳብ (Computus)', callback_data: 'computus' }
+      ],
+      [
         { text: '📁 የቅርብ ጊዜ ፋይሎች (Files)', callback_data: 'recent' }
       ],
       [
@@ -620,15 +630,45 @@ async function handleComputus(chatId, yearArg = null) {
   });
 }
 
+async function handlePatristic(chatId, query = '') {
+  const quote = getVerifiedPatristicQuote(query.trim());
+  if (!quote || !quote.teaching) {
+    return sendMsg(chatId, '❌ ምንም የአበው ትምህርት አልተገኘም።');
+  }
+
+  const lines = [
+    '📜 <b>የአበው ትምህርት (ሃይማኖተ አበው)</b>',
+    '════════════════════════════════',
+    `👑 <b>አባት፦</b> ${quote.father} <i>(${quote.century})</i>`,
+    `📖 <b>ምንጭ፦</b> ${quote.source}`,
+    `📌 <b>ርእስ፦</b> ${quote.title}`,
+    '',
+    `«${quote.teaching}»`,
+    '',
+    `✨ <b>ምድብ፦</b> ${quote.theme}`
+  ];
+
+  const kb = {
+    inline_keyboard: [
+      [{ text: '🔄 ሌላ ትምህርት አንብብ', callback_data: 'patristic:random' }],
+      [{ text: '🎨 በዚህ ትምህርት ኃይለ ቃል አፍልቅ', callback_data: `wizard:type:quote:${quote.theme}` }],
+      [{ text: '🔙 ዋና ማውጫ', callback_data: 'menu:main' }]
+    ]
+  };
+
+  return sendMsg(chatId, lines.join('\n'), kb);
+}
+
 async function handleSearch(chatId, query) {
   if (!query || query.trim().length < 2) {
-    return sendMsg(chatId, '❌ እባክዎ የሚፈልጉትን ቃል ያስገቡ። ምሳሌ: <code>/search ፍቅር</code> ወይም <code>/search ማርያም</code>');
+    return sendMsg(chatId, '❌ እባክዎ የሚፈልጉትን ቃል ያስገቡ። ምሳሌ: <code>/search ፍቅር</code> ወይም <code>/search አፈወርቅ</code>');
   }
 
   const results = searchCanonicalVerses(query.trim());
   const synaxResults = searchSynaxarium(query.trim());
+  const patristicResults = searchPatristics(query.trim());
 
-  if (results.length === 0 && synaxResults.length === 0) {
+  if (results.length === 0 && synaxResults.length === 0 && patristicResults.length === 0) {
     return sendMsg(chatId, `❌ «<b>${query}</b>» ለሚለው ቃል ምንም ውጤት አልተገኘም። እባክዎ ሌላ ቃል ይሞክሩ።`);
   }
 
@@ -642,10 +682,18 @@ async function handleSearch(chatId, query) {
     lines.push('');
   }
 
+  if (patristicResults.length > 0) {
+    lines.push(`📜 <b>ከአበው ትምህርት (${patristicResults.length} ተገኝተዋል)፡</b>`);
+    patristicResults.slice(0, 3).forEach(p => {
+      lines.push(`• <b>${p.father}</b> (${p.title}): «${p.teaching.substring(0, 90)}...»`);
+    });
+    lines.push('');
+  }
+
   if (synaxResults.length > 0) {
     lines.push(`⛪ <b>ከስንክሳር (${synaxResults.length} ተገኝተዋል)፡</b>`);
     synaxResults.slice(0, 3).forEach(s => {
-      lines.push(`• <b>${s.saint}</b>: ${s.synaxariumExcerpt.substring(0, 100)}...`);
+      lines.push(`• <b>${s.saint}</b>: ${s.synaxariumExcerpt.substring(0, 90)}...`);
     });
   }
 
@@ -961,6 +1009,10 @@ async function dispatchUpdate(update) {
     // Direct features
     if (data === 'status') {
       await handleStatus(chatId);
+      return;
+    }
+    if (data === 'patristic:random') {
+      await handlePatristic(chatId);
       return;
     }
     if (data === 'today') {
@@ -1320,6 +1372,9 @@ async function dispatchUpdate(update) {
         await handleComputus(chatId, args[0]); break;
       case 'search':
         await handleSearch(chatId, rest); break;
+      case 'patristic':
+      case 'father':
+        await handlePatristic(chatId, rest); break;
       default:
         if (text.startsWith('/')) {
           await sendMsg(chatId, '❓ ያልታወቀ ትዕዛዝ ነው። ሙሉ ዝርዝር ለማየት /menu ወይም /help ይጫኑ።', getMainMenuKeyboard());
@@ -1393,6 +1448,7 @@ export async function startBotPolling() {
       { command: 'status',     description: '📊 የቀጥታ ሲስተም ጤንነት' },
       { command: 'computus',   description: '📐 የባሕረ ሐሳብ ስሌት' },
       { command: 'recent',     description: '📁 የቅርብ ጊዜ የተፈጠሩ ፋይሎች' },
+      { command: 'patristic',  description: '📜 የአበው ትምህርት (ሃይማኖተ አበው)' },
       { command: 'search',     description: '🔍 ጥቅሶችንና ስንክሳርን ፈልግ' },
       { command: 'help',       description: 'ℹ️ እርዳታና መመሪያ' }
     ]

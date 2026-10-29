@@ -84,6 +84,7 @@ check('src/db/supabase.js exists', fs.existsSync(path.join(ROOT, 'src', 'db', 's
 check('src/telegram/bot.js exists', fs.existsSync(path.join(ROOT, 'src', 'telegram', 'bot.js')));
 check('src/telegram/concierge.js exists', fs.existsSync(path.join(ROOT, 'src', 'telegram', 'concierge.js')));
 check('src/canon/scripture.js exists', fs.existsSync(path.join(ROOT, 'src', 'canon', 'scripture.js')));
+check('src/canon/patristics.js exists', fs.existsSync(path.join(ROOT, 'src', 'canon', 'patristics.js')));
 check('src/canon/synaxarium.js exists', fs.existsSync(path.join(ROOT, 'src', 'canon', 'synaxarium.js')));
 check('src/studio/server.js exists', fs.existsSync(path.join(ROOT, 'src', 'studio', 'server.js')));
 check('src/utils/calendar.js exists', fs.existsSync(path.join(ROOT, 'src', 'utils', 'calendar.js')));
@@ -122,6 +123,12 @@ const sampleVerse = getVerifiedVerse('ፍቅር');
 check('Canon: getVerifiedVerse returns verse', sampleVerse && typeof sampleVerse.verse === 'string' && sampleVerse.verse.length > 0, sampleVerse?.reference);
 const sanitized = sanitizeReference('ማቴዎስ 5:8');
 check('Canon: sanitizeReference converts to Ge\'ez numerals', sanitized.includes('፭፥፰'), sanitized);
+
+// 7b. Patristics Engine Functional Tests (Faith of the Fathers)
+const { VERIFIED_PATRISTICS, getVerifiedPatristicQuote, searchPatristics } = await import('./src/canon/patristics.js');
+check('Patristics: teachings count >= 20', VERIFIED_PATRISTICS.length >= 20, `${VERIFIED_PATRISTICS.length} patristic homilies loaded`);
+const samplePatristic = getVerifiedPatristicQuote('አፈወርቅ');
+check('Patristics: getVerifiedPatristicQuote returns teaching', samplePatristic && typeof samplePatristic.teaching === 'string' && samplePatristic.teaching.length > 0, samplePatristic?.father);
 
 // 8. Synaxarium Engine Functional Tests
 const { SYNAXARIUM_COMMEMORATIONS, getSynaxariumEntry } = await import('./src/canon/synaxarium.js');

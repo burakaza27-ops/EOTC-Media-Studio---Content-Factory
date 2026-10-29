@@ -16,6 +16,14 @@ import {
   getAllSynaxariumEntries
 } from '../src/canon/synaxarium.js';
 
+import {
+  VERIFIED_PATRISTICS,
+  getVerifiedPatristicQuote,
+  searchPatristics,
+  getPatristicsByFather,
+  getTotalPatristicsCount
+} from '../src/canon/patristics.js';
+
 test('EOTC Canonical Scripture Engine', async (t) => {
   await t.test('repository contains comprehensive collection of canonical verses', () => {
     assert.ok(Array.isArray(VERIFIED_SCRIPTURES));
@@ -131,5 +139,50 @@ test('EOTC Synaxarium Engine', async (t) => {
   await t.test('getAllSynaxariumEntries returns all 30 entries array', () => {
     const all = getAllSynaxariumEntries();
     assert.equal(all.length, 30);
+  });
+});
+
+test('EOTC Patristics Engine (Faith of the Fathers / ሃይማኖተ አበው)', async (t) => {
+  await t.test('contains rich collection of verified patristic teachings (>= 25)', () => {
+    assert.ok(Array.isArray(VERIFIED_PATRISTICS));
+    assert.ok(VERIFIED_PATRISTICS.length >= 25, `Expected >= 25 teachings, got ${VERIFIED_PATRISTICS.length}`);
+    assert.equal(getTotalPatristicsCount(), VERIFIED_PATRISTICS.length);
+  });
+
+  await t.test('each patristic record has complete doctrinal metadata', () => {
+    for (const p of VERIFIED_PATRISTICS) {
+      assert.ok(p.id, 'Record must have an id');
+      assert.ok(p.father, 'Record must specify a Church Father');
+      assert.ok(p.source, 'Record must specify a patristic source book');
+      assert.ok(p.teaching && p.teaching.length > 15, 'Teaching must contain substantial text');
+      assert.ok(p.theme, 'Record must have a theme');
+      assert.ok(Array.isArray(p.keywords), 'Keywords must be an array');
+    }
+  });
+
+  await t.test('getVerifiedPatristicQuote returns relevant quote by father name or theme', () => {
+    const chry = getVerifiedPatristicQuote('አፈወርቅ');
+    assert.ok(chry);
+    assert.ok(chry.father.includes('አፈወርቅ'));
+
+    const ath = getVerifiedPatristicQuote('አትናቴዎስ');
+    assert.ok(ath);
+    assert.ok(ath.father.includes('አትናቴዎስ'));
+  });
+
+  await t.test('searchPatristics filters accurately across teachings and sources', () => {
+    const fastingResults = searchPatristics('ጾም');
+    assert.ok(fastingResults.length > 0);
+
+    const prayerResults = searchPatristics('ጸሎት');
+    assert.ok(prayerResults.length > 0);
+  });
+
+  await t.test('getPatristicsByFather returns all teachings for given father', () => {
+    const yaredTeachings = getPatristicsByFather('ያሬድ');
+    assert.ok(yaredTeachings.length >= 2);
+    for (const y of yaredTeachings) {
+      assert.ok(y.father.includes('ያሬድ'));
+    }
   });
 });

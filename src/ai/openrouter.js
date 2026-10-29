@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { formatContextForPrompt } from '../utils/calendar.js';
 import { getVerifiedVerse } from '../canon/scripture.js';
+import { getVerifiedPatristicQuote } from '../canon/patristics.js';
 import { getSynaxariumEntry } from '../canon/synaxarium.js';
 import { createChildLogger } from '../utils/logger.js';
 
@@ -667,8 +668,9 @@ export async function generateQuote(liturgicalContext = null) {
     const auditedContent = await verifyAndCorrect(rawContent, false);
     return { text: auditedContent, theme: theme.split(' ')[0], liturgicalEvent: liturgicalContext?.event || null };
   } catch (err) {
-    console.warn(`⚠️ AI generateQuote failed (${err.message}). Using canonical scripture quote fallback.`);
-    const canon = getVerifiedVerse(liturgicalContext?.mood || '', theme);
+    console.warn(`⚠️ AI generateQuote failed (${err.message}). Using canonical scripture / patristic fallback.`);
+    const patristic = Math.random() > 0.5 ? getVerifiedPatristicQuote(theme, liturgicalContext?.mood || '') : null;
+    const canon = patristic ? { verse: patristic.teaching } : getVerifiedVerse(liturgicalContext?.mood || '', theme);
     return {
       text: canon?.verse || 'እግዚአብሔር ብርሃኔና መድኃኒቴ ነው፤ የሚያስፈራኝ ማን ነው? እግዚአብሔር የሕይወቴ ዕርዳታ ነው፤ የሚያስጨንቀኝ ማን ነው?',
       theme: theme.split(' ')[0],
